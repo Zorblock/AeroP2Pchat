@@ -265,6 +265,37 @@ function renderIcon(className) {
   return icon;
 }
 
+function createBadge(iconClass, title, state = "") {
+  const badge = document.createElement("span");
+  badge.className = `contact-badge ${state}`.trim();
+  badge.title = title;
+  badge.append(renderIcon(iconClass));
+  return badge;
+}
+
+function createContactBadges({ pinned = false, trusted = false, blocked = false, waiting = false, online = false }) {
+  const badges = document.createElement("span");
+  badges.className = "contact-badges";
+
+  if (online) {
+    badges.append(createBadge("fa-solid fa-circle", "Online", "online"));
+  }
+  if (waiting) {
+    badges.append(createBadge("fa-solid fa-hourglass-half", "Waiting", "waiting"));
+  }
+  if (trusted) {
+    badges.append(createBadge("fa-solid fa-shield-halved", "Trusted", "trusted"));
+  }
+  if (pinned) {
+    badges.append(createBadge("fa-solid fa-thumbtack", "Pinned", "pinned"));
+  }
+  if (blocked) {
+    badges.append(createBadge("fa-solid fa-ban", "Blocked", "blocked"));
+  }
+
+  return badges;
+}
+
 contacts = loadContacts();
 
 function setStatus(kind, text) {
@@ -484,12 +515,9 @@ function refreshPeers() {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "contact-name";
-    if (contact.trusted) {
-      name.append(renderIcon("fa-solid fa-shield-halved"));
-    } else {
-      name.append(renderIcon("fa-solid fa-thumbtack"));
-    }
+    name.append(createContactBadges(contact));
     const label = document.createElement("span");
+    label.className = "contact-label";
     label.textContent = contact.label;
     name.append(label);
     name.addEventListener("click", () => {
@@ -522,8 +550,15 @@ function refreshPeers() {
       row.className = "request-item";
 
       const name = document.createElement("span");
-      name.append(renderIcon(isTrusted(getPeerIdentityId(peerId, entry.conn)) ? "fa-solid fa-shield-halved" : "fa-solid fa-user-plus"));
+      const identityId = getPeerIdentityId(peerId, entry.conn);
+      const contact = findContact(identityId);
+      name.append(createContactBadges({
+        pinned: Boolean(contact?.pinned),
+        trusted: isTrusted(identityId),
+        waiting: true
+      }));
       const label = document.createElement("span");
+      label.className = "contact-label";
       label.textContent = peerLabel;
       name.append(label);
 
@@ -556,7 +591,17 @@ function refreshPeers() {
     const waiting = document.createElement("button");
     waiting.type = "button";
     waiting.className = "peer-chip pending";
-    waiting.textContent = `${peerLabel} waiting...`;
+    const identityId = getPeerIdentityId(peerId, entry.conn);
+    const contact = findContact(identityId);
+    waiting.append(createContactBadges({
+      pinned: Boolean(contact?.pinned),
+      trusted: isTrusted(identityId),
+      waiting: true
+    }));
+    const label = document.createElement("span");
+    label.className = "contact-label";
+    label.textContent = peerLabel;
+    waiting.append(label);
     waiting.setAttribute("aria-disabled", "true");
     waiting.addEventListener("contextmenu", (event) => {
       openContactMenu(event, getPeerIdentityId(peerId, entry.conn));
@@ -569,9 +614,16 @@ function refreshPeers() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = peerId === activePeerId ? "peer-chip active" : "peer-chip";
+    const identityId = getPeerIdentityId(peerId, conn);
+    const contact = findContact(identityId);
+    button.append(createContactBadges({
+      pinned: Boolean(contact?.pinned),
+      trusted: isTrusted(identityId),
+      online: conn.open
+    }));
     const label = document.createElement("span");
+    label.className = "contact-label";
     label.textContent = conn.open ? peerLabel : `${peerLabel} ...`;
-    button.append(renderIcon(isTrusted(getPeerIdentityId(peerId, conn)) ? "fa-solid fa-shield-halved" : "fa-solid fa-user"));
     button.append(label);
     button.addEventListener("click", () => {
       activePeerId = peerId;

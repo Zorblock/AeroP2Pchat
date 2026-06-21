@@ -332,12 +332,13 @@ input:disabled {
 .peer-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
   overflow: hidden;
   border: 1px solid rgba(28, 139, 170, 0.28);
   border-radius: 5px;
-  padding: 6px 8px;
+  min-height: 29px;
+  padding: 4px 7px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(205, 246, 255, 0.52));
   color: #16485e;
   font-size: 12px;
@@ -357,6 +358,12 @@ input:disabled {
   border-color: rgba(0, 136, 191, 0.58);
 }
 
+.peer-chip:hover,
+.contact-name:hover {
+  border-color: rgba(0, 136, 191, 0.5);
+  background: linear-gradient(#ffffff, #b7f3ff);
+}
+
 .peer-chip.pending {
   opacity: 0.72;
 }
@@ -369,7 +376,7 @@ input:disabled {
 
 .contact-name,
 .contact-remove {
-  height: 26px;
+  min-height: 29px;
   border: 1px solid rgba(28, 139, 170, 0.28);
   border-radius: 5px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(205, 246, 255, 0.52));
@@ -381,9 +388,9 @@ input:disabled {
 .contact-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   overflow: hidden;
-  padding: 0 7px;
+  padding: 4px 7px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -397,7 +404,61 @@ input:disabled {
 
 .contact-remove {
   padding: 0;
-  color: #6d3540;
+  background: linear-gradient(#ffffff, #ffe7eb);
+  color: #8a3040;
+}
+
+.contact-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.contact-badge {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(50, 135, 165, 0.18);
+  border-radius: 50%;
+  background: linear-gradient(#ffffff, #caf6ff);
+  color: #24728c;
+  font-size: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.contact-badge.trusted {
+  background: linear-gradient(#efffff, #9ff1d2);
+  color: #117247;
+}
+
+.contact-badge.pinned {
+  background: linear-gradient(#fffef0, #ffe189);
+  color: #8a5a00;
+}
+
+.contact-badge.blocked {
+  background: linear-gradient(#fff3f5, #ffb2bd);
+  color: #9b263a;
+}
+
+.contact-badge.waiting {
+  background: linear-gradient(#fffdf1, #ffd98a);
+  color: #8a5a00;
+}
+
+.contact-badge.online {
+  background: linear-gradient(#efffff, #96f0bd);
+  color: #168248;
+  font-size: 6px;
+}
+
+.contact-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .request-item {
@@ -415,7 +476,7 @@ input:disabled {
 .request-item > span {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   overflow: hidden;
   font-weight: 800;
   text-overflow: ellipsis;
