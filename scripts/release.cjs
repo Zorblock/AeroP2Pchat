@@ -47,6 +47,25 @@ function logInfo(label, value) {
   console.log(`${color("dim", label.padEnd(14))} ${value}`);
 }
 
+function logProgress(label, current, total, lastText) {
+  const percent = total > 0 ? Math.min(100, (current / total) * 100) : 0;
+  const barWidth = 24;
+  const filled = Math.round((percent / 100) * barWidth);
+  const bar = `${"#".repeat(filled)}${"-".repeat(barWidth - filled)}`;
+  const text = `${label} ${color("cyan", `[${bar}]`)} ${percent.toFixed(1).padStart(5)}% ${formatBytes(current)} / ${formatBytes(total)}`;
+
+  if (process.stdout.isTTY) {
+    process.stdout.write(`\r${text}`);
+    return text;
+  }
+
+  if (text !== lastText) {
+    console.log(text);
+  }
+
+  return text;
+}
+
 function formatDuration(startedAt) {
   const seconds = (Date.now() - startedAt) / 1000;
   return seconds < 60 ? `${seconds.toFixed(1)}s` : `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
@@ -454,7 +473,7 @@ function writeLinuxManifestUpdate({ existingText, appImagePath, version, owner, 
   return { manifestPath, appImageName: linux.name, linuxSha256: linux.sha256 };
 }
 
-function uploadAssetWithProgress({ token, url, filePath, contentType, size }) {
+function uploadAssetWithProgress({ token, url, filePath, contentType, label, size }) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     const request = https.request(
@@ -498,7 +517,21 @@ function uploadAssetWithProgress({ token, url, filePath, contentType, size }) {
       }
     );
     request.on("error", reject);
-    fs.createReadStream(filePath).on("error", reject).pipe(request);
+
+    let uploaded = 0;
+    let lastProgressAt = 0;
+    let lastText = "";
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (chunk) => {
+      uploaded += chunk.length;
+      const now = Date.now();
+      if (now - lastProgressAt > 150 || uploaded === size) {
+        lastText = logProgress(label, uploaded, size, lastText);
+        lastProgressAt = now;
+      }
+    });
+    stream.on("error", reject);
+    stream.pipe(request);
   });
 }
 
@@ -510,7 +543,17 @@ async function uploadAsset(token, release, filePath, contentType) {
   const size = fs.statSync(filePath).size;
   logStep(`Upload ${assetName} (${formatBytes(size)})`);
   const startedAt = Date.now();
-  await uploadAssetWithProgress({ token, url, filePath, contentType, size });
+  await uploadAssetWithProgress({
+    token,
+    url,
+    filePath,
+    contentType,
+    label: `Upload ${assetName}`,
+    size
+  });
+  if (process.stdout.isTTY) {
+    process.stdout.write("\n");
+  }
   logSuccess(`Uploaded ${assetName} in ${formatDuration(startedAt)}`);
 }
 
