@@ -31,6 +31,7 @@ Uninstallable=yes
 
 OutputDir=dist\installer
 OutputBaseFilename=Aero-P2P-Chat-Setup-{#MyAppVersion}
+SetupIconFile=assets\app.ico
 VersionInfoVersion={#MyAppVersion}
 VersionInfoProductVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}

@@ -74,13 +74,12 @@ button {
   padding: 3px 2px 7px;
 }
 
-.orb {
+.brand-logo {
   width: 32px;
   height: 32px;
+  object-fit: contain;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 25%, #ffffff 0 10%, transparent 11%),
-    radial-gradient(circle at 32% 28%, #f0ffff 0 17%, #65e2f6 42%, #118fc2 100%);
+  background: rgba(255, 255, 255, 0.48);
   box-shadow:
     inset -5px -6px 10px rgba(0, 70, 110, 0.24),
     0 6px 12px rgba(0, 112, 158, 0.22);

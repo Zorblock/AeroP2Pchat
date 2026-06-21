@@ -21,11 +21,13 @@
     },
     "files": [
       "out/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "artifactName": "Aero-P2P-Chat-${version}-${os}-${arch}.${ext}",
     "win": {
-      "target": "dir"
+      "target": "dir",
+      "icon": "assets/app.ico"
     },
     "asar": true
   },

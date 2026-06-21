@@ -8,6 +8,7 @@ function createWindow() {
     minWidth: 620,
     minHeight: 440,
     title: "Aero P2P Chat",
+    icon: join(__dirname, "../../assets/app.ico"),
     backgroundColor: "#c5f2ff",
     autoHideMenuBar: true,
     webPreferences: {

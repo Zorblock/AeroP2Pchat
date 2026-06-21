@@ -1,6 +1,8 @@
 import Peer from "peerjs";
+import appLogo from "../assets/app.png";
 import "./styles.css";
 
+const brandLogo = document.querySelector("#brand-logo");
 const ownId = document.querySelector("#own-id");
 const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
@@ -18,6 +20,8 @@ const sendButton = document.querySelector("#send-button");
 const connections = new Map();
 let activePeerId = null;
 let myPeerId = "";
+
+brandLogo.src = appLogo;
 
 const peer = new Peer({
   debug: 1
