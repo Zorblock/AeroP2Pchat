@@ -125,6 +125,27 @@ function run(command, args, options = {}) {
   logSuccess(`${command} finished in ${formatDuration(startedAt)}`);
 }
 
+function runWithRetry(command, args, options = {}) {
+  const attempts = options.attempts || 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      run(command, args, options);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) {
+        break;
+      }
+      console.error(`${color("yellow", "WARN")} ${command} failed, retrying (${attempt + 1}/${attempts})...`);
+      sleep(2000 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 function runCapture(command, args) {
   const result = spawnSync(commandForSpawn(command), args, {
     cwd: rootDir,
@@ -651,7 +672,9 @@ async function releaseLinuxAppImage({ token, owner, repo, version }) {
 
   logHeader("Build");
   run("node", ["scripts/run-electron-vite.cjs", "build"]);
-  run("npx", ["electron-builder", "--linux", "AppImage"]);
+  runWithRetry("npx", ["electron-builder", "--linux", "AppImage", "--publish", "never"], {
+    attempts: 3
+  });
   const appImageUploadPath = createUploadCopy(findAppImage(), linuxUploadName);
 
   logHeader("GitHub");

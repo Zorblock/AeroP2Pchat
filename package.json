@@ -3,6 +3,7 @@
   "version": "26.2.1",
   "description": "A clean Frutiger Aero styled Electron peer-to-peer chat client.",
   "author": "Jonas Grimm",
+  "desktopName": "Aero P2P Chat",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
@@ -39,7 +40,8 @@
         "AppImage"
       ],
       "icon": "assets/app.png",
-      "category": "Network"
+      "category": "Network",
+      "syncDesktopName": true
     },
     "asar": true
   },
