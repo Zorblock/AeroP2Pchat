@@ -1,0 +1,41 @@
+name: Linux AppImage Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 0.2.0. Leave empty to use package.json."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    name: Build and upload AppImage
+    runs-on: ubuntu-22.04
+    environment: Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and upload Linux AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            npm run release:linux -- --version="${{ inputs.version }}"
+          else
+            npm run release:linux
+          fi
