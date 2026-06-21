@@ -52,6 +52,7 @@ const connections = new Map();
 const pendingConnections = new Map();
 const chatHistory = new Map();
 const unreadCounts = new Map();
+const remoteIdentities = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
@@ -534,13 +535,33 @@ function createChatMetadata() {
   };
 }
 
+function rememberConnectionIdentity(peerId, metadata = {}) {
+  const identityId = metadata.identityId;
+  if (!isValidAeroId(identityId) || identityId === identity.id) {
+    return;
+  }
+
+  const nickname = sanitizeNickname(metadata.nickname);
+  remoteIdentities.set(peerId, { identityId, nickname });
+  if (nickname) {
+    rememberRemoteIdentity(identityId, nickname);
+    return;
+  }
+
+  const existing = findContact(identityId);
+  if (existing && !existing.customLabel && existing.label === identity.nickname) {
+    upsertContact(identityId, { label: identityId, pinned: existing.pinned });
+  }
+}
+
 function getPeerLabel(peerId, conn) {
-  const identityId = conn?.metadata?.identityId || peerId;
-  return findContact(identityId)?.label || sanitizeNickname(conn?.metadata?.nickname) || identityId;
+  const remoteIdentity = remoteIdentities.get(peerId);
+  const identityId = remoteIdentity?.identityId || peerId;
+  return findContact(identityId)?.label || remoteIdentity?.nickname || identityId;
 }
 
 function getPeerIdentityId(peerId, conn) {
-  return conn?.metadata?.identityId || peerId;
+  return remoteIdentities.get(peerId)?.identityId || peerId;
 }
 
 function openContactMenu(event, id) {
@@ -590,6 +611,8 @@ function sendProtocolMessage(conn, type, extra = {}) {
   conn.send({
     type,
     protocol: PROTOCOL_VERSION,
+    identityId: identity.id,
+    nickname: identity.nickname || "",
     time: formatTime(),
     ...extra
   });
@@ -887,7 +910,10 @@ function attachConnectionHandlers(conn, peerId) {
   });
 
   conn.on("data", (data) => {
+    rememberConnectionIdentity(peerId, data);
+
     if (data?.type === "connection-request") {
+      refreshPeers();
       return;
     }
 
@@ -939,8 +965,10 @@ function attachConnectionHandlers(conn, peerId) {
 function registerConnection(conn, options = {}) {
   const peerId = conn.peer;
   const direction = options.incoming ? "incoming" : "outgoing";
+  if (direction === "incoming") {
+    rememberConnectionIdentity(peerId, conn.metadata);
+  }
   const peerIdentityId = getPeerIdentityId(peerId, conn);
-  rememberRemoteIdentity(peerIdentityId, conn.metadata?.nickname);
 
   if (!isKnownChatConnection(conn)) {
     addSystemMessage(`Rejected unsupported connection from ${peerId}.`);
