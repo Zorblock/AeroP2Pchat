@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aero P2P Chat</title>
+    <script type="module" src="/src/renderer.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="connection-panel" aria-label="Verbindung">
+        <div class="brand-row">
+          <div class="orb" aria-hidden="true"></div>
+          <div>
+            <h1>Aero P2P</h1>
+            <p>Direkter Chat ueber WebRTC</p>
+          </div>
+        </div>
+
+        <div class="id-card">
+          <span class="label">Deine Peer-ID</span>
+          <div class="id-row">
+            <code id="own-id">wird erstellt...</code>
+            <button id="copy-id" class="icon-button" type="button" title="Peer-ID kopieren" aria-label="Peer-ID kopieren">
+              <span aria-hidden="true">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <form id="connect-form" class="connect-form">
+          <label for="remote-id">Peer-ID verbinden</label>
+          <div class="connect-row">
+            <input id="remote-id" name="remote-id" autocomplete="off" spellcheck="false" placeholder="remote-peer-id" />
+            <button id="connect-button" type="submit">Verbinden</button>
+          </div>
+        </form>
+
+        <div class="status-card">
+          <span id="status-dot" class="status-dot pending" aria-hidden="true"></span>
+          <div>
+            <span class="label">Status</span>
+            <strong id="status-text">Initialisiere Peer...</strong>
+          </div>
+        </div>
+
+        <div class="peers-card">
+          <span class="label">Aktive Peers</span>
+          <div id="peer-list" class="peer-list">
+            <span class="empty-peer">Noch keine Verbindung</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="chat-panel" aria-label="Chat">
+        <header class="chat-header">
+          <div>
+            <span class="label">Chat</span>
+            <h2 id="chat-title">Bereit fuer Verbindung</h2>
+          </div>
+          <button id="clear-chat" class="ghost-button" type="button">Leeren</button>
+        </header>
+
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="message-form" class="message-form">
+          <input id="message-input" name="message" autocomplete="off" placeholder="Nachricht schreiben..." disabled />
+          <button id="send-button" type="submit" disabled>Senden</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
