@@ -245,6 +245,7 @@
         </div>
         <div class="titlebar-shine" aria-hidden="true"></div>
         <div class="window-controls">
+          <button id="header-update-button" class="header-update-button hidden" type="button">Update</button>
           <button id="window-minimize" type="button" title="Minimize" aria-label="Minimize">
             <i class="fa-solid fa-minus" aria-hidden="true"></i>
           </button>
@@ -258,17 +259,6 @@
       </header>
       <main class="app-shell">
       <section class="connection-panel" aria-label="Connection">
-        <div class="brand-row">
-          <img id="brand-logo" class="brand-logo" alt="" aria-hidden="true" />
-          <div>
-            <h1>Aero P2P</h1>
-          </div>
-          <button id="header-update-button" class="header-update-button hidden" type="button">Update</button>
-          <button id="settings-button" class="settings-button" type="button" title="Settings" aria-label="Settings">
-            <i class="fa-solid fa-gear" aria-hidden="true"></i>
-          </button>
-        </div>
-
         <div class="id-card">
           <span class="label">My Aero ID</span>
           <div class="id-row">
@@ -371,6 +361,13 @@
         <span class="label">Blocked users</span>
         <div id="blocked-list" class="blocked-list"></div>
       </section>
+    </div>
+
+    <div id="app-menu" class="context-menu hidden" role="menu">
+      <button id="app-menu-settings" type="button" role="menuitem">
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        <span>Settings</span>
+      </button>
     </div>
 
     <div id="contact-menu" class="context-menu hidden" role="menu">

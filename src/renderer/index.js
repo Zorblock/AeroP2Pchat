@@ -4,7 +4,6 @@ import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json";
 import "./styles.css";
 
-const brandLogo = document.querySelector("#brand-logo");
 const titlebarLogo = document.querySelector("#titlebar-logo");
 const titlebarSubtitle = document.querySelector("#titlebar-subtitle");
 const windowMinimize = document.querySelector("#window-minimize");
@@ -35,13 +34,14 @@ const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
 const linuxCommand = document.querySelector("#linux-command");
 const copyUpdateCommand = document.querySelector("#copy-update-command");
-const settingsButton = document.querySelector("#settings-button");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
 const nicknameInput = document.querySelector("#nickname-input");
 const saveNickname = document.querySelector("#save-nickname");
 const contactNicknameList = document.querySelector("#contact-nickname-list");
 const blockedList = document.querySelector("#blocked-list");
+const appMenu = document.querySelector("#app-menu");
+const appMenuSettings = document.querySelector("#app-menu-settings");
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
 const menuPin = document.querySelector("#menu-pin");
@@ -102,14 +102,12 @@ function waitForImageReady(image) {
 async function waitForVisualReady() {
   await Promise.all([
     waitForImageReady(titlebarLogo),
-    waitForImageReady(brandLogo),
     document.fonts?.ready?.catch?.(() => {}) ?? Promise.resolve()
   ]);
 }
 
 setBootProgress(4, "Loading logo");
 
-brandLogo.src = appLogo;
 titlebarLogo.src = appLogo;
 await waitForImageReady(bootLogo);
 setBootProgress(18, "Preparing interface");
@@ -629,6 +627,20 @@ function openContactMenu(event, id) {
 function closeContactMenu() {
   contactMenu.classList.add("hidden");
   contextContactId = "";
+}
+
+function openAppMenu(event) {
+  event.preventDefault();
+  closeContactMenu();
+
+  const rect = titlebarLogo.getBoundingClientRect();
+  appMenu.style.left = `${Math.min(rect.left, window.innerWidth - 164)}px`;
+  appMenu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 44)}px`;
+  appMenu.classList.remove("hidden");
+}
+
+function closeAppMenu() {
+  appMenu.classList.add("hidden");
 }
 
 function isKnownChatConnection(conn) {
@@ -1440,8 +1452,13 @@ copyUpdateCommand.addEventListener("click", async () => {
   }, 1200);
 });
 
-settingsButton.addEventListener("click", () => {
+titlebarLogo.addEventListener("contextmenu", openAppMenu);
+
+titlebarLogo.addEventListener("click", openAppMenu);
+
+appMenuSettings.addEventListener("click", () => {
   openSettings();
+  closeAppMenu();
 });
 
 settingsClose.addEventListener("click", () => {
@@ -1519,10 +1536,14 @@ document.addEventListener("click", (event) => {
   if (!contactMenu.contains(event.target)) {
     closeContactMenu();
   }
+  if (!appMenu.contains(event.target) && event.target !== titlebarLogo) {
+    closeAppMenu();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    closeAppMenu();
     closeContactMenu();
     updateModal.classList.add("hidden");
     settingsModal.classList.add("hidden");
