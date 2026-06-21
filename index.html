@@ -43,20 +43,23 @@
         </div>
 
         <div class="id-card">
-          <span class="label">My ID</span>
+          <span class="label">My Aero ID</span>
           <div class="id-row">
             <code id="own-id">creating...</code>
             <button id="copy-id" class="icon-button" type="button" title="Copy peer ID" aria-label="Copy peer ID">
-              <span aria-hidden="true">ID</span>
+              <i class="fa-regular fa-copy" aria-hidden="true"></i>
             </button>
           </div>
         </div>
 
         <form id="connect-form" class="connect-form">
-          <label for="remote-id">Connect</label>
+          <label for="remote-id">Friend Aero ID</label>
           <div class="connect-row">
-            <input id="remote-id" name="remote-id" autocomplete="off" spellcheck="false" placeholder="remote-peer-id" />
-            <button id="connect-button" type="submit">Go</button>
+            <input id="remote-id" name="remote-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="aero-..." />
+            <button id="connect-button" type="submit" disabled>
+              <i class="fa-solid fa-link" aria-hidden="true"></i>
+              <span>Connect</span>
+            </button>
           </div>
         </form>
 
@@ -76,9 +79,9 @@
         </div>
 
         <div class="peers-card">
-          <span class="label">Friends</span>
+          <span class="label">Contacts</span>
           <div id="peer-list" class="peer-list">
-            <span class="empty-peer">No connection yet</span>
+            <span class="empty-peer">No contacts yet</span>
           </div>
         </div>
       </section>
@@ -90,16 +93,25 @@
             <h2 id="chat-title">Ready to connect</h2>
           </div>
           <div class="chat-actions">
-            <button id="disconnect-chat" class="ghost-button danger" type="button" disabled>Disconnect</button>
-            <button id="clear-chat" class="ghost-button" type="button">Clear</button>
+            <button id="disconnect-chat" class="ghost-button danger" type="button" disabled>
+              <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
+              <span>Disconnect</span>
+            </button>
+            <button id="clear-chat" class="ghost-button" type="button">
+              <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+              <span>Clear</span>
+            </button>
           </div>
         </header>
 
-        <div id="messages" class="messages" aria-live="polite"></div>
+        <div id="messages" class="messages empty" aria-live="polite" data-empty="Share your Aero ID or connect to a contact."></div>
 
         <form id="message-form" class="message-form">
           <input id="message-input" name="message" autocomplete="off" placeholder="Write a message..." disabled />
-          <button id="send-button" type="submit" disabled>Send</button>
+          <button id="send-button" type="submit" disabled>
+            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            <span>Send</span>
+          </button>
         </form>
       </section>
       </main>

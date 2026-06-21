@@ -14,6 +14,7 @@ const ownId = document.querySelector("#own-id");
 const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
 const remoteIdInput = document.querySelector("#remote-id");
+const connectButton = document.querySelector("#connect-button");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
 const peerList = document.querySelector("#peer-list");
@@ -47,6 +48,8 @@ const menuBlock = document.querySelector("#menu-block");
 
 const connections = new Map();
 const pendingConnections = new Map();
+const chatHistory = new Map();
+const unreadCounts = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
@@ -147,11 +150,14 @@ migrateLocalStorageConfig();
 const identity = loadIdentity();
 
 ownId.textContent = identity.id;
-remoteIdInput.placeholder = "friend-aero-id";
 nicknameInput.value = identity.nickname || "";
 
 function isValidAeroId(value) {
   return /^aero-[a-f0-9]{32}$/.test(String(value || "").trim());
+}
+
+function normalizeAeroId(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function sanitizeNickname(value) {
@@ -361,6 +367,74 @@ function formatTime(date = new Date()) {
   });
 }
 
+function updateConnectButton() {
+  const remoteId = normalizeAeroId(remoteIdInput.value);
+  connectButton.disabled = !isValidAeroId(remoteId) || remoteId === identity.id || !peer?.open;
+}
+
+function ensureChatHistory(peerId) {
+  if (!chatHistory.has(peerId)) {
+    chatHistory.set(peerId, []);
+  }
+
+  return chatHistory.get(peerId);
+}
+
+function updateEmptyChatState() {
+  if (!activePeerId) {
+    messages.dataset.empty = "Share your Aero ID or connect to a contact.";
+  } else {
+    const activeConn = connections.get(activePeerId);
+    messages.dataset.empty = `No messages with ${getPeerLabel(activePeerId, activeConn)} yet.`;
+  }
+
+  messages.classList.toggle("empty", messages.childElementCount === 0);
+}
+
+function createSystemMessage(text) {
+  const row = document.createElement("div");
+  row.className = "message-row system";
+  row.textContent = text;
+  return row;
+}
+
+function createChatMessage({ text, sender, peerId, time }) {
+  const row = document.createElement("div");
+  row.className = `message-row ${sender === "me" ? "mine" : "theirs"}`;
+
+  const bubble = document.createElement("article");
+  bubble.className = "bubble";
+
+  const meta = document.createElement("span");
+  meta.className = "bubble-meta";
+  meta.textContent = `${sender === "me" ? "You" : getPeerLabel(peerId, connections.get(peerId))} · ${time ?? formatTime()}`;
+
+  const body = document.createElement("p");
+  body.textContent = text;
+
+  bubble.append(meta, body);
+  row.append(bubble);
+  return row;
+}
+
+function appendMessageRow(row) {
+  messages.append(row);
+  messages.scrollTop = messages.scrollHeight;
+  updateEmptyChatState();
+}
+
+function renderChatHistory() {
+  messages.replaceChildren();
+
+  if (activePeerId) {
+    for (const item of ensureChatHistory(activePeerId)) {
+      appendMessageRow(createChatMessage(item));
+    }
+  }
+
+  updateEmptyChatState();
+}
+
 function parseManifest(text) {
   const manifest = {};
   for (const line of text.split(/\r?\n/)) {
@@ -426,31 +500,20 @@ async function checkForUpdates() {
 }
 
 function addSystemMessage(text) {
-  const row = document.createElement("div");
-  row.className = "message-row system";
-  row.textContent = text;
-  messages.append(row);
-  messages.scrollTop = messages.scrollHeight;
+  appendMessageRow(createSystemMessage(text));
 }
 
 function addChatMessage({ text, sender, peerId, time }) {
-  const row = document.createElement("div");
-  row.className = `message-row ${sender === "me" ? "mine" : "theirs"}`;
+  const item = { text, sender, peerId, time: time ?? formatTime() };
+  ensureChatHistory(peerId).push(item);
 
-  const bubble = document.createElement("article");
-  bubble.className = "bubble";
+  if (activePeerId === peerId) {
+    appendMessageRow(createChatMessage(item));
+    return;
+  }
 
-  const meta = document.createElement("span");
-  meta.className = "bubble-meta";
-  meta.textContent = `${sender === "me" ? "You" : peerId} · ${time ?? formatTime()}`;
-
-  const body = document.createElement("p");
-  body.textContent = text;
-
-  bubble.append(meta, body);
-  row.append(bubble);
-  messages.append(row);
-  messages.scrollTop = messages.scrollHeight;
+  unreadCounts.set(peerId, (unreadCounts.get(peerId) || 0) + 1);
+  refreshPeers();
 }
 
 function isSupportedDataChannel() {
@@ -534,6 +597,7 @@ function removePeer(peerId) {
   pendingConnections.delete(peerId);
   if (activePeerId === peerId) {
     activePeerId = connections.keys().next().value ?? null;
+    renderChatHistory();
   }
 }
 
@@ -544,13 +608,14 @@ function refreshPeers() {
     if (contacts.length === 0) {
       const empty = document.createElement("span");
       empty.className = "empty-peer";
-      empty.textContent = "No connection yet";
+      empty.textContent = "No contacts yet";
       peerList.append(empty);
     }
     chatTitle.textContent = "Ready to connect";
     messageInput.disabled = true;
     sendButton.disabled = true;
     disconnectChat.disabled = true;
+    renderChatHistory();
   }
 
   const visibleContactIds = new Set([
@@ -584,8 +649,9 @@ function refreshPeers() {
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "contact-remove";
-    remove.textContent = "X";
     remove.title = "Remove contact";
+    remove.setAttribute("aria-label", "Remove contact");
+    remove.append(renderIcon("fa-solid fa-xmark"));
     remove.addEventListener("click", () => {
       removeContact(contact.id);
     });
@@ -679,9 +745,19 @@ function refreshPeers() {
     label.className = "contact-label";
     label.textContent = conn.open ? peerLabel : `${peerLabel} ...`;
     button.append(label);
+    const unread = unreadCounts.get(peerId) || 0;
+    if (unread > 0) {
+      const unreadBadge = document.createElement("span");
+      unreadBadge.className = "unread-count";
+      unreadBadge.textContent = unread > 99 ? "99+" : String(unread);
+      button.append(unreadBadge);
+    }
     button.addEventListener("click", () => {
       activePeerId = peerId;
+      unreadCounts.delete(peerId);
+      renderChatHistory();
       refreshPeers();
+      messageInput.focus();
     });
     button.addEventListener("contextmenu", (event) => {
       openContactMenu(event, getPeerIdentityId(peerId, conn));
@@ -695,6 +771,8 @@ function refreshPeers() {
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
   disconnectChat.disabled = !canChat;
+  updateConnectButton();
+  updateEmptyChatState();
 }
 
 function acceptConnection(peerId) {
@@ -713,7 +791,9 @@ function acceptConnection(peerId) {
     sendProtocolMessage(entry.conn, "connection-accepted");
     pinContact(getPeerIdentityId(peerId, entry.conn), getPeerLabel(peerId, entry.conn));
     setStatus("online", `Connected to ${peerLabel}`);
+    renderChatHistory();
     addSystemMessage(`Connection with ${peerLabel} accepted.`);
+    messageInput.focus();
   } else {
     entry.acceptOnOpen = true;
     pendingConnections.set(peerId, entry);
@@ -753,7 +833,9 @@ function promoteOutgoingConnection(peerId) {
   activePeerId = peerId;
   pinContact(getPeerIdentityId(peerId, entry.conn), peerLabel);
   setStatus("online", `Connected to ${peerLabel}`);
+  renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
+  messageInput.focus();
   refreshPeers();
 }
 
@@ -776,7 +858,9 @@ function attachConnectionHandlers(conn, peerId) {
       sendProtocolMessage(conn, "connection-accepted");
       pinContact(getPeerIdentityId(peerId, conn), peerLabel());
       setStatus("online", `Connected to ${peerLabel()}`);
+      renderChatHistory();
       addSystemMessage(`Connection with ${peerLabel()} accepted.`);
+      messageInput.focus();
       refreshPeers();
       return;
     }
@@ -881,6 +965,8 @@ function registerConnection(conn, options = {}) {
 }
 
 function connectToPeer(remoteId) {
+  remoteId = normalizeAeroId(remoteId);
+
   if (!peer?.open) {
     setStatus("offline", "Your peer is not ready yet.");
     return;
@@ -949,6 +1035,7 @@ function createPeer() {
     myPeerId = id;
     ownId.textContent = identity.id;
     setStatus("pending", "Aero ID ready. Share it with your chat partner.");
+    updateConnectButton();
   });
 
   nextPeer.on("connection", (conn) => {
@@ -984,13 +1071,17 @@ copyId.addEventListener("click", async () => {
   }
 
   await navigator.clipboard.writeText(identity.id);
+  copyId.classList.add("copied");
   setStatus("pending", "Aero ID copied.");
+  setTimeout(() => {
+    copyId.classList.remove("copied");
+  }, 1200);
 });
 
 connectForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const remoteId = remoteIdInput.value.trim();
+  const remoteId = normalizeAeroId(remoteIdInput.value);
   if (!isValidAeroId(remoteId)) {
     setStatus("offline", "Please enter a valid Aero ID.");
     return;
@@ -1000,6 +1091,14 @@ connectForm.addEventListener("submit", (event) => {
   connectToPeer(remoteId);
   remoteIdInput.value = "";
   refreshPeers();
+});
+
+remoteIdInput.addEventListener("input", () => {
+  const normalized = normalizeAeroId(remoteIdInput.value);
+  if (remoteIdInput.value !== normalized) {
+    remoteIdInput.value = normalized;
+  }
+  updateConnectButton();
 });
 
 messageForm.addEventListener("submit", (event) => {
@@ -1046,7 +1145,10 @@ messageForm.addEventListener("submit", (event) => {
 });
 
 clearChat.addEventListener("click", () => {
-  messages.replaceChildren();
+  if (activePeerId) {
+    chatHistory.set(activePeerId, []);
+  }
+  renderChatHistory();
 });
 
 disconnectChat.addEventListener("click", () => {

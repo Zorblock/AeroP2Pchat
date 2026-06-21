@@ -336,10 +336,17 @@ code {
 }
 
 .icon-button {
+  display: grid;
+  place-items: center;
   width: 32px;
   flex: 0 0 auto;
   background: linear-gradient(#ffffff, #a9eefb 48%, #5fc6ed);
-  font-size: 10px;
+  font-size: 12px;
+}
+
+.icon-button.copied {
+  background: linear-gradient(#f8fff6, #a6f0c3 48%, #45c87d);
+  color: #0b5f33;
 }
 
 .header-update-button {
@@ -398,10 +405,18 @@ input:focus {
 
 #connect-button,
 #send-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-width: 42px;
   padding: 0 9px;
   background: linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8);
   font-size: 11px;
+}
+
+#connect-button {
+  min-width: 88px;
 }
 
 button:disabled,
@@ -482,6 +497,23 @@ input:disabled {
   white-space: nowrap;
 }
 
+.unread-count {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: #ffcf4a;
+  color: #573200;
+  font-size: 10px;
+  font-weight: 900;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(102, 72, 0, 0.16);
+}
+
 .peer-chip span {
   min-width: 0;
   overflow: hidden;
@@ -538,6 +570,8 @@ input:disabled {
 }
 
 .contact-remove {
+  display: grid;
+  place-items: center;
   padding: 0;
   background: linear-gradient(#ffffff, #ffe7eb);
   color: #8a3040;
@@ -660,6 +694,10 @@ input:disabled {
 }
 
 .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 26px;
   padding: 0 9px;
   background: rgba(255, 255, 255, 0.55);
@@ -671,12 +709,27 @@ input:disabled {
 }
 
 .messages {
+  position: relative;
   min-height: 0;
   overflow-y: auto;
   padding: 8px;
   background:
     linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.28)),
     radial-gradient(circle at 16% 14%, rgba(127, 224, 255, 0.22), transparent 13rem);
+}
+
+.messages.empty::before {
+  content: attr(data-empty);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  color: #477487;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .message-row {
