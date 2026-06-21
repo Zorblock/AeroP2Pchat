@@ -7,8 +7,8 @@
   "main": "out/main/index.js",
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
-    "test": "node --check src/main.js && node --check src/preload.js && node --check scripts/build-inno.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
-    "build": "node scripts/run-electron-vite.cjs build && electron-builder --win --dir --config.directories.output=dist/build",
+    "test": "node --check src/main.js && node --check src/preload.js && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
+    "build": "node scripts/build-win.cjs",
     "setup": "npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release.cjs",
     "patch": "node scripts/release.cjs --patch",

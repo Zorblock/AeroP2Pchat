@@ -4,6 +4,10 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const scriptPath = path.join(root, "create-setup.iss");
+const markerPath = path.join(root, "dist", "build", "latest-win-dir.txt");
+const unpackedDir = fs.existsSync(markerPath)
+  ? fs.readFileSync(markerPath, "utf8").trim()
+  : path.join(root, "dist", "build", "win-unpacked");
 const candidates = [
   "ISCC.exe",
   "ISCC",
@@ -26,7 +30,7 @@ if (!compiler) {
   process.exit(1);
 }
 
-const result = spawnSync(compiler, [scriptPath], {
+const result = spawnSync(compiler, [`/DWinUnpackedDir=${unpackedDir}`, scriptPath], {
   cwd: root,
   stdio: "inherit",
   shell: compiler === "ISCC" || compiler === "ISCC.exe"

@@ -7,6 +7,9 @@
 #define MyAppPublisher "Jonas Grimm"
 #define MyAppURL "https://jonasgrimm.de"
 #define MyAppExeName "Aero P2P Chat.exe"
+#ifndef WinUnpackedDir
+#define WinUnpackedDir "dist\build\win-unpacked"
+#endif
 
 [Setup]
 AppId={{B7D1B27B-4654-4479-9C2D-4C90A314C2BE}
@@ -67,7 +70,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons"; Flags: unchecked
 
 [Files]
-Source: "dist\build\win-unpacked\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "*.pdb,*.map,Thumbs.db,desktop.ini"
+Source: "{#WinUnpackedDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "*.pdb,*.map,Thumbs.db,desktop.ini"
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
