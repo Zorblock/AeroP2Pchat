@@ -277,7 +277,6 @@ h2 {
 }
 
 .id-card,
-.status-card,
 .update-card,
 .peers-card {
   border: 1px solid rgba(255, 255, 255, 0.66);
@@ -448,19 +447,13 @@ input:disabled {
   opacity: 0.58;
 }
 
-.status-card {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  align-items: center;
-  gap: 7px;
-}
-
-.status-card strong {
-  display: block;
+.status-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  font-size: 11px;
-  line-height: 1.25;
-  text-overflow: ellipsis;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
