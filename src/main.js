@@ -12,9 +12,30 @@ const windowIcon = process.platform === "win32"
 const releaseHost = "github.com";
 const releasePathPrefix = "/jonasgrimmde/AeroP2Pchat/releases/";
 const configFileName = "config.json";
+const allowMultipleInstances = process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
+let mainWindow = null;
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
+}
+
+if (!allowMultipleInstances) {
+  const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+  if (!hasSingleInstanceLock) {
+    app.quit();
+  } else {
+    app.on("second-instance", () => {
+      if (!mainWindow) {
+        return;
+      }
+
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    });
+  }
 }
 
 function getConfigPath() {
@@ -186,6 +207,13 @@ function createWindow() {
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  mainWindow = win;
+  win.on("closed", () => {
+    if (mainWindow === win) {
+      mainWindow = null;
+    }
+  });
 }
 
 app.whenReady().then(() => {

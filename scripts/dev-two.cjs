@@ -92,6 +92,7 @@ async function main() {
   fs.mkdirSync(devDataRoot, { recursive: true });
 
   spawnChild(process.execPath, [path.join("scripts", "run-electron-vite.cjs"), "dev"], {
+    AERO_CHAT_ALLOW_MULTI_INSTANCE: "1",
     AERO_CHAT_USER_DATA_DIR: path.join(devDataRoot, "instance-1")
   });
 
@@ -99,6 +100,7 @@ async function main() {
 
   spawnChild(electronPath(), [path.join(root, "out", "main", "index.js")], {
     ELECTRON_RENDERER_URL: rendererUrl,
+    AERO_CHAT_ALLOW_MULTI_INSTANCE: "1",
     AERO_CHAT_USER_DATA_DIR: path.join(devDataRoot, "instance-2")
   });
 }
