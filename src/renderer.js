@@ -1495,3 +1495,7 @@ window.addEventListener("beforeunload", () => {
 refreshPeers();
 peer = createPeer();
 checkForUpdates();
+
+requestAnimationFrame(() => {
+  document.body.classList.remove("app-loading");
+});
