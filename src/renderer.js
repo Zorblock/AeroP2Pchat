@@ -5,6 +5,11 @@ import packageInfo from "../package.json";
 import "./styles.css";
 
 const brandLogo = document.querySelector("#brand-logo");
+const titlebarLogo = document.querySelector("#titlebar-logo");
+const titlebarSubtitle = document.querySelector("#titlebar-subtitle");
+const windowMinimize = document.querySelector("#window-minimize");
+const windowMaximize = document.querySelector("#window-maximize");
+const windowClose = document.querySelector("#window-close");
 const ownId = document.querySelector("#own-id");
 const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
@@ -14,6 +19,7 @@ const statusText = document.querySelector("#status-text");
 const peerList = document.querySelector("#peer-list");
 const chatTitle = document.querySelector("#chat-title");
 const clearChat = document.querySelector("#clear-chat");
+const disconnectChat = document.querySelector("#disconnect-chat");
 const messages = document.querySelector("#messages");
 const messageForm = document.querySelector("#message-form");
 const messageInput = document.querySelector("#message-input");
@@ -55,6 +61,7 @@ let contacts = [];
 let contextContactId = "";
 
 brandLogo.src = appLogo;
+titlebarLogo.src = appLogo;
 
 const currentVersion = packageInfo.version;
 const latestReleaseUrl = "https://github.com/jonasgrimmde/AeroP2Pchat/releases/latest";
@@ -344,6 +351,7 @@ contacts = loadContacts();
 function setStatus(kind, text) {
   statusDot.className = `status-dot ${kind}`;
   statusText.textContent = text;
+  titlebarSubtitle.textContent = text;
 }
 
 function formatTime(date = new Date()) {
@@ -542,6 +550,7 @@ function refreshPeers() {
     chatTitle.textContent = "Ready to connect";
     messageInput.disabled = true;
     sendButton.disabled = true;
+    disconnectChat.disabled = true;
   }
 
   const visibleContactIds = new Set([
@@ -685,6 +694,7 @@ function refreshPeers() {
   chatTitle.textContent = activePeerId ? `Connected to ${getPeerLabel(activePeerId, activeConn)}` : "Ready to connect";
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
+  disconnectChat.disabled = !canChat;
 }
 
 function acceptConnection(peerId) {
@@ -1039,6 +1049,20 @@ clearChat.addEventListener("click", () => {
   messages.replaceChildren();
 });
 
+disconnectChat.addEventListener("click", () => {
+  if (!activePeerId) {
+    return;
+  }
+
+  const conn = connections.get(activePeerId);
+  const peerLabel = getPeerLabel(activePeerId, conn);
+  conn?.close();
+  removePeer(activePeerId);
+  setStatus(connections.size > 0 ? "online" : "pending", connections.size > 0 ? "Peer connected" : "Ready to connect");
+  addSystemMessage(`Disconnected from ${peerLabel}.`);
+  refreshPeers();
+});
+
 function openLinuxUpdateModal() {
   modalText.textContent = `Run this command to update Aero P2P Chat to version ${availableUpdate?.version ?? "latest"}.`;
   linuxCommand.textContent = linuxInstallCommand;
@@ -1079,6 +1103,18 @@ async function installAvailableUpdate() {
 
 headerUpdateButton.addEventListener("click", installAvailableUpdate);
 updateButton.addEventListener("click", installAvailableUpdate);
+
+windowMinimize.addEventListener("click", () => {
+  window.aeroChat?.windowControl?.("minimize");
+});
+
+windowMaximize.addEventListener("click", () => {
+  window.aeroChat?.windowControl?.("maximize");
+});
+
+windowClose.addEventListener("click", () => {
+  window.aeroChat?.windowControl?.("close");
+});
 
 modalClose.addEventListener("click", () => {
   updateModal.classList.add("hidden");

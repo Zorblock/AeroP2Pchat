@@ -17,22 +17,156 @@ body {
   min-width: 620px;
   min-height: 100vh;
   overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(64, 166, 214, 0.28), rgba(255, 255, 255, 0.36)),
+    radial-gradient(circle at 20% 8%, rgba(255, 255, 255, 0.9), transparent 14rem),
+    #83cbe9;
 }
 
 button,
 input {
   font: inherit;
+  -webkit-app-region: no-drag;
 }
 
 button {
   cursor: pointer;
 }
 
+.window-frame {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(132, 218, 242, 0.36) 42%, rgba(87, 183, 225, 0.34)),
+    linear-gradient(145deg, #99def5 0%, #e4fff7 47%, #6dbce5 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    inset 0 -1px 0 rgba(0, 88, 132, 0.22),
+    0 16px 34px rgba(3, 43, 68, 0.32);
+}
+
+.titlebar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 6px 5px 9px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(183, 246, 255, 0.72) 46%, rgba(77, 184, 224, 0.72) 47%, rgba(31, 139, 194, 0.58)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 1px, transparent 1px 46px);
+  -webkit-app-region: drag;
+}
+
+.titlebar::after {
+  content: "";
+  position: absolute;
+  inset: 1px 80px auto 8px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.14));
+  pointer-events: none;
+}
+
+.titlebar-brand {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.titlebar-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset -4px -5px 8px rgba(0, 70, 110, 0.2),
+    0 3px 8px rgba(0, 96, 140, 0.22);
+}
+
+.titlebar-brand strong,
+.titlebar-brand span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-brand strong {
+  color: #07364f;
+  font-size: 12px;
+  line-height: 1.1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.titlebar-brand span {
+  color: #2d6a82;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.titlebar-shine {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 26% 0%, rgba(255, 255, 255, 0.78), transparent 9rem),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+.window-controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 24px;
+  border: 1px solid rgba(0, 95, 135, 0.28);
+  border-radius: 5px;
+  background: linear-gradient(#ffffff, #caeff7 48%, #79cce5 49%, #38a8d0);
+  color: #07364f;
+  font-size: 11px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 3px 8px rgba(0, 72, 108, 0.14);
+}
+
+.window-controls button:hover {
+  background: linear-gradient(#ffffff, #e9fbff 48%, #97ebff 49%, #35bde9);
+}
+
+.window-controls .window-close {
+  background: linear-gradient(#fff7f7, #ffc6c6 48%, #ef7777 49%, #c94444);
+  color: #ffffff;
+  text-shadow: 0 1px 0 rgba(112, 0, 0, 0.35);
+}
+
+.window-controls .window-close:hover {
+  background: linear-gradient(#ffffff, #ffdada 48%, #ff8d8d 49%, #db3c3c);
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);
   gap: 8px;
-  height: 100vh;
+  min-height: 0;
   padding: 8px;
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.58)),
@@ -41,6 +175,7 @@ button {
 
 .connection-panel,
 .chat-panel {
+  min-height: 0;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 7px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.66), rgba(183, 239, 252, 0.55));
@@ -515,6 +650,11 @@ input:disabled {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.58), rgba(174, 241, 255, 0.5));
 }
 
+.chat-actions {
+  display: flex;
+  gap: 5px;
+}
+
 .chat-header .label {
   margin-bottom: 1px;
 }
@@ -524,6 +664,10 @@ input:disabled {
   padding: 0 9px;
   background: rgba(255, 255, 255, 0.55);
   font-size: 11px;
+}
+
+.ghost-button.danger {
+  color: #7b2534;
 }
 
 .messages {
@@ -599,7 +743,7 @@ input:disabled {
 
 .modal-layer {
   position: fixed;
-  inset: 0;
+  inset: 36px 0 0;
   display: grid;
   place-items: center;
   padding: 18px;

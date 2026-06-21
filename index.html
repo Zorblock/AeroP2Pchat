@@ -7,7 +7,29 @@
     <script type="module" src="/src/renderer.js"></script>
   </head>
   <body>
-    <main class="app-shell">
+    <div class="window-frame">
+      <header class="titlebar">
+        <div class="titlebar-brand">
+          <img id="titlebar-logo" class="titlebar-logo" alt="" aria-hidden="true" />
+          <div>
+            <strong>Aero P2P Chat</strong>
+            <span id="titlebar-subtitle">Ready</span>
+          </div>
+        </div>
+        <div class="titlebar-shine" aria-hidden="true"></div>
+        <div class="window-controls">
+          <button id="window-minimize" type="button" title="Minimize" aria-label="Minimize">
+            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+          </button>
+          <button id="window-maximize" type="button" title="Maximize" aria-label="Maximize">
+            <i class="fa-regular fa-square" aria-hidden="true"></i>
+          </button>
+          <button id="window-close" class="window-close" type="button" title="Close" aria-label="Close">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+      <main class="app-shell">
       <section class="connection-panel" aria-label="Connection">
         <div class="brand-row">
           <img id="brand-logo" class="brand-logo" alt="" aria-hidden="true" />
@@ -67,7 +89,10 @@
             <span class="label">Chat</span>
             <h2 id="chat-title">Ready to connect</h2>
           </div>
-          <button id="clear-chat" class="ghost-button" type="button">Clear</button>
+          <div class="chat-actions">
+            <button id="disconnect-chat" class="ghost-button danger" type="button" disabled>Disconnect</button>
+            <button id="clear-chat" class="ghost-button" type="button">Clear</button>
+          </div>
         </header>
 
         <div id="messages" class="messages" aria-live="polite"></div>
@@ -77,7 +102,8 @@
           <button id="send-button" type="submit" disabled>Send</button>
         </form>
       </section>
-    </main>
+      </main>
+    </div>
 
     <div id="update-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <section class="modal-panel">

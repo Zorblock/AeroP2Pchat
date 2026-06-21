@@ -134,6 +134,8 @@ function createWindow() {
     minHeight: 440,
     title: "Aero P2P Chat",
     icon: windowIcon,
+    frame: false,
+    titleBarStyle: "hidden",
     backgroundColor: "#c5f2ff",
     autoHideMenuBar: true,
     webPreferences: {
@@ -161,6 +163,20 @@ app.whenReady().then(() => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("window-control", (event, action) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { ok: false };
+    if (action === "minimize") win.minimize();
+    if (action === "maximize") {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      } else {
+        win.maximize();
+      }
+    }
+    if (action === "close") win.close();
+    return { ok: true, maximized: win.isMaximized() };
+  });
   createWindow();
 
   app.on("activate", () => {

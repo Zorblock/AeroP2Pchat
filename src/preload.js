@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld("aeroChat", {
   installUpdate: (details) => ipcRenderer.invoke("install-update", details),
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
-  getConfigPath: () => ipcRenderer.invoke("get-config-path")
+  getConfigPath: () => ipcRenderer.invoke("get-config-path"),
+  windowControl: (action) => ipcRenderer.invoke("window-control", action)
 });
