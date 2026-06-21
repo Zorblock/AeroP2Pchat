@@ -29,7 +29,9 @@ const linuxCommand = document.querySelector("#linux-command");
 const copyUpdateCommand = document.querySelector("#copy-update-command");
 
 const connections = new Map();
+const pendingConnections = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
+const PROTOCOL_VERSION = 1;
 const MAX_MESSAGE_LENGTH = 4000;
 const HIGH_BUFFER_SIZE = 25;
 let activePeerId = null;
@@ -157,6 +159,7 @@ function isSupportedDataChannel() {
 function createChatMetadata() {
   return {
     app: "Aero P2P Chat",
+    protocol: PROTOCOL_VERSION,
     version: currentVersion
   };
 }
@@ -180,10 +183,32 @@ function normalizeMessage(data) {
   };
 }
 
+function sendProtocolMessage(conn, type, extra = {}) {
+  if (!conn?.open) {
+    return false;
+  }
+
+  conn.send({
+    type,
+    protocol: PROTOCOL_VERSION,
+    time: formatTime(),
+    ...extra
+  });
+  return true;
+}
+
+function removePeer(peerId) {
+  connections.delete(peerId);
+  pendingConnections.delete(peerId);
+  if (activePeerId === peerId) {
+    activePeerId = connections.keys().next().value ?? null;
+  }
+}
+
 function refreshPeers() {
   peerList.replaceChildren();
 
-  if (connections.size === 0) {
+  if (connections.size === 0 && pendingConnections.size === 0) {
     const empty = document.createElement("span");
     empty.className = "empty-peer";
     empty.textContent = "No connection yet";
@@ -192,6 +217,45 @@ function refreshPeers() {
     messageInput.disabled = true;
     sendButton.disabled = true;
     return;
+  }
+
+  for (const [peerId, entry] of pendingConnections) {
+    if (entry.direction === "incoming") {
+      const row = document.createElement("div");
+      row.className = "request-item";
+
+      const name = document.createElement("span");
+      name.textContent = peerId;
+
+      const actions = document.createElement("div");
+      actions.className = "request-actions";
+
+      const accept = document.createElement("button");
+      accept.type = "button";
+      accept.textContent = "Accept";
+      accept.addEventListener("click", () => {
+        acceptConnection(peerId);
+      });
+
+      const decline = document.createElement("button");
+      decline.type = "button";
+      decline.textContent = "Decline";
+      decline.addEventListener("click", () => {
+        declineConnection(peerId);
+      });
+
+      actions.append(accept, decline);
+      row.append(name, actions);
+      peerList.append(row);
+      continue;
+    }
+
+    const waiting = document.createElement("button");
+    waiting.type = "button";
+    waiting.className = "peer-chip pending";
+    waiting.textContent = `${peerId} waiting...`;
+    waiting.disabled = true;
+    peerList.append(waiting);
   }
 
   for (const [peerId, conn] of connections) {
@@ -208,38 +272,111 @@ function refreshPeers() {
 
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
   const canChat = Boolean(activeConn?.open);
-  chatTitle.textContent = activePeerId ? `Connected to ${activePeerId}` : "Peer connected";
+  chatTitle.textContent = activePeerId ? `Connected to ${activePeerId}` : "Ready to connect";
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
 }
 
-function registerConnection(conn) {
-  const peerId = conn.peer;
-
-  if (!isKnownChatConnection(conn)) {
-    addSystemMessage(`Rejected unsupported connection from ${peerId}.`);
-    conn.close();
+function acceptConnection(peerId) {
+  const entry = pendingConnections.get(peerId);
+  if (!entry) {
     return;
   }
 
-  if (connections.has(peerId)) {
-    connections.get(peerId).close();
+  pendingConnections.delete(peerId);
+  connections.set(peerId, entry.conn);
+  activePeerId = peerId;
+
+  if (entry.conn.open) {
+    sendProtocolMessage(entry.conn, "connection-accepted");
+    setStatus("online", `Connected to ${peerId}`);
+    addSystemMessage(`Connection with ${peerId} accepted.`);
+  } else {
+    entry.acceptOnOpen = true;
+    pendingConnections.set(peerId, entry);
+    connections.delete(peerId);
+    setStatus("pending", `Accepting ${peerId}...`);
   }
 
-  connections.set(peerId, conn);
-  activePeerId = peerId;
   refreshPeers();
-  setStatus("pending", `Connecting to ${peerId}...`);
+}
 
+function declineConnection(peerId) {
+  const entry = pendingConnections.get(peerId);
+  if (!entry) {
+    return;
+  }
+
+  sendProtocolMessage(entry.conn, "connection-declined");
+  entry.conn.close();
+  pendingConnections.delete(peerId);
+  setStatus(connections.size > 0 ? "online" : "pending", connections.size > 0 ? "Peer connected" : "Ready to connect");
+  addSystemMessage(`Connection request from ${peerId} declined.`);
+  refreshPeers();
+}
+
+function promoteOutgoingConnection(peerId) {
+  const entry = pendingConnections.get(peerId);
+  if (!entry) {
+    return;
+  }
+
+  pendingConnections.delete(peerId);
+  connections.set(peerId, entry.conn);
+  activePeerId = peerId;
+  setStatus("online", `Connected to ${peerId}`);
+  addSystemMessage(`${peerId} accepted your request.`);
+  refreshPeers();
+}
+
+function attachConnectionHandlers(conn, peerId) {
   conn.on("open", () => {
-    setStatus("online", `Connected to ${peerId}`);
-    addSystemMessage(`Connection with ${peerId} is ready.`);
-    refreshPeers();
+    const pending = pendingConnections.get(peerId);
+    if (pending?.direction === "outgoing") {
+      sendProtocolMessage(conn, "connection-request");
+      setStatus("pending", `Waiting for ${peerId} to accept...`);
+      refreshPeers();
+      return;
+    }
+
+    if (pending?.acceptOnOpen) {
+      pendingConnections.delete(peerId);
+      connections.set(peerId, conn);
+      activePeerId = peerId;
+      sendProtocolMessage(conn, "connection-accepted");
+      setStatus("online", `Connected to ${peerId}`);
+      addSystemMessage(`Connection with ${peerId} accepted.`);
+      refreshPeers();
+      return;
+    }
+
+    if (connections.has(peerId)) {
+      setStatus("online", `Connected to ${peerId}`);
+      refreshPeers();
+    }
   });
 
   conn.on("data", (data) => {
+    if (data?.type === "connection-request") {
+      return;
+    }
+
+    if (data?.type === "connection-accepted") {
+      promoteOutgoingConnection(peerId);
+      return;
+    }
+
+    if (data?.type === "connection-declined") {
+      pendingConnections.delete(peerId);
+      conn.close();
+      setStatus("offline", `${peerId} declined your request.`);
+      addSystemMessage(`${peerId} declined your connection request.`);
+      refreshPeers();
+      return;
+    }
+
     const message = normalizeMessage(data);
-    if (!message) {
+    if (!message || !connections.has(peerId)) {
       return;
     }
 
@@ -252,10 +389,12 @@ function registerConnection(conn) {
   });
 
   conn.on("close", () => {
-    connections.delete(peerId);
-    if (activePeerId === peerId) {
-      activePeerId = connections.keys().next().value ?? null;
+    const wasKnown = connections.get(peerId) === conn || pendingConnections.get(peerId)?.conn === conn;
+    if (!wasKnown) {
+      return;
     }
+
+    removePeer(peerId);
     addSystemMessage(`${peerId} closed the connection.`);
     setStatus(connections.size > 0 ? "online" : "pending", connections.size > 0 ? "Peer connected" : "Ready to connect");
     refreshPeers();
@@ -265,6 +404,36 @@ function registerConnection(conn) {
     setStatus("offline", `Connection error: ${error.message}`);
     addSystemMessage(`Error with ${peerId}: ${error.message}`);
   });
+}
+
+function registerConnection(conn, options = {}) {
+  const peerId = conn.peer;
+  const direction = options.incoming ? "incoming" : "outgoing";
+
+  if (!isKnownChatConnection(conn)) {
+    addSystemMessage(`Rejected unsupported connection from ${peerId}.`);
+    conn.close();
+    return;
+  }
+
+  if (connections.has(peerId)) {
+    connections.get(peerId).close();
+  }
+  if (pendingConnections.has(peerId)) {
+    pendingConnections.get(peerId).conn.close();
+  }
+
+  pendingConnections.set(peerId, { conn, direction });
+  attachConnectionHandlers(conn, peerId);
+
+  if (direction === "incoming") {
+    setStatus("pending", `Connection request from ${peerId}`);
+    addSystemMessage(`${peerId} wants to chat. Accept the request to start.`);
+  } else {
+    setStatus("pending", `Sending request to ${peerId}...`);
+  }
+
+  refreshPeers();
 }
 
 function createPeer() {
@@ -286,8 +455,7 @@ function createPeer() {
   });
 
   nextPeer.on("connection", (conn) => {
-    addSystemMessage(`${conn.peer} wants to chat.`);
-    registerConnection(conn);
+    registerConnection(conn, { incoming: true });
   });
 
   nextPeer.on("disconnected", () => {
@@ -361,6 +529,7 @@ messageForm.addEventListener("submit", (event) => {
 
   const payload = {
     type: "chat-message",
+    protocol: PROTOCOL_VERSION,
     text: text.slice(0, MAX_MESSAGE_LENGTH),
     time: formatTime()
   };
@@ -448,6 +617,9 @@ copyUpdateCommand.addEventListener("click", async () => {
 window.addEventListener("beforeunload", () => {
   for (const conn of connections.values()) {
     conn.close();
+  }
+  for (const entry of pendingConnections.values()) {
+    entry.conn.close();
   }
   peer?.destroy();
 });
