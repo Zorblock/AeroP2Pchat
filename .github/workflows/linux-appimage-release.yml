@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version, for example 0.2.0. Leave empty to use package.json."
+        description: "Release version, for example 26.2.1. Leave empty to use package.json."
         required: false
         type: string
 
