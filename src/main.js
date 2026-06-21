@@ -1,6 +1,10 @@
 const { app, BrowserWindow, shell } = require("electron");
 const { join } = require("node:path");
 
+const windowIcon = process.platform === "win32"
+  ? join(__dirname, "../../assets/app.ico")
+  : join(__dirname, "../../assets/linux-icons/512x512.png");
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 760,
@@ -8,7 +12,7 @@ function createWindow() {
     minWidth: 620,
     minHeight: 440,
     title: "Aero P2P Chat",
-    icon: join(__dirname, "../../assets/app.ico"),
+    icon: windowIcon,
     backgroundColor: "#c5f2ff",
     autoHideMenuBar: true,
     webPreferences: {

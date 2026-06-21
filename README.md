@@ -46,7 +46,7 @@ It also creates:
 
 - Command: `~/.local/bin/aero-p2p-chat`
 - Desktop entry: `~/.local/share/applications/de.jonasgrimm.aerop2pchat.desktop`
-- Icon: `~/.local/share/icons/hicolor/256x256/apps/de.jonasgrimm.aerop2pchat.png`
+- Icon: `~/.local/share/icons/hicolor/512x512/apps/de.jonasgrimm.aerop2pchat.png`
 
 ## Install On Windows
 

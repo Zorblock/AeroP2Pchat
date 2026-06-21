@@ -39,7 +39,7 @@
       "target": [
         "AppImage"
       ],
-      "icon": "assets/app.png",
+      "icon": "assets/linux-icons",
       "category": "Network",
       "syncDesktopName": true
     },

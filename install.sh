@@ -9,14 +9,16 @@ RAW_BASE="https://raw.githubusercontent.com/${REPO}/refs/heads/main"
 
 APPIMAGE_URL="${RELEASE_BASE}/Aero-P2P-Chat-Linux.AppImage"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
-ICON_URL="${RAW_BASE}/assets/app.png"
+ICON_URL="${RAW_BASE}/assets/linux-icons/512x512.png"
 
 DATA_HOME="${XDG_DATA_HOME:-"$HOME/.local/share"}"
 CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
 INSTALL_DIR="${DATA_HOME}/aero-p2p-chat"
 BIN_DIR="$HOME/.local/bin"
 APPLICATIONS_DIR="${DATA_HOME}/applications"
-ICON_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
+ICON_SIZE="512x512"
+ICON_DIR="${DATA_HOME}/icons/hicolor/${ICON_SIZE}/apps"
+OLD_ICON_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 APP_DATA_DIR="${CONFIG_HOME}/Aero P2P Chat"
 
 APPIMAGE_PATH="$INSTALL_DIR/Aero-P2P-Chat.AppImage"
@@ -161,6 +163,10 @@ install_icon() {
   tmp_icon="$(mktemp)"
   if download "$ICON_URL" "$tmp_icon"; then
     mv "$tmp_icon" "$ICON_PATH"
+    rm -f "$OLD_ICON_DIR/${APP_ID}.png"
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+      gtk-update-icon-cache -q "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
+    fi
   else
     rm -f "$tmp_icon"
     warn "Icon download failed. The app will still work."
@@ -332,11 +338,14 @@ uninstall_app() {
     keep_user_data=0
   fi
 
-  rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$DESKTOP_PATH" "$ICON_PATH"
+  rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
   rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
 
   if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
+  fi
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
   fi
 
   ok "${APP_NAME} uninstalled."
