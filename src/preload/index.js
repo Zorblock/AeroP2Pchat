@@ -13,5 +13,18 @@ contextBridge.exposeInMainWorld("aeroChat", {
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
+  showNotification: (details) => ipcRenderer.invoke("show-app-notification", details),
+  onNotificationAction: (callback) => {
+    const listener = (_event, action) => callback(action);
+    ipcRenderer.on("notification-action", listener);
+    return () => {
+      ipcRenderer.removeListener("notification-action", listener);
+    };
+  },
   windowControl: (action) => ipcRenderer.invoke("window-control", action)
+});
+
+contextBridge.exposeInMainWorld("aeroChatNotification", {
+  action: (action) => ipcRenderer.invoke("notification-action", action),
+  close: (id) => ipcRenderer.invoke("close-app-notification", id)
 });

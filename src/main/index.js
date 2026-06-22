@@ -1,5 +1,5 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, shell, session } = require("electron");
-const { createWriteStream } = require("node:fs");
+const { app, BrowserWindow, Menu, Tray, ipcMain, screen, shell, session } = require("electron");
+const { createWriteStream, existsSync, readFileSync } = require("node:fs");
 const { mkdir, mkdtemp, readFile, rm, writeFile } = require("node:fs/promises");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
@@ -18,6 +18,10 @@ let mainWindow = null;
 let tray = null;
 let appConfig = {};
 let forceQuit = false;
+const notificationWindows = [];
+const notificationWindowById = new Map();
+
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
@@ -186,6 +190,392 @@ function createTray() {
   tray.on("click", showMainWindow);
   updateTrayMenu();
   return tray;
+}
+
+function shouldSuppressNotification() {
+  return Boolean(mainWindow?.isVisible() && mainWindow?.isFocused());
+}
+
+function getRendererAssetPath(fileName) {
+  if (process.env.ELECTRON_RENDERER_URL) {
+    return join(__dirname, "../../public", fileName);
+  }
+
+  return join(__dirname, "../renderer", fileName);
+}
+
+function getMimeType(filePath) {
+  const lowerPath = String(filePath).toLowerCase();
+  if (lowerPath.endsWith(".png")) return "image/png";
+  if (lowerPath.endsWith(".ogg")) return "audio/ogg";
+  if (lowerPath.endsWith(".wav")) return "audio/wav";
+  return "application/octet-stream";
+}
+
+function fileToDataUrl(filePath) {
+  try {
+    const bytes = readFileSync(filePath);
+    return `data:${getMimeType(filePath)};base64,${bytes.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
+function findRendererAssetDataUrl(candidates) {
+  for (const candidate of candidates) {
+    const assetPath = getRendererAssetPath(candidate);
+    if (existsSync(assetPath)) {
+      return fileToDataUrl(assetPath);
+    }
+  }
+
+  return "";
+}
+
+function findNotificationSound(baseName) {
+  const candidates = [
+    `${baseName}.ogg`,
+    `${baseName}.wav`,
+    join("sound", `${baseName}.ogg`),
+    join("sound", `${baseName}.wav`)
+  ];
+
+  return findRendererAssetDataUrl(candidates);
+}
+
+function findNotificationLogo() {
+  return findRendererAssetDataUrl(["app.png", "boot-logo.png"]);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+function positionNotificationWindows() {
+  const { workArea } = screen.getPrimaryDisplay();
+  let y = workArea.y + workArea.height - 12;
+
+  for (const win of [...notificationWindows].reverse()) {
+    if (win.isDestroyed()) {
+      continue;
+    }
+
+    const [width, height] = win.getSize();
+    y -= height;
+    win.setBounds({
+      x: workArea.x + workArea.width - width - 12,
+      y,
+      width,
+      height
+    });
+    y -= 10;
+  }
+}
+
+function closeNotificationWindow(win) {
+  const index = notificationWindows.indexOf(win);
+  if (index !== -1) {
+    notificationWindows.splice(index, 1);
+  }
+  for (const [id, notificationWindow] of notificationWindowById) {
+    if (notificationWindow === win) {
+      notificationWindowById.delete(id);
+    }
+  }
+  if (!win.isDestroyed()) {
+    win.close();
+  }
+  positionNotificationWindows();
+}
+
+function sendNotificationAction(action) {
+  if (action?.openWindow) {
+    showMainWindow();
+  }
+
+  mainWindow?.webContents.send("notification-action", action);
+}
+
+function createNotificationHtml(details, soundUrl, logoUrl) {
+  const isCall = details.kind === "call";
+  const title = escapeHtml(details.title || (isCall ? "Incoming call" : "New message"));
+  const body = escapeHtml(details.body || "");
+  const peerId = escapeAttribute(details.peerId || "");
+  const callId = escapeAttribute(details.callId || "");
+  const notificationId = escapeAttribute(details.id || "");
+  const sound = escapeAttribute(soundUrl);
+  const logo = escapeAttribute(logoUrl);
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #0d2f43;
+      user-select: none;
+    }
+    .toast {
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(255,255,255,.82);
+      border-radius: 8px;
+      padding: 10px;
+      background:
+        linear-gradient(145deg, rgba(251,255,255,.97), rgba(179,239,252,.95)),
+        radial-gradient(circle at 14% 0%, rgba(255,255,255,.86), transparent 8rem);
+      box-shadow: 0 16px 34px rgba(3, 43, 68, .28), inset 0 1px 0 rgba(255,255,255,.9);
+      animation: enter 170ms cubic-bezier(.2,.82,.2,1);
+    }
+    header {
+      display: grid;
+      grid-template-columns: 30px minmax(0,1fr) 24px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(#ffffff, #9cf1ff 48%, #34b7e7);
+      color: #09536c;
+      font-size: 10px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.12);
+    }
+    .icon img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+    strong, p {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    strong {
+      display: block;
+      font-size: 12px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+    p {
+      margin: 2px 0 0;
+      color: #315f72;
+      font-size: 11px;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .close {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      border-radius: 5px;
+      background: rgba(255,255,255,.45);
+      color: #456b7c;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: ${isCall ? "1fr 1fr" : "minmax(0, 1fr) auto"};
+      gap: 6px;
+    }
+    input {
+      min-width: 0;
+      height: 28px;
+      border: 1px solid rgba(68,151,181,.35);
+      border-radius: 5px;
+      padding: 0 8px;
+      outline: none;
+      background: rgba(255,255,255,.84);
+      color: #0c3143;
+      font-size: 12px;
+      box-shadow: inset 0 2px 5px rgba(18,102,133,.08);
+    }
+    button.action {
+      height: 28px;
+      border: 1px solid rgba(0,117,157,.25);
+      border-radius: 5px;
+      padding: 0 9px;
+      background: linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8);
+      color: #05384f;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.1);
+    }
+    button.accept { color: #11613d; }
+    button.decline {
+      background: linear-gradient(#ffffff, #ffe7eb 48%, #ffb3c0);
+      color: #7b2534;
+    }
+    @keyframes enter {
+      from { opacity: 0; transform: translateX(18px) scale(.98); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+  </style>
+</head>
+<body data-kind="${escapeAttribute(details.kind)}" data-peer-id="${peerId}" data-call-id="${callId}" data-id="${notificationId}">
+  <section class="toast" id="toast">
+    <header>
+      <div class="icon">${logo ? `<img src="${logo}" alt="" />` : "A"}</div>
+      <div>
+        <strong>${title}</strong>
+        <p>${body}</p>
+      </div>
+      <button class="close" type="button" id="close" aria-label="Close">×</button>
+    </header>
+    <div class="actions">
+      ${isCall ? `
+        <button class="action accept" type="button" id="accept">Accept</button>
+        <button class="action decline" type="button" id="decline">Decline</button>
+      ` : `
+        <input id="reply" type="text" maxlength="4000" placeholder="Reply..." />
+        <button class="action" type="button" id="send">Send</button>
+      `}
+    </div>
+  </section>
+  ${sound ? `<audio id="sound" src="${sound}" autoplay ${isCall ? "loop" : ""}></audio>` : ""}
+  <script>
+    const body = document.body;
+    const base = {
+      id: body.dataset.id,
+      kind: body.dataset.kind,
+      peerId: body.dataset.peerId,
+      callId: body.dataset.callId
+    };
+    function close() {
+      window.aeroChatNotification.close(base.id);
+    }
+    async function action(type, extra = {}) {
+      await window.aeroChatNotification.action({ ...base, type, ...extra }).catch(() => {});
+      close();
+    }
+    document.getElementById("close").addEventListener("click", close);
+    document.getElementById("toast").addEventListener("click", (event) => {
+      if (event.target.closest("button") || event.target.closest("input")) return;
+      action("open", { openWindow: true });
+    });
+    const reply = document.getElementById("reply");
+    const send = document.getElementById("send");
+    if (reply && send) {
+      send.addEventListener("click", () => {
+        const text = reply.value.trim();
+        if (text) action("reply", { text, openWindow: false });
+      });
+      reply.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          send.click();
+        }
+      });
+      setTimeout(() => reply.focus(), 70);
+    }
+    document.getElementById("accept")?.addEventListener("click", () => action("accept-call", { openWindow: true }));
+    document.getElementById("decline")?.addEventListener("click", () => action("decline-call"));
+    const sound = document.getElementById("sound");
+    if (sound) {
+      sound.volume = 1;
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function showAppNotification(details = {}) {
+  if (shouldSuppressNotification()) {
+    return { ok: true, suppressed: true };
+  }
+
+  const kind = details.kind === "call" ? "call" : "message";
+  const notification = {
+    id: details.id || `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    kind,
+    peerId: details.peerId || "",
+    callId: details.callId || "",
+    title: String(details.title || ""),
+    body: String(details.body || "")
+  };
+  const width = 342;
+  const height = kind === "call" ? 118 : 126;
+  const win = new BrowserWindow({
+    width,
+    height,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false
+    }
+  });
+
+  notificationWindows.push(win);
+  notificationWindowById.set(notification.id, win);
+  win.on("closed", () => {
+    const index = notificationWindows.indexOf(win);
+    if (index !== -1) {
+      notificationWindows.splice(index, 1);
+    }
+    notificationWindowById.delete(notification.id);
+    positionNotificationWindows();
+  });
+
+  const soundUrl = findNotificationSound(kind === "call" ? "ringtone" : "notification");
+  const logoUrl = findNotificationLogo();
+  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(createNotificationHtml(notification, soundUrl, logoUrl))}`);
+  win.once("ready-to-show", () => {
+    positionNotificationWindows();
+    win.show();
+    if (kind === "message") {
+      setTimeout(() => closeNotificationWindow(win), 12000);
+    }
+  });
+
+  return { ok: true, id: notification.id };
+}
+
+function closeAppNotification(id) {
+  const win = notificationWindowById.get(String(id));
+  if (win) {
+    closeNotificationWindow(win);
+  }
+  return { ok: true };
 }
 
 function assertTrustedInstallerUrl(rawUrl) {
@@ -368,6 +758,12 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("show-app-notification", (_event, details) => showAppNotification(details));
+  ipcMain.handle("close-app-notification", (_event, id) => closeAppNotification(id));
+  ipcMain.handle("notification-action", (_event, action) => {
+    sendNotificationAction(action);
+    return { ok: true };
+  });
   ipcMain.handle("window-control", (event, action) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return { ok: false };

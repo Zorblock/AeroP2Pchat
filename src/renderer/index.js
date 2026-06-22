@@ -674,6 +674,78 @@ function addChatMessage({ id, text, sender, peerId, time }) {
   refreshPeers();
 }
 
+function showAppNotification(details) {
+  if (document.visibilityState === "visible" && document.hasFocus()) {
+    return;
+  }
+
+  window.aeroChat?.showNotification?.(details).catch(() => {});
+}
+
+function notifyIncomingMessage(peerId, text) {
+  const conn = connections.get(peerId);
+  showAppNotification({
+    kind: "message",
+    peerId,
+    title: getPeerLabel(peerId, conn),
+    body: text
+  });
+}
+
+function notifyIncomingCall(peerId, callId) {
+  const conn = connections.get(peerId);
+  showAppNotification({
+    kind: "call",
+    peerId,
+    callId,
+    title: "Incoming voice call",
+    body: `${getPeerLabel(peerId, conn)} is calling`
+  });
+}
+
+function sendChatText(peerId, rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) {
+    return false;
+  }
+
+  const conn = connections.get(peerId);
+  if (!conn?.open) {
+    setStatus("offline", "The active peer is not ready yet.");
+    return false;
+  }
+
+  if (conn.bufferSize > HIGH_BUFFER_SIZE) {
+    setStatus("pending", "Waiting for the send buffer to drain...");
+    return false;
+  }
+
+  const messageId = createMessageId();
+  const payload = {
+    type: "chat-message",
+    id: messageId,
+    protocol: PROTOCOL_VERSION,
+    text: text.slice(0, MAX_MESSAGE_LENGTH),
+    time: formatTime()
+  };
+
+  try {
+    conn.send(payload);
+  } catch (error) {
+    setStatus("offline", `Send failed: ${error.message}`);
+    return false;
+  }
+
+  addChatMessage({
+    id: messageId,
+    text: payload.text,
+    sender: "me",
+    peerId,
+    time: payload.time
+  });
+  return true;
+}
+
 function createCallId() {
   const bytes = new Uint8Array(12);
   crypto.getRandomValues(bytes);
@@ -1012,6 +1084,7 @@ function handleIncomingCallRequest(peerId, data) {
 
   setCallState("incoming", { peerId, callId: data.callId });
   addSystemMessage(`${getPeerLabel(peerId, conn)} is calling.`);
+  notifyIncomingCall(peerId, data.callId);
 }
 
 async function acceptVoiceCall() {
@@ -1684,6 +1757,7 @@ function attachConnectionHandlers(conn, peerId) {
       peerId,
       time: message.time
     });
+    notifyIncomingMessage(peerId, message.text);
   });
 
   conn.on("close", () => {
@@ -1985,42 +2059,10 @@ messageForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const conn = connections.get(activePeerId);
-  if (!conn?.open) {
-    setStatus("offline", "The active peer is not ready yet.");
-    return;
+  if (sendChatText(activePeerId, text)) {
+    messageInput.value = "";
+    messageInput.focus();
   }
-
-  if (conn.bufferSize > HIGH_BUFFER_SIZE) {
-    setStatus("pending", "Waiting for the send buffer to drain...");
-    return;
-  }
-
-  const messageId = createMessageId();
-  const payload = {
-    type: "chat-message",
-    id: messageId,
-    protocol: PROTOCOL_VERSION,
-    text: text.slice(0, MAX_MESSAGE_LENGTH),
-    time: formatTime()
-  };
-
-  try {
-    conn.send(payload);
-  } catch (error) {
-    setStatus("offline", `Send failed: ${error.message}`);
-    return;
-  }
-
-  addChatMessage({
-    id: messageId,
-    text: payload.text,
-    sender: "me",
-    peerId: activePeerId,
-    time: payload.time
-  });
-  messageInput.value = "";
-  messageInput.focus();
 });
 
 clearChat.addEventListener("click", () => {
@@ -2101,6 +2143,40 @@ closeToTrayToggle.addEventListener("change", () => {
 
 navigator.mediaDevices?.addEventListener?.("devicechange", () => {
   refreshAudioDevices();
+});
+
+window.aeroChat?.onNotificationAction?.((action) => {
+  if (!action || typeof action !== "object") {
+    return;
+  }
+
+  const peerId = String(action.peerId || "");
+  if (action.type === "open" && connections.has(peerId)) {
+    activePeerId = peerId;
+    unreadCounts.delete(peerId);
+    renderChatHistory();
+    refreshPeers();
+    messageInput.focus();
+    return;
+  }
+
+  if (action.type === "reply" && connections.has(peerId)) {
+    sendChatText(peerId, action.text);
+    return;
+  }
+
+  if (action.type === "accept-call" && callState.status === "incoming" && callState.peerId === peerId) {
+    activePeerId = peerId;
+    unreadCounts.delete(peerId);
+    renderChatHistory();
+    refreshPeers();
+    acceptVoiceCall();
+    return;
+  }
+
+  if (action.type === "decline-call" && callState.status === "incoming" && callState.peerId === peerId) {
+    declineVoiceCall();
+  }
 });
 
 function openLinuxUpdateModal() {
