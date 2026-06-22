@@ -338,7 +338,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       height: 100%;
       border: 1px solid rgba(255,255,255,.82);
       border-radius: 8px;
-      padding: 8px;
+      padding: 7px;
       background:
         linear-gradient(145deg, rgba(251,255,255,.97), rgba(179,239,252,.95)),
         radial-gradient(circle at 14% 0%, rgba(255,255,255,.86), transparent 8rem);
@@ -350,7 +350,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       grid-template-columns: 30px minmax(0,1fr) 24px;
       align-items: center;
       gap: 8px;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
     .icon {
       display: grid;
@@ -409,7 +409,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
     }
     input {
       min-width: 0;
-      height: 26px;
+      height: 27px;
       border: 1px solid rgba(68,151,181,.35);
       border-radius: 5px;
       padding: 0 8px;
@@ -569,7 +569,7 @@ function showAppNotification(details = {}) {
   }
 
   const width = 342;
-  const height = kind === "call" ? 96 : 118;
+  const height = kind === "call" ? 88 : 118;
   const win = new BrowserWindow({
     width,
     height,
