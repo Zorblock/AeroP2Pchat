@@ -1005,6 +1005,14 @@ input:disabled {
   background: rgba(122, 224, 247, 0.38);
 }
 
+.context-menu button.danger {
+  color: #7b2534;
+}
+
+.context-menu button.danger:hover {
+  background: rgba(247, 122, 122, 0.28);
+}
+
 @media (max-width: 700px) {
   body {
     min-width: 0;

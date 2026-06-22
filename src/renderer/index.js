@@ -47,6 +47,9 @@ const menuTrust = document.querySelector("#menu-trust");
 const menuPin = document.querySelector("#menu-pin");
 const menuNickname = document.querySelector("#menu-nickname");
 const menuBlock = document.querySelector("#menu-block");
+const messageMenu = document.querySelector("#message-menu");
+const menuCopy = document.querySelector("#menu-copy");
+const menuDelete = document.querySelector("#menu-delete");
 const bootLogo = document.querySelector(".boot-logo");
 const bootStatus = document.querySelector("#boot-status");
 const bootProgressFill = document.querySelector("#boot-progress-fill");
@@ -69,6 +72,7 @@ let peer = null;
 let availableUpdate = null;
 let contacts = [];
 let contextContactId = "";
+let contextMessage = null;
 let removeUpdateProgressListener = null;
 
 function setBootProgress(percent, text) {
@@ -145,6 +149,12 @@ function createIdentityId() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return `aero-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function createMessageId() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return `msg-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function loadIdentity() {
@@ -448,9 +458,11 @@ function createSystemMessage(text) {
   return row;
 }
 
-function createChatMessage({ text, sender, peerId, time }) {
+function createChatMessage(item) {
+  const { id, text, sender, peerId, time } = item;
   const row = document.createElement("div");
   row.className = `message-row ${sender === "me" ? "mine" : "theirs"}`;
+  row.dataset.messageId = id;
 
   const bubble = document.createElement("article");
   bubble.className = "bubble";
@@ -464,6 +476,11 @@ function createChatMessage({ text, sender, peerId, time }) {
 
   bubble.append(meta, body);
   row.append(bubble);
+
+  bubble.addEventListener("contextmenu", (event) => {
+    openMessageMenu(event, item);
+  });
+
   return row;
 }
 
@@ -553,8 +570,8 @@ function addSystemMessage(text) {
   appendMessageRow(createSystemMessage(text));
 }
 
-function addChatMessage({ text, sender, peerId, time }) {
-  const item = { text, sender, peerId, time: time ?? formatTime() };
+function addChatMessage({ id, text, sender, peerId, time }) {
+  const item = { id: id ?? createMessageId(), text, sender, peerId, time: time ?? formatTime() };
   ensureChatHistory(peerId).push(item);
 
   if (activePeerId === peerId) {
@@ -611,6 +628,8 @@ function getPeerIdentityId(peerId, conn) {
 
 function openContactMenu(event, id) {
   event.preventDefault();
+  closeMessageMenu();
+  closeAppMenu();
   contextContactId = id;
 
   const contact = findContact(id);
@@ -632,6 +651,7 @@ function closeContactMenu() {
 function openAppMenu(event) {
   event.preventDefault();
   closeContactMenu();
+  closeMessageMenu();
 
   const rect = titlebarLogo.getBoundingClientRect();
   appMenu.style.left = `${Math.min(rect.left, window.innerWidth - 164)}px`;
@@ -641,6 +661,34 @@ function openAppMenu(event) {
 
 function closeAppMenu() {
   appMenu.classList.add("hidden");
+}
+
+function openMessageMenu(event, messageItem) {
+  event.preventDefault();
+  closeContactMenu();
+  closeAppMenu();
+
+  contextMessage = messageItem;
+
+  messageMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 164)}px`;
+  messageMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 80)}px`;
+  messageMenu.classList.remove("hidden");
+}
+
+function closeMessageMenu() {
+  messageMenu.classList.add("hidden");
+  contextMessage = null;
+}
+
+function deleteMessageLocally(peerId, messageId) {
+  const history = ensureChatHistory(peerId);
+  const index = history.findIndex((msg) => msg.id === messageId);
+  if (index !== -1) {
+    history.splice(index, 1);
+    if (activePeerId === peerId) {
+      renderChatHistory();
+    }
+  }
 }
 
 function isKnownChatConnection(conn) {
@@ -657,6 +705,7 @@ function normalizeMessage(data) {
   }
 
   return {
+    id: typeof data.id === "string" ? data.id : null,
     text: data.text.slice(0, MAX_MESSAGE_LENGTH),
     time: typeof data.time === "string" ? data.time : formatTime()
   };
@@ -990,12 +1039,18 @@ function attachConnectionHandlers(conn, peerId) {
       return;
     }
 
+    if (data?.type === "delete-message" && typeof data.messageId === "string") {
+      deleteMessageLocally(peerId, data.messageId);
+      return;
+    }
+
     const message = normalizeMessage(data);
     if (!message || !connections.has(peerId)) {
       return;
     }
 
     addChatMessage({
+      id: message.id,
       text: message.text,
       sender: "them",
       peerId,
@@ -1307,8 +1362,10 @@ messageForm.addEventListener("submit", (event) => {
     return;
   }
 
+  const messageId = createMessageId();
   const payload = {
     type: "chat-message",
+    id: messageId,
     protocol: PROTOCOL_VERSION,
     text: text.slice(0, MAX_MESSAGE_LENGTH),
     time: formatTime()
@@ -1322,6 +1379,7 @@ messageForm.addEventListener("submit", (event) => {
   }
 
   addChatMessage({
+    id: messageId,
     text: payload.text,
     sender: "me",
     peerId: activePeerId,
@@ -1532,6 +1590,35 @@ menuBlock.addEventListener("click", () => {
   closeContactMenu();
 });
 
+menuCopy.addEventListener("click", () => {
+  if (!contextMessage) {
+    return;
+  }
+
+  navigator.clipboard.writeText(contextMessage.text).catch(() => {});
+  closeMessageMenu();
+});
+
+menuDelete.addEventListener("click", () => {
+  if (!contextMessage) {
+    return;
+  }
+
+  const { id, sender, peerId } = contextMessage;
+
+  if (sender === "me") {
+    deleteMessageLocally(peerId, id);
+    const conn = connections.get(peerId);
+    if (conn) {
+      sendProtocolMessage(conn, "delete-message", { messageId: id });
+    }
+  } else {
+    deleteMessageLocally(peerId, id);
+  }
+
+  closeMessageMenu();
+});
+
 document.addEventListener("click", (event) => {
   if (!contactMenu.contains(event.target)) {
     closeContactMenu();
@@ -1539,12 +1626,16 @@ document.addEventListener("click", (event) => {
   if (!appMenu.contains(event.target) && event.target !== titlebarLogo) {
     closeAppMenu();
   }
+  if (!messageMenu.contains(event.target)) {
+    closeMessageMenu();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeAppMenu();
     closeContactMenu();
+    closeMessageMenu();
     updateModal.classList.add("hidden");
     settingsModal.classList.add("hidden");
   }
