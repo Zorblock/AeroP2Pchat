@@ -1052,11 +1052,89 @@ input:disabled {
 
 .settings-check input,
 .settings-choice input {
-  width: 14px;
-  height: 14px;
+  position: relative;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   margin: 0;
-  box-shadow: none;
+  appearance: none;
+  border: 1px solid rgba(93, 12, 34, 0.42);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 66% 28%, rgba(255, 255, 255, 0.96) 0 10%, transparent 19%),
+    radial-gradient(circle at 35% 70%, rgba(255, 255, 255, 0.32) 0 8%, transparent 17%),
+    linear-gradient(145deg, #fff4f5 0%, #ff9fb1 35%, #ff4f73 58%, #a50f3d 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.78),
+    inset 0 -2px 4px rgba(86, 0, 26, 0.28),
+    0 1px 3px rgba(40, 94, 113, 0.18);
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    filter 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.settings-check input::before,
+.settings-choice input::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background-image: url("/img/bubbles.png");
+  background-position: center;
+  background-size: 155%;
+  mix-blend-mode: screen;
+  opacity: 0.46;
+  pointer-events: none;
+}
+
+.settings-check input::after,
+.settings-choice input::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.78);
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 150ms ease,
+    transform 150ms cubic-bezier(0.2, 1.3, 0.3, 1);
+}
+
+.settings-check input:checked,
+.settings-choice input:checked {
+  border-color: rgba(0, 109, 118, 0.48);
+  background:
+    radial-gradient(circle at 64% 25%, rgba(255, 255, 255, 0.98) 0 12%, transparent 21%),
+    radial-gradient(circle at 28% 76%, rgba(255, 255, 255, 0.3) 0 9%, transparent 18%),
+    linear-gradient(145deg, #f5fff4 0%, #9bf6c6 28%, #29d6b2 52%, #0aa1c8 78%, #087099 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.86),
+    inset 0 -2px 4px rgba(0, 82, 95, 0.32),
+    0 0 8px rgba(48, 220, 194, 0.46),
+    0 1px 3px rgba(40, 94, 113, 0.16);
+}
+
+.settings-check input:checked::after,
+.settings-choice input:checked::after {
+  opacity: 0.92;
+  transform: scale(1);
+}
+
+.settings-check input:hover,
+.settings-choice input:hover {
+  filter: saturate(1.12) brightness(1.03);
+  transform: translateY(-1px);
+}
+
+.settings-check input:focus-visible,
+.settings-choice input:focus-visible {
+  outline: 2px solid rgba(36, 184, 216, 0.58);
+  outline-offset: 2px;
 }
 
 .settings-check span,
