@@ -100,8 +100,10 @@ remoteAudio.style.display = "none";
 document.body.append(remoteAudio);
 const callJoinAudio = new Audio("sound/call-join.ogg");
 const callLeaveAudio = new Audio("sound/call-leave.ogg");
+const connectedAudio = new Audio("sound/connected.ogg");
 callJoinAudio.preload = "auto";
 callLeaveAudio.preload = "auto";
+connectedAudio.preload = "auto";
 let localVoiceAudioContext = null;
 const callState = {
   peerId: null,
@@ -714,6 +716,10 @@ function playCallJoinSound() {
 
 function playCallLeaveSound() {
   playCallEventSound(callLeaveAudio);
+}
+
+function playConnectedSound() {
+  playCallEventSound(connectedAudio);
 }
 
 function notifyIncomingMessage(peerId, text) {
@@ -1668,6 +1674,7 @@ function acceptConnection(peerId) {
     setStatus("online", `Connected to ${peerLabel}`);
     renderChatHistory();
     addSystemMessage(`Connection with ${peerLabel} accepted.`);
+    playConnectedSound();
     messageInput.focus();
   } else {
     entry.acceptOnOpen = true;
@@ -1710,6 +1717,7 @@ function promoteOutgoingConnection(peerId) {
   setStatus("online", `Connected to ${peerLabel}`);
   renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
+  playConnectedSound();
   messageInput.focus();
   refreshPeers();
 }
@@ -1735,6 +1743,7 @@ function attachConnectionHandlers(conn, peerId) {
       setStatus("online", `Connected to ${peerLabel()}`);
       renderChatHistory();
       addSystemMessage(`Connection with ${peerLabel()} accepted.`);
+      playConnectedSound();
       messageInput.focus();
       refreshPeers();
       return;
