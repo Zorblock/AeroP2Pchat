@@ -462,7 +462,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       `}
     </div>
   </section>
-  ${sound ? `<audio id="sound" src="${sound}" autoplay ${isCall ? "loop" : ""}></audio>` : ""}
+  ${sound ? `<audio id="sound" src="${sound}" ${isCall ? "" : "autoplay"}></audio>` : ""}
   <script>
     const body = document.body;
     const base = {
@@ -501,11 +501,48 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
     document.getElementById("accept")?.addEventListener("click", () => action("accept-call", { openWindow: true }));
     document.getElementById("decline")?.addEventListener("click", () => action("decline-call"));
     const sound = document.getElementById("sound");
-    if (sound) {
+    let ringtoneAudioContext = null;
+    let ringtoneSource = null;
+    async function playSound() {
+      if (!sound) return;
       sound.volume = 1;
       sound.currentTime = 0;
-      sound.play().catch(() => {});
+      if (base.kind !== "call") {
+        await sound.play().catch(() => {});
+        return;
+      }
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        ringtoneAudioContext = new AudioContextClass();
+        const response = await fetch(sound.src);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await ringtoneAudioContext.decodeAudioData(arrayBuffer);
+        ringtoneSource = ringtoneAudioContext.createBufferSource();
+        ringtoneSource.buffer = audioBuffer;
+        ringtoneSource.loop = true;
+        ringtoneSource.connect(ringtoneAudioContext.destination);
+        ringtoneSource.start(0);
+        sound.pause();
+      } catch {
+        sound.loop = true;
+        await sound.play().catch(() => {});
+      }
     }
+    function stopSound() {
+      try {
+        ringtoneSource?.stop();
+      } catch {}
+      ringtoneSource = null;
+      ringtoneAudioContext?.close().catch(() => {});
+      ringtoneAudioContext = null;
+      if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+      }
+    }
+    window.addEventListener("beforeunload", stopSound);
+    playSound();
   </script>
 </body>
 </html>`;
