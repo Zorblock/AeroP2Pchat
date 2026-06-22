@@ -659,8 +659,14 @@ async function checkForUpdates() {
       return;
     }
 
-    const windowsUrl = manifest.windowsUrl || manifest.url || "";
+    const windowsUrl = manifest.windowsUrl || manifest.windows_url || manifest.url || "";
+    const windowsSha256 = manifest.windowsSha256 || manifest.windows_sha256 || manifest.sha256 || "";
+    const windowsSha512 = manifest.windowsSha512 || manifest.windows_sha512 || manifest.sha512 || "";
     if (platform === "win32" && !windowsUrl) {
+      clearUpdateAvailableUi();
+      return;
+    }
+    if (platform === "win32" && (!windowsSha256 || !windowsSha512)) {
       clearUpdateAvailableUi();
       return;
     }
@@ -668,7 +674,8 @@ async function checkForUpdates() {
     availableUpdate = {
       version: latestVersion,
       windowsUrl,
-      windowsSha256: manifest.windowsSha256 || manifest.sha256 || ""
+      windowsSha256,
+      windowsSha512
     };
 
     updateTitle.textContent = "Update available";
@@ -2312,7 +2319,8 @@ async function installAvailableUpdate() {
       await window.aeroChat.installUpdate({
         url: availableUpdate.windowsUrl,
         version: availableUpdate.version,
-        sha256: availableUpdate.windowsSha256
+        sha256: availableUpdate.windowsSha256,
+        sha512: availableUpdate.windowsSha512
       });
       setUpdateButtonText("Setup started");
       setStatus("pending", "Setup started. The app will restart.");

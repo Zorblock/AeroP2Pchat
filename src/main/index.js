@@ -704,11 +704,31 @@ function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
   });
 }
 
-function getFileSha256(filePath) {
-  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
+function getFileHash(filePath, algorithm, encoding = "hex") {
+  return createHash(algorithm).update(readFileSync(filePath)).digest(encoding);
 }
 
-async function installWindowsUpdate(rawUrl, version, expectedSha256 = "", onProgress = () => {}) {
+function verifyUpdateDownload(filePath, expectedSha256 = "", expectedSha512 = "") {
+  if (!expectedSha256 || !expectedSha512) {
+    throw new Error("Update manifest is missing installer checksums.");
+  }
+
+  if (expectedSha256) {
+    const actualSha256 = getFileHash(filePath, "sha256", "hex").toLowerCase();
+    if (actualSha256 !== String(expectedSha256).toLowerCase()) {
+      throw new Error("Update download SHA256 did not match latest.yml.");
+    }
+  }
+
+  if (expectedSha512) {
+    const actualSha512 = getFileHash(filePath, "sha512", "base64");
+    if (actualSha512 !== String(expectedSha512)) {
+      throw new Error("Update download SHA512 did not match latest.yml.");
+    }
+  }
+}
+
+async function installWindowsUpdate(rawUrl, version, expectedSha256 = "", expectedSha512 = "", onProgress = () => {}) {
   if (process.platform !== "win32") {
     throw new Error("Setup updates are only available on Windows.");
   }
@@ -723,16 +743,14 @@ async function installWindowsUpdate(rawUrl, version, expectedSha256 = "", onProg
   onProgress({ phase: "download", percent: 0, receivedBytes: 0, totalBytes: null });
   await downloadFile(url, setupPath, onProgress);
   onProgress({ phase: "verify", percent: 100 });
-  if (expectedSha256 && getFileSha256(setupPath).toLowerCase() !== String(expectedSha256).toLowerCase()) {
-    throw new Error("Update download checksum did not match latest.yml.");
-  }
+  verifyUpdateDownload(setupPath, expectedSha256, expectedSha512);
   onProgress({ phase: "install", percent: 100 });
 
   const setupArgs = [
     "/SILENT",
     "/SUPPRESSMSGBOXES",
     "/NORESTART",
-    "/CLOSEAPPLICATIONS",
+    "/FORCECLOSEAPPLICATIONS",
     "/RESTARTAPPLICATIONS"
   ];
   const updater = spawn(setupPath, setupArgs, {
@@ -745,7 +763,7 @@ async function installWindowsUpdate(rawUrl, version, expectedSha256 = "", onProg
   setTimeout(() => {
     forceQuit = true;
     app.quit();
-  }, 900);
+  }, 250);
   return { ok: true };
 }
 
@@ -806,7 +824,7 @@ app.whenReady().then(async () => {
     const requestingWindow = BrowserWindow.fromWebContents(webContents);
     callback(requestingWindow === mainWindow && permission === "media");
   });
-  ipcMain.handle("install-update", (event, details) => installWindowsUpdate(details.url, details.version, details.sha256, (progress) => {
+  ipcMain.handle("install-update", (event, details) => installWindowsUpdate(details.url, details.version, details.sha256, details.sha512, (progress) => {
     event.sender.send("update-progress", progress);
   }));
   ipcMain.handle("load-config", () => loadConfig());
