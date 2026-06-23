@@ -1781,7 +1781,7 @@ function notifyIncomingMessage(peerId, text) {
 
 function notifyIncomingCall(peerId, callId) {
   normalizeAppSettings();
-  if (isPresenceDnd() || isPresenceOffline()) {
+  if (isPresenceOffline()) {
     return;
   }
 
@@ -2480,6 +2480,12 @@ function handleIncomingCallRequest(peerId, data) {
   }
 
   const conn = connections.get(peerId);
+  if (isPresenceDnd()) {
+    sendProtocolMessage(conn, "call-declined", { callId: data.callId, reason: "dnd" });
+    addSystemMessage(`${getPeerLabel(peerId, conn)} tried to call while you were in DND.`);
+    return;
+  }
+
   if (isCallBusy()) {
     sendProtocolMessage(conn, "call-declined", { callId: data.callId, reason: "busy" });
     return;
@@ -2578,7 +2584,12 @@ function handleCallDeclined(peerId, data) {
 
   clearOutgoingCallTimeout();
   const label = getPeerLabel(peerId, connections.get(peerId));
-  addSystemMessage(data.reason === "busy" ? `${label} is busy.` : `${label} declined the call.`);
+  const message = data.reason === "busy"
+    ? `${label} is busy.`
+    : data.reason === "dnd"
+      ? `${label} is in DND.`
+      : `${label} declined the call.`;
+  addSystemMessage(message);
   resetCallState();
 }
 
