@@ -1084,7 +1084,8 @@ input:disabled {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 112px;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.84);
   border-radius: 28px;
@@ -1172,6 +1173,10 @@ input:disabled {
   gap: 3px;
   padding: 10px;
   text-align: center;
+  transition:
+    transform 160ms ease,
+    padding 160ms ease,
+    margin 160ms ease;
 }
 
 .participant-meta strong,
@@ -1201,6 +1206,14 @@ input:disabled {
 .participant-card.camera-on .participant-meta span {
   color: #f4fcff;
   text-shadow: 0 1px 12px rgba(2, 15, 22, 0.45);
+}
+
+.participant-card.camera-on .participant-meta {
+  align-self: end;
+  width: calc(100% - 16px);
+  margin: auto 8px 8px;
+  padding: 16px 10px 10px;
+  background: linear-gradient(180deg, rgba(3, 16, 24, 0), rgba(3, 16, 24, 0.62) 42%, rgba(4, 23, 34, 0.84));
 }
 
 .messages {
@@ -1960,7 +1973,6 @@ input:disabled {
   }
 
   .participant-card {
-    min-height: 96px;
     border-radius: 24px;
   }
 }
