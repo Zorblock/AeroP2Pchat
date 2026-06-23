@@ -51,11 +51,20 @@ const saveNickname = document.querySelector("#save-nickname");
 const microphoneSelect = document.querySelector("#microphone-select");
 const speakerSelect = document.querySelector("#speaker-select");
 const micProfileSelect = document.querySelector("#mic-profile-select");
+const voiceCustomControls = document.querySelector("#voice-custom-controls");
 const micModeSelect = document.querySelector("#mic-mode-select");
 const micSensitivitySlider = document.querySelector("#mic-sensitivity-slider");
 const micSensitivityLabel = document.querySelector("#mic-sensitivity-label");
+const micModeLabel = document.querySelector("#mic-mode-label");
 const micNoiseReductionSlider = document.querySelector("#mic-noise-reduction-slider");
 const micNoiseReductionLabel = document.querySelector("#mic-noise-reduction-label");
+const micEqLowSlider = document.querySelector("#mic-eq-low-slider");
+const micEqLowLabel = document.querySelector("#mic-eq-low-label");
+const micEqMidSlider = document.querySelector("#mic-eq-mid-slider");
+const micEqMidLabel = document.querySelector("#mic-eq-mid-label");
+const micEqHighSlider = document.querySelector("#mic-eq-high-slider");
+const micEqHighLabel = document.querySelector("#mic-eq-high-label");
+const micEqLabel = document.querySelector("#mic-eq-label");
 const micBoostSlider = document.querySelector("#mic-boost-slider");
 const micBoostLabel = document.querySelector("#mic-boost-label");
 const remoteVolumeSlider = document.querySelector("#remote-volume-slider");
@@ -108,6 +117,9 @@ const VOICE_AUDIO_BITRATE = 64000;
 const DEFAULT_MIC_SENSITIVITY = 55;
 const DEFAULT_MIC_BOOST = 100;
 const DEFAULT_MIC_NOISE_REDUCTION = 55;
+const DEFAULT_MIC_EQ_LOW = 0;
+const DEFAULT_MIC_EQ_MID = 0;
+const DEFAULT_MIC_EQ_HIGH = 0;
 const DEFAULT_SIDEBAR_WIDTH = 230;
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
@@ -148,9 +160,13 @@ let localVoiceMeterFrame = 0;
 let localVoiceNoiseFloor = 0.01;
 let localVoiceGateNode = null;
 let localVoiceBoostNode = null;
+let localVoiceEqLowNode = null;
+let localVoiceEqMidNode = null;
+let localVoiceEqHighNode = null;
 let localVoiceCompressorNode = null;
 let localVoiceAnalyserNode = null;
 let localVoiceProcessingContext = null;
+let pendingVoiceSettingsReapply = null;
 const callState = {
   peerId: null,
   callId: "",
@@ -384,13 +400,39 @@ function normalizeAudioConfig() {
   appConfig.audio.micNoiseReduction = Number.isFinite(appConfig.audio.micNoiseReduction)
     ? Math.max(0, Math.min(100, Math.round(appConfig.audio.micNoiseReduction)))
     : DEFAULT_MIC_NOISE_REDUCTION;
-  appConfig.audio.micProfile = appConfig.audio.micProfile === "custom" ? "custom" : "standard";
+  appConfig.audio.micEqLow = Number.isFinite(appConfig.audio.micEqLow)
+    ? Math.round(Math.max(-12, Math.min(12, appConfig.audio.micEqLow)))
+    : DEFAULT_MIC_EQ_LOW;
+  appConfig.audio.micEqMid = Number.isFinite(appConfig.audio.micEqMid)
+    ? Math.round(Math.max(-12, Math.min(12, appConfig.audio.micEqMid)))
+    : DEFAULT_MIC_EQ_MID;
+  appConfig.audio.micEqHigh = Number.isFinite(appConfig.audio.micEqHigh)
+    ? Math.round(Math.max(-12, Math.min(12, appConfig.audio.micEqHigh)))
+    : DEFAULT_MIC_EQ_HIGH;
+  appConfig.audio.micProfile = ["voice-isolation", "studio", "custom"].includes(appConfig.audio.micProfile)
+    ? appConfig.audio.micProfile
+    : "voice-isolation";
 }
 
 function saveAudioConfig() {
   normalizeAudioConfig();
   renderAudioSettings();
   saveAppConfig();
+}
+
+function scheduleVoiceSettingsReapply() {
+  if (!callState.localStream || callState.status === "idle") {
+    return;
+  }
+
+  if (pendingVoiceSettingsReapply) {
+    clearTimeout(pendingVoiceSettingsReapply);
+  }
+
+  pendingVoiceSettingsReapply = setTimeout(() => {
+    pendingVoiceSettingsReapply = null;
+    applyVoiceSettingsToActiveCall().catch(() => {});
+  }, 220);
 }
 
 function setRemoteVolume(volume) {
@@ -404,6 +446,7 @@ function setRemoteVolume(volume) {
   if (remoteVolumeLabel) {
     remoteVolumeLabel.textContent = `${nextVolume}%`;
   }
+  updateRangeFill(remoteVolumeSlider, nextVolume, 0, 100);
 }
 
 function setMicSensitivity(value, { persist = false } = {}) {
@@ -416,9 +459,11 @@ function setMicSensitivity(value, { persist = false } = {}) {
   if (micSensitivityLabel) {
     micSensitivityLabel.textContent = `${nextValue}%`;
   }
+  updateRangeFill(micSensitivitySlider, nextValue, 0, 100);
   if (persist) {
     saveAudioConfig();
   }
+  scheduleVoiceSettingsReapply();
 }
 
 function setMicBoost(value, { persist = false } = {}) {
@@ -431,9 +476,11 @@ function setMicBoost(value, { persist = false } = {}) {
   if (micBoostLabel) {
     micBoostLabel.textContent = `${nextValue}%`;
   }
+  updateRangeFill(micBoostSlider, nextValue, 0, 200);
   if (persist) {
     saveAudioConfig();
   }
+  scheduleVoiceSettingsReapply();
 }
 
 function setMicNoiseReduction(value, { persist = false } = {}) {
@@ -446,9 +493,31 @@ function setMicNoiseReduction(value, { persist = false } = {}) {
   if (micNoiseReductionLabel) {
     micNoiseReductionLabel.textContent = `${nextValue}%`;
   }
+  updateRangeFill(micNoiseReductionSlider, nextValue, 0, 100);
   if (persist) {
     saveAudioConfig();
   }
+  scheduleVoiceSettingsReapply();
+}
+
+function setMicEqBand(band, value, { persist = false } = {}) {
+  normalizeAudioConfig();
+  const nextValue = Math.max(-12, Math.min(12, Math.round(value)));
+  const key = band === "low" ? "micEqLow" : band === "mid" ? "micEqMid" : "micEqHigh";
+  appConfig.audio[key] = nextValue;
+  const slider = band === "low" ? micEqLowSlider : band === "mid" ? micEqMidSlider : micEqHighSlider;
+  const label = band === "low" ? micEqLowLabel : band === "mid" ? micEqMidLabel : micEqHighLabel;
+  if (slider) {
+    slider.value = String(nextValue);
+  }
+  if (label) {
+    label.textContent = `${nextValue > 0 ? "+" : ""}${nextValue} dB`;
+  }
+  updateRangeFill(slider, nextValue, -12, 12);
+  if (persist) {
+    saveAudioConfig();
+  }
+  scheduleVoiceSettingsReapply();
 }
 
 function setMicMode(mode, { persist = false } = {}) {
@@ -460,17 +529,19 @@ function setMicMode(mode, { persist = false } = {}) {
   if (persist) {
     saveAudioConfig();
   }
+  scheduleVoiceSettingsReapply();
 }
 
 function setMicProfile(profile, { persist = false } = {}) {
   normalizeAudioConfig();
-  appConfig.audio.micProfile = profile === "custom" ? "custom" : "standard";
+  appConfig.audio.micProfile = ["voice-isolation", "studio", "custom"].includes(profile) ? profile : "voice-isolation";
   if (micProfileSelect) {
     micProfileSelect.value = appConfig.audio.micProfile;
   }
   if (persist) {
     saveAudioConfig();
   }
+  scheduleVoiceSettingsReapply();
 }
 
 function renderAudioSettings() {
@@ -478,28 +549,59 @@ function renderAudioSettings() {
   if (micProfileSelect) {
     micProfileSelect.value = appConfig.audio.micProfile;
   }
+  const isCustom = appConfig.audio.micProfile === "custom";
   if (micModeSelect) {
     micModeSelect.value = appConfig.audio.micMode;
+    micModeSelect.disabled = !isCustom;
   }
   if (micSensitivitySlider) {
     micSensitivitySlider.value = String(appConfig.audio.micSensitivity);
-    micSensitivitySlider.disabled = appConfig.audio.micMode === "auto";
+    micSensitivitySlider.disabled = !isCustom || appConfig.audio.micMode === "auto";
   }
   if (micSensitivityLabel) {
     micSensitivityLabel.textContent = `${appConfig.audio.micSensitivity}%`;
   }
   if (micBoostSlider) {
     micBoostSlider.value = String(appConfig.audio.micBoost);
+    micBoostSlider.disabled = false;
   }
   if (micBoostLabel) {
     micBoostLabel.textContent = `${appConfig.audio.micBoost}%`;
   }
   if (micNoiseReductionSlider) {
     micNoiseReductionSlider.value = String(appConfig.audio.micNoiseReduction);
-    micNoiseReductionSlider.disabled = appConfig.audio.micProfile !== "custom";
+    micNoiseReductionSlider.disabled = !isCustom;
   }
   if (micNoiseReductionLabel) {
     micNoiseReductionLabel.textContent = `${appConfig.audio.micNoiseReduction}%`;
+  }
+  if (micEqLowSlider) {
+    micEqLowSlider.value = String(appConfig.audio.micEqLow);
+  }
+  if (micEqMidSlider) {
+    micEqMidSlider.value = String(appConfig.audio.micEqMid);
+  }
+  if (micEqHighSlider) {
+    micEqHighSlider.value = String(appConfig.audio.micEqHigh);
+  }
+  if (micEqLowLabel) {
+    micEqLowLabel.textContent = `${appConfig.audio.micEqLow > 0 ? "+" : ""}${appConfig.audio.micEqLow} dB`;
+  }
+  if (micEqMidLabel) {
+    micEqMidLabel.textContent = `${appConfig.audio.micEqMid > 0 ? "+" : ""}${appConfig.audio.micEqMid} dB`;
+  }
+  if (micEqHighLabel) {
+    micEqHighLabel.textContent = `${appConfig.audio.micEqHigh > 0 ? "+" : ""}${appConfig.audio.micEqHigh} dB`;
+  }
+  if (micEqLabel) {
+    const eqValues = [appConfig.audio.micEqLow, appConfig.audio.micEqMid, appConfig.audio.micEqHigh];
+    micEqLabel.textContent = eqValues.every((value) => value === 0) ? "Flat" : "Custom";
+  }
+  if (micModeLabel) {
+    micModeLabel.textContent = appConfig.audio.micMode === "manual" ? "Manual" : "Auto";
+  }
+  if (voiceCustomControls) {
+    voiceCustomControls.classList.toggle("hidden", !isCustom);
   }
   if (remoteVolumeSlider) {
     remoteVolumeSlider.value = String(appConfig.audio.remoteVolume);
@@ -508,6 +610,26 @@ function renderAudioSettings() {
     remoteVolumeLabel.textContent = `${appConfig.audio.remoteVolume}%`;
   }
   remoteAudio.volume = appConfig.audio.remoteVolume / 100;
+  updateRangeFill(micSensitivitySlider, appConfig.audio.micSensitivity, 0, 100);
+  updateRangeFill(micNoiseReductionSlider, appConfig.audio.micNoiseReduction, 0, 100);
+  updateRangeFill(micEqLowSlider, appConfig.audio.micEqLow, -12, 12);
+  updateRangeFill(micEqMidSlider, appConfig.audio.micEqMid, -12, 12);
+  updateRangeFill(micEqHighSlider, appConfig.audio.micEqHigh, -12, 12);
+  updateRangeFill(micBoostSlider, appConfig.audio.micBoost, 0, 200);
+  updateRangeFill(remoteVolumeSlider, appConfig.audio.remoteVolume, 0, 100);
+}
+
+function updateRangeFill(input, value, min, max) {
+  if (!input) {
+    return;
+  }
+
+  const lower = Number.isFinite(min) ? min : 0;
+  const upper = Number.isFinite(max) ? max : 100;
+  const safeValue = Math.max(lower, Math.min(upper, Number(value) || 0));
+  const span = Math.max(1, upper - lower);
+  const percent = ((safeValue - lower) / span) * 100;
+  input.style.setProperty("--range-fill", `${percent}%`);
 }
 
 function normalizeAppSettings() {
@@ -1460,6 +1582,9 @@ function resetVoiceProcessingState() {
   localVoiceNoiseFloor = 0.01;
   localVoiceGateNode = null;
   localVoiceBoostNode = null;
+  localVoiceEqLowNode = null;
+  localVoiceEqMidNode = null;
+  localVoiceEqHighNode = null;
   localVoiceCompressorNode = null;
   localVoiceAnalyserNode = null;
   localVoiceProcessingContext = null;
@@ -1484,12 +1609,28 @@ function getMicNoiseReductionFactor() {
   return Math.max(0, Math.min(100, value)) / 100;
 }
 
+function getMicEqValues() {
+  normalizeAudioConfig();
+  return {
+    low: Math.max(-12, Math.min(12, Number(appConfig.audio.micEqLow) || 0)),
+    mid: Math.max(-12, Math.min(12, Number(appConfig.audio.micEqMid) || 0)),
+    high: Math.max(-12, Math.min(12, Number(appConfig.audio.micEqHigh) || 0))
+  };
+}
+
 function updateVoiceMeter() {
   if (!localVoiceAnalyserNode || !localVoiceGateNode || !localVoiceBoostNode || !localVoiceProcessingContext) {
     return;
   }
 
   const audio = appConfig.audio || {};
+  if (audio.micProfile === "studio") {
+    localVoiceGateNode.gain.setTargetAtTime(1, localVoiceProcessingContext.currentTime, 0.01);
+    localVoiceBoostNode.gain.setTargetAtTime(1, localVoiceProcessingContext.currentTime, 0.03);
+    localVoiceMeterFrame = requestAnimationFrame(updateVoiceMeter);
+    return;
+  }
+
   const buffer = new Float32Array(localVoiceAnalyserNode.fftSize);
   localVoiceAnalyserNode.getFloatTimeDomainData(buffer);
 
@@ -1507,11 +1648,14 @@ function updateVoiceMeter() {
     }
   }
 
+  const noiseFloor = audio.micProfile === "custom"
+    ? localVoiceNoiseFloor + getMicNoiseReductionFactor() * 0.02
+    : localVoiceNoiseFloor;
   const threshold = getMicGateThreshold({
     profile: audio.micProfile,
     mode: audio.micMode,
     sensitivity: audio.micSensitivity,
-    noiseFloor: localVoiceNoiseFloor + getMicNoiseReductionFactor() * 0.02
+    noiseFloor
   });
   const now = localVoiceProcessingContext.currentTime;
   const gateOpen = rms >= threshold ? 1 : 0.0001;
@@ -1545,11 +1689,11 @@ async function applyAudioOutputDevice() {
 function createVoiceAudioConstraints() {
   normalizeAudioConfig();
   const deviceId = appConfig.audio.inputDeviceId;
-  const useStandardProfile = appConfig.audio.micProfile !== "custom";
+  const profile = appConfig.audio.micProfile;
   const audio = {
     echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: useStandardProfile,
+    noiseSuppression: profile !== "studio",
+    autoGainControl: profile === "voice-isolation",
     channelCount: { ideal: 1 },
     sampleRate: { ideal: 48000 },
     sampleSize: { ideal: 16 },
@@ -1641,44 +1785,72 @@ async function getVoiceStream() {
     localVoiceProcessingContext = localVoiceAudioContext;
     await localVoiceAudioContext.resume().catch(() => {});
     const source = localVoiceAudioContext.createMediaStreamSource(rawStream);
-    const highpass = localVoiceAudioContext.createBiquadFilter();
-    const analyser = localVoiceAudioContext.createAnalyser();
-    const compressor = localVoiceAudioContext.createDynamicsCompressor();
-    const boostNode = localVoiceAudioContext.createGain();
-    const gateNode = localVoiceAudioContext.createGain();
     const destination = localVoiceAudioContext.createMediaStreamDestination();
-    const useStandardProfile = appConfig.audio.micProfile !== "custom";
-    const noiseReduction = appConfig.audio.micNoiseReduction ?? DEFAULT_MIC_NOISE_REDUCTION;
-    const noiseReductionFactor = Math.max(0, Math.min(100, noiseReduction)) / 100;
+    const profile = appConfig.audio.micProfile;
+    if (profile === "studio") {
+      source.connect(destination);
+      localVoiceAnalyserNode = null;
+      localVoiceGateNode = null;
+      localVoiceCompressorNode = null;
+      localVoiceBoostNode = null;
+      localVoiceEqLowNode = null;
+      localVoiceEqMidNode = null;
+      localVoiceEqHighNode = null;
+    } else {
+      const highpass = localVoiceAudioContext.createBiquadFilter();
+      const analyser = localVoiceAudioContext.createAnalyser();
+      const compressor = localVoiceAudioContext.createDynamicsCompressor();
+      const boostNode = localVoiceAudioContext.createGain();
+      const gateNode = localVoiceAudioContext.createGain();
+      const noiseReduction = appConfig.audio.micNoiseReduction ?? DEFAULT_MIC_NOISE_REDUCTION;
+      const noiseReductionFactor = Math.max(0, Math.min(100, noiseReduction)) / 100;
+      const eq = getMicEqValues();
+      const eqLow = localVoiceAudioContext.createBiquadFilter();
+      const eqMid = localVoiceAudioContext.createBiquadFilter();
+      const eqHigh = localVoiceAudioContext.createBiquadFilter();
 
-    highpass.type = "highpass";
-    highpass.frequency.value = useStandardProfile ? 90 : 75 + noiseReductionFactor * 35;
-    highpass.Q.value = 0.707;
-    analyser.fftSize = VOICE_METER_FFT;
-    compressor.threshold.value = useStandardProfile ? -28 : -24 - noiseReductionFactor * 6;
-    compressor.knee.value = useStandardProfile ? 18 : 14 - noiseReductionFactor * 2;
-    compressor.ratio.value = useStandardProfile ? 3.2 : 2.5 + noiseReductionFactor * 1.3;
-    compressor.attack.value = 0.003;
-    compressor.release.value = useStandardProfile ? 0.22 : 0.28 + noiseReductionFactor * 0.06;
-    gateNode.gain.value = 0.0001;
-    boostNode.gain.value = Math.max(0, Math.min(2, (appConfig.audio.micBoost || DEFAULT_MIC_BOOST) / 100));
+      highpass.type = "highpass";
+      highpass.frequency.value = profile === "voice-isolation" ? 90 : 75 + noiseReductionFactor * 35;
+      highpass.Q.value = 0.707;
+      eqLow.type = "lowshelf";
+      eqLow.frequency.value = 180;
+      eqLow.gain.value = eq.low;
+      eqMid.type = "peaking";
+      eqMid.frequency.value = 1100;
+      eqMid.Q.value = 0.9;
+      eqMid.gain.value = eq.mid;
+      eqHigh.type = "highshelf";
+      eqHigh.frequency.value = 4500;
+      eqHigh.gain.value = eq.high;
+      analyser.fftSize = VOICE_METER_FFT;
+      compressor.threshold.value = profile === "voice-isolation" ? -28 : -24 - noiseReductionFactor * 6;
+      compressor.knee.value = profile === "voice-isolation" ? 18 : 14 - noiseReductionFactor * 2;
+      compressor.ratio.value = profile === "voice-isolation" ? 3.2 : 2.5 + noiseReductionFactor * 1.3;
+      compressor.attack.value = 0.003;
+      compressor.release.value = profile === "voice-isolation" ? 0.22 : 0.28 + noiseReductionFactor * 0.06;
+      gateNode.gain.value = 0.0001;
+      boostNode.gain.value = Math.max(0, Math.min(2, (appConfig.audio.micBoost || DEFAULT_MIC_BOOST) / 100));
 
-    source.connect(highpass);
-    highpass.connect(analyser);
-    analyser.connect(gateNode);
-    gateNode.connect(compressor);
-    compressor.connect(boostNode);
-    boostNode.connect(destination);
+      source.connect(highpass);
+      highpass.connect(analyser);
+      analyser.connect(eqLow);
+      eqLow.connect(eqMid);
+      eqMid.connect(eqHigh);
+      eqHigh.connect(gateNode);
+      gateNode.connect(compressor);
+      compressor.connect(boostNode);
+      boostNode.connect(destination);
 
-    localVoiceAnalyserNode = analyser;
-    localVoiceGateNode = gateNode;
-    localVoiceCompressorNode = compressor;
-    localVoiceBoostNode = boostNode;
-    localVoiceNoiseFloor = 0.01;
-    if (micNoiseReductionSlider) {
-      micNoiseReductionSlider.disabled = useStandardProfile;
+      localVoiceAnalyserNode = analyser;
+      localVoiceGateNode = gateNode;
+      localVoiceCompressorNode = compressor;
+      localVoiceBoostNode = boostNode;
+      localVoiceEqLowNode = eqLow;
+      localVoiceEqMidNode = eqMid;
+      localVoiceEqHighNode = eqHigh;
+      localVoiceNoiseFloor = 0.01;
+      startVoiceMeterLoop();
     }
-    startVoiceMeterLoop();
     destination.stream._rawVoiceStream = rawStream;
     return destination.stream;
   } catch {
@@ -1687,6 +1859,58 @@ async function getVoiceStream() {
     localVoiceAudioContext = null;
     return rawStream;
   }
+}
+
+async function applyVoiceSettingsToActiveCall() {
+  if (!callState.localStream || callState.status === "idle") {
+    return;
+  }
+
+  const nextStream = await getVoiceStream();
+  const nextTrack = nextStream.getAudioTracks()[0];
+  if (!nextTrack) {
+    nextStream.getTracks().forEach((track) => track.stop());
+    return;
+  }
+
+  const activeMediaConns = [callState.mediaConn, callState.incomingMediaConn]
+    .filter(Boolean)
+    .filter((conn, index, list) => list.indexOf(conn) === index);
+  let attemptedReplacement = false;
+  let replacedAny = false;
+
+  for (const mediaConn of activeMediaConns) {
+    const peerConnection = mediaConn?.peerConnection;
+    if (!peerConnection?.getSenders) {
+      continue;
+    }
+
+    for (const sender of peerConnection.getSenders()) {
+      if (sender.track?.kind !== "audio" || typeof sender.replaceTrack !== "function") {
+        continue;
+      }
+
+      attemptedReplacement = true;
+      try {
+        await sender.replaceTrack(nextTrack);
+        replacedAny = true;
+      } catch {
+        // Keep the existing call audio alive if the swap fails.
+      }
+    }
+  }
+
+  if (attemptedReplacement && !replacedAny) {
+    nextStream.getTracks().forEach((track) => track.stop());
+    return;
+  }
+
+  const previousStream = callState.localStream;
+  callState.localStream = nextStream;
+  applyLocalMuteState();
+  previousStream?._rawVoiceStream?.getTracks().forEach((track) => track.stop());
+  previousStream?.getTracks().forEach((track) => track.stop());
+  remoteAudio.muted = callState.deafened;
 }
 
 function attachMediaConnectionHandlers(mediaConn, peerId, callId) {
@@ -2821,7 +3045,7 @@ speakerSelect.addEventListener("change", async () => {
 });
 
 micProfileSelect.addEventListener("change", () => {
-  setMicProfile(micProfileSelect.value || "standard", { persist: true });
+  setMicProfile(micProfileSelect.value || "voice-isolation", { persist: true });
 });
 
 micModeSelect.addEventListener("change", () => {
@@ -2842,6 +3066,30 @@ micNoiseReductionSlider.addEventListener("input", () => {
 
 micNoiseReductionSlider.addEventListener("change", () => {
   setMicNoiseReduction(Number(micNoiseReductionSlider.value || 0), { persist: true });
+});
+
+micEqLowSlider.addEventListener("input", () => {
+  setMicEqBand("low", Number(micEqLowSlider.value || 0));
+});
+
+micEqLowSlider.addEventListener("change", () => {
+  setMicEqBand("low", Number(micEqLowSlider.value || 0), { persist: true });
+});
+
+micEqMidSlider.addEventListener("input", () => {
+  setMicEqBand("mid", Number(micEqMidSlider.value || 0));
+});
+
+micEqMidSlider.addEventListener("change", () => {
+  setMicEqBand("mid", Number(micEqMidSlider.value || 0), { persist: true });
+});
+
+micEqHighSlider.addEventListener("input", () => {
+  setMicEqBand("high", Number(micEqHighSlider.value || 0));
+});
+
+micEqHighSlider.addEventListener("change", () => {
+  setMicEqBand("high", Number(micEqHighSlider.value || 0), { persist: true });
 });
 
 micBoostSlider.addEventListener("input", () => {

@@ -19,6 +19,9 @@ const maxSidebarWidth = 360;
 const defaultMicBoost = 100;
 const defaultMicSensitivity = 55;
 const defaultMicNoiseReduction = 55;
+const defaultMicEqLow = 0;
+const defaultMicEqMid = 0;
+const defaultMicEqHigh = 0;
 const allowMultipleInstances = process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
 const autostartDesktopFileName = "aero-p2p-chat.desktop";
 let mainWindow = null;
@@ -75,7 +78,10 @@ function getDefaultAudioSettings() {
     micSensitivity: defaultMicSensitivity,
     micBoost: defaultMicBoost,
     micNoiseReduction: defaultMicNoiseReduction,
-    micProfile: "standard"
+    micEqLow: defaultMicEqLow,
+    micEqMid: defaultMicEqMid,
+    micEqHigh: defaultMicEqHigh,
+    micProfile: "voice-isolation"
   };
 }
 
@@ -119,7 +125,16 @@ function normalizeConfig(config = {}) {
     micNoiseReduction: Number.isFinite(audio.micNoiseReduction)
       ? Math.round(Math.max(0, Math.min(100, audio.micNoiseReduction)))
       : defaultMicNoiseReduction,
-    micProfile: audio.micProfile === "custom" ? "custom" : "standard"
+    micEqLow: Number.isFinite(audio.micEqLow)
+      ? Math.round(Math.max(-12, Math.min(12, audio.micEqLow)))
+      : defaultMicEqLow,
+    micEqMid: Number.isFinite(audio.micEqMid)
+      ? Math.round(Math.max(-12, Math.min(12, audio.micEqMid)))
+      : defaultMicEqMid,
+    micEqHigh: Number.isFinite(audio.micEqHigh)
+      ? Math.round(Math.max(-12, Math.min(12, audio.micEqHigh)))
+      : defaultMicEqHigh,
+    micProfile: ["voice-isolation", "studio", "custom"].includes(audio.micProfile) ? audio.micProfile : "voice-isolation"
   };
 
   return config;
