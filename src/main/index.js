@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, powerMonitor, screen, shell, session } = require("electron");
+const { app, BrowserWindow, Menu, Tray, clipboard, ipcMain, powerMonitor, screen, shell, session } = require("electron");
 const { createWriteStream, existsSync, readFileSync } = require("node:fs");
 const { mkdir, mkdtemp, readFile, rm, writeFile } = require("node:fs/promises");
 const { createHash } = require("node:crypto");
@@ -847,6 +847,10 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("write-clipboard", (_event, text) => {
+    clipboard.writeText(String(text || ""));
+    return { ok: true };
+  });
   ipcMain.handle("show-app-notification", (_event, details) => showAppNotification(details));
   ipcMain.handle("close-app-notification", (_event, id) => closeAppNotification(id));
   ipcMain.handle("notification-action", (_event, action) => {

@@ -87,6 +87,7 @@ const unreadCounts = new Map();
 const remoteIdentities = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
+const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
 const CONTACTS_STORAGE_KEY = "aero-p2p-chat.contacts.v1";
 const MAX_MESSAGE_LENGTH = 4000;
@@ -208,7 +209,7 @@ function saveAppConfig() {
 }
 
 function createIdentityId() {
-  const bytes = new Uint8Array(16);
+  const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   return `aero-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
@@ -220,14 +221,17 @@ function createMessageId() {
 }
 
 function loadIdentity() {
-  if (appConfig.identity?.id && /^aero-[a-f0-9]{32}$/.test(appConfig.identity.id)) {
+  if (appConfig.identity?.id && isValidAeroId(appConfig.identity.id)) {
     appConfig.identity.nickname = sanitizeNickname(appConfig.identity.nickname);
+    appConfig.identity.previousIds = getKnownPreviousIdentityIds(appConfig.identity.previousIds, appConfig.identity.id)
+      .filter((id) => id !== appConfig.identity.id);
     return appConfig.identity;
   }
 
   const identity = {
     id: createIdentityId(),
     nickname: "",
+    previousIds: [],
     createdAt: new Date().toISOString()
   };
   appConfig.identity = identity;
@@ -240,7 +244,7 @@ function migrateLocalStorageConfig() {
 
   try {
     const storedIdentity = JSON.parse(localStorage.getItem(IDENTITY_STORAGE_KEY) || "null");
-    if (!appConfig.identity && storedIdentity?.id && /^aero-[a-f0-9]{32}$/.test(storedIdentity.id)) {
+    if (!appConfig.identity && storedIdentity?.id && isValidAeroId(storedIdentity.id)) {
       appConfig.identity = storedIdentity;
       changed = true;
     }
@@ -275,11 +279,28 @@ normalizeAudioConfig();
 normalizeAppSettings();
 
 function isValidAeroId(value) {
-  return /^aero-[a-f0-9]{32}$/.test(String(value || "").trim());
+  return AERO_ID_PATTERN.test(String(value || "").trim());
 }
 
 function normalizeAeroId(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function getKnownPreviousIdentityIds(value, ownId = "") {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value.map(normalizeAeroId).filter((id) => isValidAeroId(id) && id !== ownId))];
+}
+
+async function writeClipboardText(text) {
+  if (window.aeroChat?.writeClipboard) {
+    await window.aeroChat.writeClipboard(text);
+    return;
+  }
+
+  await navigator.clipboard.writeText(text);
 }
 
 function sanitizeNickname(value) {
@@ -461,6 +482,40 @@ function upsertContact(id, updates = {}) {
 
 function pinContact(id, label = id) {
   return Boolean(upsertContact(id, { label, pinned: true }));
+}
+
+function migrateContactIdentity(previousIds, nextId, nickname = "") {
+  const targetId = normalizeAeroId(nextId);
+  if (!isValidAeroId(targetId) || targetId === identity.id) {
+    return null;
+  }
+
+  const oldIds = getKnownPreviousIdentityIds(previousIds, identity.id).filter((id) => id !== targetId);
+  if (oldIds.length === 0) {
+    return findContact(targetId);
+  }
+
+  const existingTarget = findContact(targetId);
+  const oldContacts = oldIds.map(findContact).filter(Boolean);
+  if (oldContacts.length === 0) {
+    return existingTarget;
+  }
+
+  const preferred = oldContacts.find((contact) => contact.customLabel) || oldContacts[0];
+  const remoteNickname = sanitizeNickname(nickname) || existingTarget?.remoteNickname || preferred.remoteNickname;
+  const updates = {
+    label: preferred.customLabel ? preferred.label : (remoteNickname || existingTarget?.label || preferred.label || targetId),
+    remoteNickname,
+    customLabel: preferred.customLabel || existingTarget?.customLabel || false,
+    pinned: oldContacts.some((contact) => contact.pinned) || existingTarget?.pinned || false,
+    trusted: oldContacts.some((contact) => contact.trusted) || existingTarget?.trusted || false,
+    blocked: oldContacts.some((contact) => contact.blocked) || existingTarget?.blocked || false
+  };
+
+  contacts = contacts.filter((contact) => !oldIds.includes(contact.id));
+  const migrated = upsertContact(targetId, updates);
+  refreshPeers();
+  return migrated;
 }
 
 function rememberRemoteIdentity(id, nickname) {
@@ -1479,6 +1534,7 @@ function createChatMetadata() {
   return {
     app: "Aero P2P Chat",
     identityId: identity.id,
+    previousIdentityIds: getKnownPreviousIdentityIds(identity.previousIds, identity.id),
     nickname: identity.nickname || "",
     protocol: PROTOCOL_VERSION,
     version: currentVersion
@@ -1492,6 +1548,7 @@ function rememberConnectionIdentity(peerId, metadata = {}) {
   }
 
   const nickname = sanitizeNickname(metadata.nickname);
+  migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
   remoteIdentities.set(peerId, { identityId, nickname });
   if (nickname) {
     rememberRemoteIdentity(identityId, nickname);
@@ -2245,12 +2302,16 @@ copyId.addEventListener("click", async () => {
     return;
   }
 
-  await navigator.clipboard.writeText(identity.id);
-  copyId.classList.add("copied");
-  setStatus("pending", "Aero ID copied.");
-  setTimeout(() => {
-    copyId.classList.remove("copied");
-  }, 1200);
+  try {
+    await writeClipboardText(identity.id);
+    copyId.classList.add("copied");
+    setStatus("pending", "Aero ID copied.");
+    setTimeout(() => {
+      copyId.classList.remove("copied");
+    }, 1200);
+  } catch {
+    setStatus("offline", "Could not copy Aero ID.");
+  }
 });
 
 connectForm.addEventListener("submit", (event) => {
@@ -2545,11 +2606,18 @@ updateModal.addEventListener("click", (event) => {
 });
 
 copyUpdateCommand.addEventListener("click", async () => {
-  await navigator.clipboard.writeText(linuxInstallCommand);
-  copyUpdateCommand.textContent = "Copied";
-  setTimeout(() => {
-    copyUpdateCommand.textContent = "Copy command";
-  }, 1200);
+  try {
+    await writeClipboardText(linuxInstallCommand);
+    copyUpdateCommand.textContent = "Copied";
+    setTimeout(() => {
+      copyUpdateCommand.textContent = "Copy command";
+    }, 1200);
+  } catch {
+    copyUpdateCommand.textContent = "Copy failed";
+    setTimeout(() => {
+      copyUpdateCommand.textContent = "Copy command";
+    }, 1200);
+  }
 });
 
 titlebarLogo.addEventListener("contextmenu", openAppMenu);
@@ -2637,7 +2705,7 @@ menuCopy.addEventListener("click", () => {
     return;
   }
 
-  navigator.clipboard.writeText(contextMessage.text).catch(() => {});
+  writeClipboardText(contextMessage.text).catch(() => {});
   closeMessageMenu();
 });
 
