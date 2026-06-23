@@ -169,6 +169,7 @@ let localVoiceProcessingContext = null;
 let pendingVoiceSettingsReapply = null;
 let localVoiceGateIsOpen = false;
 let localVoiceGateHoldUntil = 0;
+let outgoingCallTimeout = null;
 const callState = {
   peerId: null,
   callId: "",
@@ -1513,7 +1514,29 @@ function setCallState(status, updates = {}) {
   refreshCallUi();
 }
 
+function clearOutgoingCallTimeout() {
+  if (outgoingCallTimeout) {
+    clearTimeout(outgoingCallTimeout);
+    outgoingCallTimeout = null;
+  }
+}
+
+function scheduleOutgoingCallTimeout() {
+  clearOutgoingCallTimeout();
+  outgoingCallTimeout = setTimeout(() => {
+    outgoingCallTimeout = null;
+    if (callState.status === "outgoing") {
+      const peerId = callState.peerId;
+      const conn = peerId ? connections.get(peerId) : null;
+      const label = getPeerLabel(peerId, conn);
+      addSystemMessage(`No answer from ${label}. Call ended.`);
+      endVoiceCall({ notifyPeer: true, message: "Call timed out." });
+    }
+  }, 15000);
+}
+
 function resetCallState() {
+  clearOutgoingCallTimeout();
   const mediaConn = callState.mediaConn;
   const incomingMediaConn = callState.incomingMediaConn;
   const localStream = callState.localStream;
@@ -1988,6 +2011,7 @@ async function startVoiceCall() {
 
   const callId = createCallId();
   setCallState("outgoing", { peerId: activePeerId, callId });
+  scheduleOutgoingCallTimeout();
   sendProtocolMessage(conn, "call-request", { callId });
   addSystemMessage(`Calling ${getPeerLabel(activePeerId, conn)}...`);
 }
@@ -2060,6 +2084,7 @@ async function handleCallAccepted(peerId, data) {
     return;
   }
 
+  clearOutgoingCallTimeout();
   try {
     const stream = await getVoiceStream();
     const mediaConn = peer.call(peerId, stream, {
@@ -2083,12 +2108,14 @@ function handleCallDeclined(peerId, data) {
     return;
   }
 
+  clearOutgoingCallTimeout();
   const label = getPeerLabel(peerId, connections.get(peerId));
   addSystemMessage(data.reason === "busy" ? `${label} is busy.` : `${label} declined the call.`);
   resetCallState();
 }
 
 function endVoiceCall({ notifyPeer = true, message = "" } = {}) {
+  clearOutgoingCallTimeout();
   const peerId = callState.peerId;
   const callId = callState.callId;
   const conn = peerId ? connections.get(peerId) : null;
@@ -2114,6 +2141,7 @@ function handleRemoteCallEnded(peerId, data) {
     return;
   }
 
+  clearOutgoingCallTimeout();
   endVoiceCall({ notifyPeer: false, message: "Voice call ended." });
 }
 
