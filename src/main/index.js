@@ -366,6 +366,15 @@ function closeNotificationWindow(win) {
   positionNotificationWindows();
 }
 
+function closeOtherNotificationWindows(keepId = "") {
+  for (const [id, win] of [...notificationWindowById.entries()]) {
+    if (id === keepId || win.isDestroyed()) {
+      continue;
+    }
+    closeNotificationWindow(win);
+  }
+}
+
 function sendNotificationAction(action) {
   if (action?.openWindow) {
     showMainWindow();
@@ -634,6 +643,8 @@ function showAppNotification(details = {}) {
     positionNotificationWindows();
     return { ok: true, id: notification.id, existing: true };
   }
+
+  closeOtherNotificationWindows(notification.id);
 
   const width = 342;
   const height = kind === "call" ? 88 : 118;

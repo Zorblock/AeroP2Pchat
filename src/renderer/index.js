@@ -3543,7 +3543,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
     if (message.id) {
       sendProtocolMessage(conn, "message-delivered", { messageId: message.id });
     }
-    if (message.id && activePeerId === peerId && appConfig.appSettings?.readReceipts) {
+    if (message.id && activePeerId === peerId && appConfig.appSettings?.readReceipts && isAppFocused()) {
       const item = ensureChatHistory(peerId).find((entry) => entry.id === message.id);
       if (item) {
         item.readReceiptSent = true;
