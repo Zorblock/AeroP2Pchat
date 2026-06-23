@@ -16,6 +16,8 @@ const remoteIdInput = document.querySelector("#remote-id");
 const connectButton = document.querySelector("#connect-button");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
+const appShell = document.querySelector(".app-shell");
+const sidebarResizer = document.querySelector("#sidebar-resizer");
 const peerList = document.querySelector("#peer-list");
 const chatTitle = document.querySelector("#chat-title");
 const callChat = document.querySelector("#call-chat");
@@ -94,6 +96,11 @@ const MAX_MESSAGE_LENGTH = 4000;
 const HIGH_BUFFER_SIZE = 25;
 const VOICE_AUDIO_BITRATE = 64000;
 const VOICE_INPUT_GAIN = 1.25;
+const DEFAULT_SIDEBAR_WIDTH = 230;
+const MIN_SIDEBAR_WIDTH = 190;
+const MAX_SIDEBAR_WIDTH = 360;
+const MIN_CHAT_WIDTH = 320;
+const RESIZER_WIDTH = 12;
 let activePeerId = null;
 let myPeerId = "";
 let peer = null;
@@ -277,6 +284,8 @@ ownId.textContent = identity.id;
 nicknameInput.value = identity.nickname || "";
 normalizeAudioConfig();
 normalizeAppSettings();
+applySidebarWidth(appConfig.appSettings.sidebarWidth);
+setupSidebarResizer();
 
 function isValidAeroId(value) {
   return AERO_ID_PATTERN.test(String(value || "").trim());
@@ -353,8 +362,13 @@ function normalizeAppSettings() {
   appConfig.appSettings = {
     autostart: appConfig.appSettings.autostart !== false,
     startHidden: appConfig.appSettings.startHidden !== false,
-    closeToTray: appConfig.appSettings.closeToTray !== false
+    closeToTray: appConfig.appSettings.closeToTray !== false,
+    sidebarWidth: Number.isFinite(appConfig.appSettings.sidebarWidth) ? appConfig.appSettings.sidebarWidth : DEFAULT_SIDEBAR_WIDTH
   };
+
+  appConfig.appSettings.sidebarWidth = Math.round(
+    Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, appConfig.appSettings.sidebarWidth))
+  );
 
   if (!appConfig.notificationSettings || typeof appConfig.notificationSettings !== "object") {
     appConfig.notificationSettings = {};
@@ -384,6 +398,7 @@ function normalizeAppSettings() {
 
 function renderAppSettings() {
   normalizeAppSettings();
+  applySidebarWidth(appConfig.appSettings.sidebarWidth);
   autostartToggle.checked = appConfig.appSettings.autostart;
   autostartOpen.checked = !appConfig.appSettings.startHidden;
   autostartHidden.checked = appConfig.appSettings.startHidden;
@@ -421,6 +436,130 @@ function saveAppSettings(updates = {}) {
   normalizeAppSettings();
   renderAppSettings();
   saveAppConfig();
+}
+
+function getSidebarWidthBounds() {
+  const shellWidth = appShell?.clientWidth ?? 0;
+  const maxByLayout = shellWidth > 0 ? shellWidth - MIN_CHAT_WIDTH - RESIZER_WIDTH : MAX_SIDEBAR_WIDTH;
+  const lowerBound = window.innerWidth <= 700 ? 170 : MIN_SIDEBAR_WIDTH;
+  return {
+    min: lowerBound,
+    max: Math.max(lowerBound, Math.min(MAX_SIDEBAR_WIDTH, maxByLayout))
+  };
+}
+
+function clampSidebarWidth(width) {
+  const bounds = getSidebarWidthBounds();
+  return Math.round(Math.max(bounds.min, Math.min(bounds.max, width)));
+}
+
+function applySidebarWidth(width) {
+  if (!appShell) {
+    return DEFAULT_SIDEBAR_WIDTH;
+  }
+
+  const bounds = getSidebarWidthBounds();
+  const nextWidth = clampSidebarWidth(width);
+  appShell.style.setProperty("--sidebar-width", `${nextWidth}px`);
+  sidebarResizer?.setAttribute("aria-valuemin", String(bounds.min));
+  sidebarResizer?.setAttribute("aria-valuemax", String(bounds.max));
+  sidebarResizer?.setAttribute("aria-valuenow", String(nextWidth));
+  return nextWidth;
+}
+
+function setSidebarWidth(width, { persist = false } = {}) {
+  const nextWidth = applySidebarWidth(width);
+  appConfig.appSettings.sidebarWidth = nextWidth;
+  if (persist) {
+    saveAppConfig();
+  }
+  return nextWidth;
+}
+
+function setupSidebarResizer() {
+  if (!appShell || !sidebarResizer) {
+    return;
+  }
+
+  let dragPointerId = null;
+  let startX = 0;
+  let startWidth = appConfig.appSettings.sidebarWidth;
+
+  const stopDragging = ({ persist = true } = {}) => {
+    if (dragPointerId !== null) {
+      sidebarResizer.releasePointerCapture?.(dragPointerId);
+    }
+    dragPointerId = null;
+    document.body.classList.remove("is-resizing-sidebar");
+    document.body.style.removeProperty("user-select");
+    if (persist) {
+      saveAppConfig();
+    }
+  };
+
+  sidebarResizer.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    dragPointerId = event.pointerId;
+    startX = event.clientX;
+    startWidth = appConfig.appSettings.sidebarWidth;
+    sidebarResizer.setPointerCapture?.(dragPointerId);
+    document.body.classList.add("is-resizing-sidebar");
+    document.body.style.userSelect = "none";
+    event.preventDefault();
+  });
+
+  sidebarResizer.addEventListener("pointermove", (event) => {
+    if (dragPointerId !== event.pointerId) {
+      return;
+    }
+
+    const delta = event.clientX - startX;
+    setSidebarWidth(startWidth + delta);
+  });
+
+  const endPointerDrag = (event) => {
+    if (dragPointerId !== event.pointerId) {
+      return;
+    }
+    stopDragging();
+  };
+
+  sidebarResizer.addEventListener("pointerup", endPointerDrag);
+  sidebarResizer.addEventListener("pointercancel", endPointerDrag);
+  sidebarResizer.addEventListener("lostpointercapture", () => {
+    if (dragPointerId !== null) {
+      stopDragging();
+    }
+  });
+
+  sidebarResizer.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+
+    const step = event.shiftKey ? 24 : 12;
+    let nextWidth = appConfig.appSettings.sidebarWidth;
+
+    if (event.key === "ArrowLeft") {
+      nextWidth -= step;
+    } else if (event.key === "ArrowRight") {
+      nextWidth += step;
+    } else if (event.key === "Home") {
+      nextWidth = getSidebarWidthBounds().min;
+    } else if (event.key === "End") {
+      nextWidth = getSidebarWidthBounds().max;
+    }
+
+    setSidebarWidth(nextWidth, { persist: true });
+    event.preventDefault();
+  });
+
+  window.addEventListener("resize", () => {
+    setSidebarWidth(appConfig.appSettings.sidebarWidth);
+  });
 }
 
 function saveNotificationSettings(updates = {}) {

@@ -13,6 +13,9 @@ const windowIcon = process.platform === "win32"
 const releaseHost = "github.com";
 const releasePathPrefix = "/jonasgrimmde/AeroP2Pchat/releases/";
 const configFileName = "config.json";
+const defaultSidebarWidth = 230;
+const minSidebarWidth = 170;
+const maxSidebarWidth = 360;
 const allowMultipleInstances = process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
 const autostartDesktopFileName = "aero-p2p-chat.desktop";
 let mainWindow = null;
@@ -55,7 +58,8 @@ function getDefaultAppSettings() {
   return {
     autostart: true,
     startHidden: true,
-    closeToTray: true
+    closeToTray: true,
+    sidebarWidth: defaultSidebarWidth
   };
 }
 
@@ -68,7 +72,10 @@ function normalizeConfig(config = {}) {
   config.appSettings = {
     autostart: Boolean(settings.autostart),
     startHidden: Boolean(settings.startHidden),
-    closeToTray: settings.closeToTray !== false
+    closeToTray: settings.closeToTray !== false,
+    sidebarWidth: Number.isFinite(settings.sidebarWidth)
+      ? Math.round(Math.max(minSidebarWidth, Math.min(maxSidebarWidth, settings.sidebarWidth)))
+      : defaultSidebarWidth
   };
 
   if (!config.appSettings.autostart) {
