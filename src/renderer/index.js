@@ -231,8 +231,11 @@ const linuxInstallCommand = "curl -fsSL https://raw.githubusercontent.com/jonasg
 const platform = window.aeroChat?.platform ?? "browser";
 const peerConnectionConfig = {
   iceServers: [
+    // Keep the ICE list simple and avoid Twilio's default STUN host, which can
+    // spam the console when DNS resolution fails on some networks.
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:global.stun.twilio.com:3478" }
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" }
   ],
   iceCandidatePoolSize: 4,
   bundlePolicy: "balanced",
