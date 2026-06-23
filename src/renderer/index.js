@@ -4456,6 +4456,18 @@ function getStreamSourceType(source) {
   return String(source?.id || "").startsWith("screen:") ? "screens" : "windows";
 }
 
+function formatStreamSourceName(source) {
+  const name = String(source?.name || "").trim();
+  if (getStreamSourceType(source) === "screens") {
+    const screenMatch = name.match(/^Bildschirm(?:\s+(\d+))?$/i);
+    if (screenMatch) {
+      return `Screen${screenMatch[1] ? ` ${screenMatch[1]}` : ""}`;
+    }
+  }
+
+  return name || (getStreamSourceType(source) === "screens" ? "Screen" : "Application");
+}
+
 function setActiveStreamSourceTab(tab) {
   activeStreamSourceTab = tab === "windows" ? "windows" : "screens";
   streamTabScreens?.classList.toggle("active", activeStreamSourceTab === "screens");
@@ -4501,7 +4513,7 @@ function renderScreenSources(sources = availableScreenSources) {
     image.src = source.thumbnail || "";
     const label = document.createElement("span");
     label.className = "screen-source-name";
-    label.textContent = source.name || "Screen";
+    label.textContent = formatStreamSourceName(source);
     button.append(image, badge, label);
     button.addEventListener("click", () => {
       selectedScreenSource = source;
