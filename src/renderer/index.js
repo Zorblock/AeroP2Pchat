@@ -727,12 +727,13 @@ function renderAppSettings() {
 }
 
 function syncPresenceStatusIndicator() {
+  updateTitlebarPresenceIndicator();
+
   if (callState.status !== "idle" || connections.size > 0 || pendingConnections.size > 0) {
     return;
   }
 
   const presenceStatus = getPresenceStatus();
-  updateTitlebarPresenceIndicator();
   if (presenceStatus === "offline") {
     setStatus("offline", "Offline");
     return;
@@ -778,11 +779,23 @@ function updatePresenceMenuState() {
 }
 
 function updateTitlebarPresenceIndicator() {
-  if (!titlebarPresence) {
-    return;
+  const presenceStatus = getPresenceStatus();
+  if (titlebarPresence) {
+    titlebarPresence.className = `titlebar-presence ${presenceStatus}`;
+  }
+  titlebarSubtitle.textContent = getPresenceStatusLabel(presenceStatus);
+}
+
+function getPresenceStatusLabel(status = getPresenceStatus()) {
+  if (status === "dnd") {
+    return "DND";
   }
 
-  titlebarPresence.className = `titlebar-presence ${getPresenceStatus()}`;
+  if (status === "offline") {
+    return "Offline";
+  }
+
+  return "Online";
 }
 
 function setPresenceStatus(status, { persist = false, force = false } = {}) {
@@ -1197,7 +1210,6 @@ setBootProgress(68, "Loading contacts");
 function setStatus(kind, text) {
   statusDot.className = `status-dot ${kind}`;
   statusText.textContent = text;
-  titlebarSubtitle.textContent = text;
 }
 
 function hideConnectRetry() {
