@@ -1604,7 +1604,7 @@ function scheduleLocalTypingStop(peerId) {
 }
 
 function sendReadReceiptsForActiveChat() {
-  if (!appConfig.appSettings?.readReceipts || !activePeerId) {
+  if (!appConfig.appSettings?.readReceipts || !activePeerId || !isAppFocused()) {
     return;
   }
 
@@ -4465,6 +4465,16 @@ document.addEventListener("keydown", (event) => {
     closeMessageMenu();
     updateModal.classList.add("hidden");
     settingsModal.classList.add("hidden");
+  }
+});
+
+window.addEventListener("focus", () => {
+  sendReadReceiptsForActiveChat();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    sendReadReceiptsForActiveChat();
   }
 });
 
