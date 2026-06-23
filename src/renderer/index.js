@@ -37,6 +37,7 @@ const callDecline = document.querySelector("#call-decline");
 const callMute = document.querySelector("#call-mute");
 const callDeafen = document.querySelector("#call-deafen");
 const callCamera = document.querySelector("#call-camera");
+const callStream = document.querySelector("#call-stream");
 const callHangup = document.querySelector("#call-hangup");
 const callStage = document.querySelector("#call-stage");
 const localParticipantCard = document.querySelector("#local-participant-card");
@@ -127,6 +128,21 @@ const participantMenu = document.querySelector("#participant-menu");
 const participantVolumeSlider = document.querySelector("#participant-volume-slider");
 const participantVolumeValue = document.querySelector("#participant-volume-value");
 const participantToggleName = document.querySelector("#participant-toggle-name");
+const streamMenu = document.querySelector("#stream-menu");
+const streamMenuQuality = document.querySelector("#stream-menu-quality");
+const streamMenuSource = document.querySelector("#stream-menu-source");
+const streamMenuAudio = document.querySelector("#stream-menu-audio");
+const streamMenuWatch = document.querySelector("#stream-menu-watch");
+const streamMenuStop = document.querySelector("#stream-menu-stop");
+const streamModal = document.querySelector("#stream-modal");
+const streamModalClose = document.querySelector("#stream-modal-close");
+const streamQualitySelect = document.querySelector("#stream-quality-select");
+const streamFpsSelect = document.querySelector("#stream-fps-select");
+const streamAudioToggle = document.querySelector("#stream-audio-toggle");
+const streamTabScreens = document.querySelector("#stream-tab-screens");
+const streamTabWindows = document.querySelector("#stream-tab-windows");
+const screenSourceList = document.querySelector("#screen-source-list");
+const streamStartButton = document.querySelector("#stream-start-button");
 const bootLogo = document.querySelector(".boot-logo");
 const bootStatus = document.querySelector("#boot-status");
 const bootProgressFill = document.querySelector("#boot-progress-fill");
@@ -154,6 +170,15 @@ const CALL_CAMERA_MAX_FRAMERATE = 24;
 const CALL_VIDEO_FIXED_MAX_BITRATE = 450000;
 const CALL_VIDEO_MIN_BITRATE = 120000;
 const CALL_VIDEO_QUALITY_POLL_MS = 4000;
+const SCREEN_STREAM_MIN_BITRATE = 180000;
+const SCREEN_STREAM_QUALITY_POLL_MS = 3000;
+const SCREEN_STREAM_PROFILES = {
+  "480p": { label: "480p", height: 480 },
+  "720p": { label: "720p", height: 720 },
+  "1080p": { label: "1080p", height: 1080 },
+  native: { label: "Native", height: 0 }
+};
+const SCREEN_STREAM_FPS_OPTIONS = [15, 30, 60];
 const MAX_CHAT_HISTORY_ITEMS = 500;
 const MESSAGE_SEND_INTERVAL_MS = 180;
 const MAX_QUEUED_OUTGOING_MESSAGES = 20;
@@ -189,6 +214,10 @@ let contacts = [];
 let contextContactId = "";
 let contextMessage = null;
 let contextParticipantTarget = null;
+let contextStreamTarget = "";
+let selectedScreenSource = null;
+let availableScreenSources = [];
+let activeStreamSourceTab = "screens";
 let removeUpdateProgressListener = null;
 const remoteAudio = new Audio();
 remoteAudio.autoplay = true;
@@ -265,6 +294,23 @@ const callState = {
   deafened: false,
   mutedBeforeDeafen: null,
   joined: false
+};
+const screenShareState = {
+  localMediaConn: null,
+  remoteMediaConn: null,
+  localStream: null,
+  remoteStream: null,
+  sourceId: "",
+  sourceName: "",
+  quality: "720p",
+  fps: 30,
+  audioEnabled: false,
+  remoteAudioEnabled: false,
+  viewerWatching: true,
+  remoteViewerWatching: true,
+  hiddenByViewer: false,
+  qualityMonitor: null,
+  qualityLastStats: null
 };
 const remoteCallStatus = {
   muted: false,
@@ -2324,6 +2370,65 @@ function getCallVideoQualityProfile(profile = callState.videoQualityProfile) {
   };
 }
 
+function normalizeScreenQuality(value) {
+  return Object.hasOwn(SCREEN_STREAM_PROFILES, value) ? value : "720p";
+}
+
+function normalizeScreenFps(value) {
+  const fps = Number(value);
+  return SCREEN_STREAM_FPS_OPTIONS.includes(fps) ? fps : 30;
+}
+
+function getScreenStreamBaseBitrate(quality = screenShareState.quality, fps = screenShareState.fps) {
+  const normalizedQuality = normalizeScreenQuality(quality);
+  const normalizedFps = normalizeScreenFps(fps);
+  const baseByQuality = {
+    "480p": 720000,
+    "720p": 1350000,
+    "1080p": 2400000,
+    native: 3200000
+  };
+  const fpsFactor = normalizedFps === 60 ? 0.72 : normalizedFps === 15 ? 1.18 : 1;
+  return Math.round(baseByQuality[normalizedQuality] * fpsFactor);
+}
+
+function getScreenStreamConstraints(sourceId, { quality = screenShareState.quality, fps = screenShareState.fps, audio = false } = {}) {
+  const profile = SCREEN_STREAM_PROFILES[normalizeScreenQuality(quality)];
+  const normalizedFps = normalizeScreenFps(fps);
+  const mandatory = {
+    chromeMediaSource: "desktop",
+    chromeMediaSourceId: sourceId,
+    minFrameRate: normalizedFps,
+    maxFrameRate: normalizedFps
+  };
+
+  if (profile.height > 0) {
+    const width = Math.round(profile.height * 16 / 9);
+    mandatory.maxWidth = width;
+    mandatory.maxHeight = profile.height;
+  }
+
+  return {
+    audio: audio ? {
+      mandatory: {
+        chromeMediaSource: "desktop",
+        chromeMediaSourceId: sourceId
+      }
+    } : false,
+    video: { mandatory }
+  };
+}
+
+function formatScreenCaptureError(error) {
+  if (error?.name === "NotAllowedError") {
+    return "Screen capture blocked.";
+  }
+  if (error?.name === "NotFoundError" || error?.name === "OverconstrainedError") {
+    return "Screen source unavailable.";
+  }
+  return "Could not start screen stream.";
+}
+
 function setVideoElementStream(video, stream) {
   if (!video) {
     return;
@@ -2475,14 +2580,20 @@ function refreshCallStage() {
     callStage?.classList.add("hidden");
     setVideoElementStream(localVideo, null);
     setVideoElementStream(remoteVideo, null);
+    localParticipantCard?.classList.remove("streaming");
+    remoteParticipantCard?.classList.remove("streaming");
     return;
   }
 
   const inCallWithStagePeer = callState.peerId === stagePeerId;
   const localLabel = getLocalParticipantLabel();
   const remoteLabel = getRemoteParticipantLabel(stagePeerId);
-  const showLocalVideo = inCallWithStagePeer && callState.localCameraEnabled && Boolean(callState.localCameraStream);
-  const showRemoteVideo = inCallWithStagePeer && callState.remoteCameraEnabled && Boolean(callState.remoteStream);
+  const localScreenActive = Boolean(screenShareState.localStream);
+  const remoteScreenActive = Boolean(screenShareState.remoteStream) && screenShareState.viewerWatching && !screenShareState.hiddenByViewer;
+  const localDisplayStream = localScreenActive ? screenShareState.localStream : callState.localCameraStream;
+  const remoteDisplayStream = remoteScreenActive ? screenShareState.remoteStream : callState.remoteStream;
+  const showLocalVideo = inCallWithStagePeer && Boolean(localDisplayStream) && (localScreenActive || callState.localCameraEnabled);
+  const showRemoteVideo = inCallWithStagePeer && Boolean(remoteDisplayStream) && (remoteScreenActive || callState.remoteCameraEnabled);
   const showLocalName = !showLocalVideo || isOwnVideoNameVisible() || Boolean(callState.localErrorMessage);
   const showRemoteName = !showRemoteVideo || isPeerVideoNameVisible(stagePeerId);
 
@@ -2495,17 +2606,19 @@ function refreshCallStage() {
   }
   if (localParticipantStatus) {
     localParticipantStatus.textContent = inCallWithStagePeer
-      ? (callState.localErrorMessage || "")
+      ? (localScreenActive ? "Streaming" : (callState.localErrorMessage || ""))
       : "";
   }
   if (remoteParticipantStatus) {
-    remoteParticipantStatus.textContent = "";
+    remoteParticipantStatus.textContent = remoteScreenActive ? "Streaming" : "";
   }
   localParticipantCard?.classList.toggle("hide-name", !showLocalName);
   remoteParticipantCard?.classList.toggle("hide-name", !showRemoteName);
+  localParticipantCard?.classList.toggle("streaming", localScreenActive);
+  remoteParticipantCard?.classList.toggle("streaming", remoteScreenActive);
 
-  setVideoElementStream(localVideo, showLocalVideo ? callState.localCameraStream : null);
-  setVideoElementStream(remoteVideo, showRemoteVideo ? callState.remoteStream : null);
+  setVideoElementStream(localVideo, showLocalVideo ? localDisplayStream : null);
+  setVideoElementStream(remoteVideo, showRemoteVideo ? remoteDisplayStream : null);
   renderParticipantBadges(localParticipantBadges, {
     muted: callState.muted,
     deafened: callState.deafened
@@ -2624,20 +2737,25 @@ function refreshCallUi() {
   callMute.classList.add("hidden");
   callDeafen.classList.add("hidden");
   callCamera.classList.add("hidden");
+  callStream.classList.add("hidden");
   callHangup.classList.add("hidden");
   callMute.classList.toggle("active", callState.muted);
   callDeafen.classList.toggle("active", callState.deafened);
   callCamera.classList.toggle("active", callState.localCameraEnabled);
+  callStream.classList.toggle("active", Boolean(screenShareState.localStream));
   callCamera.classList.toggle("camera", true);
   callMute.querySelector("span").textContent = callState.muted ? "Unmute" : "Mute";
   callDeafen.querySelector("span").textContent = callState.deafened ? "Undeafen" : "Deafen";
   callCamera.querySelector("span").textContent = callState.localCameraEnabled ? "Hide Cam" : "Show Cam";
+  callStream.querySelector("span").textContent = screenShareState.localStream ? "Stop Stream" : "Stream";
   callMute.title = callState.muted ? "Unmute microphone" : "Mute microphone";
   callDeafen.title = callState.deafened ? "Undeafen" : "Deafen";
   callCamera.title = callState.localCameraEnabled ? "Hide camera" : "Show camera";
+  callStream.title = screenShareState.localStream ? "Stop screen stream" : "Share screen";
   callMute.setAttribute("aria-label", callMute.title);
   callDeafen.setAttribute("aria-label", callDeafen.title);
   callCamera.setAttribute("aria-label", callCamera.title);
+  callStream.setAttribute("aria-label", callStream.title);
   const remoteStates = [
     remoteCallStatus.muted ? "muted" : "",
     remoteCallStatus.deafened ? "deafened" : ""
@@ -2676,6 +2794,7 @@ function refreshCallUi() {
     callMute.classList.remove("hidden");
     callDeafen.classList.remove("hidden");
     callCamera.classList.remove("hidden");
+    callStream.classList.remove("hidden");
     callHangup.classList.remove("hidden");
     refreshCallStage();
     return;
@@ -2685,6 +2804,7 @@ function refreshCallUi() {
   callMute.classList.remove("hidden");
   callDeafen.classList.remove("hidden");
   callCamera.classList.remove("hidden");
+  callStream.classList.remove("hidden");
   callHangup.classList.remove("hidden");
   refreshCallStage();
 }
@@ -2719,6 +2839,8 @@ function scheduleOutgoingCallTimeout() {
 
 function resetCallState() {
   clearOutgoingCallTimeout();
+  stopLocalScreenShare({ notifyPeer: false });
+  stopRemoteScreenShare();
   const mediaConn = callState.mediaConn;
   const incomingMediaConn = callState.incomingMediaConn;
   const localStream = callState.localStream;
@@ -3576,6 +3698,323 @@ function attachMediaConnectionHandlers(mediaConn, peerId, callId) {
   });
 }
 
+async function tuneScreenShareConnection(mediaConn, bitrate = getScreenStreamBaseBitrate()) {
+  const peerConnection = mediaConn?.peerConnection;
+  if (!peerConnection?.getSenders) {
+    return;
+  }
+
+  for (const sender of peerConnection.getSenders()) {
+    if (sender.track?.kind !== "video" || !sender.getParameters || !sender.setParameters) {
+      continue;
+    }
+
+    const parameters = sender.getParameters();
+    parameters.degradationPreference = "maintain-resolution";
+    parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+    parameters.encodings[0].maxBitrate = Math.max(SCREEN_STREAM_MIN_BITRATE, bitrate);
+    parameters.encodings[0].maxFramerate = screenShareState.fps;
+    parameters.encodings[0].networkPriority = "high";
+    await sender.setParameters(parameters).catch(() => {});
+    if (sender.track) {
+      sender.track.contentHint = "detail";
+    }
+  }
+}
+
+function stopScreenQualityMonitor() {
+  if (screenShareState.qualityMonitor) {
+    clearInterval(screenShareState.qualityMonitor);
+    screenShareState.qualityMonitor = null;
+  }
+  screenShareState.qualityLastStats = null;
+}
+
+async function sampleAdaptiveScreenQuality() {
+  const mediaConn = screenShareState.localMediaConn;
+  const peerConnection = mediaConn?.peerConnection;
+  if (!screenShareState.localStream || !peerConnection?.getStats) {
+    return;
+  }
+
+  try {
+    const stats = await peerConnection.getStats();
+    let outboundVideo = null;
+    let selectedPair = null;
+
+    for (const report of stats.values()) {
+      if (report.type === "outbound-rtp" && report.kind === "video" && !report.isRemote) {
+        outboundVideo = report;
+      }
+      if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+        selectedPair = report;
+      }
+    }
+
+    if (!outboundVideo) {
+      return;
+    }
+
+    const previous = screenShareState.qualityLastStats;
+    let actualBitrate = 0;
+    if (previous?.timestamp && previous.bytesSent != null) {
+      const elapsedMs = outboundVideo.timestamp - previous.timestamp;
+      const bytesDelta = outboundVideo.bytesSent - previous.bytesSent;
+      if (elapsedMs > 0 && bytesDelta >= 0) {
+        actualBitrate = Math.round((bytesDelta * 8 * 1000) / elapsedMs);
+      }
+    }
+
+    screenShareState.qualityLastStats = {
+      timestamp: outboundVideo.timestamp,
+      bytesSent: outboundVideo.bytesSent
+    };
+
+    const baseBitrate = getScreenStreamBaseBitrate();
+    const lossRatio = outboundVideo.packetsSent > 0
+      ? (outboundVideo.packetsLost || 0) / Math.max(1, outboundVideo.packetsSent + (outboundVideo.packetsLost || 0))
+      : 0;
+    const available = selectedPair?.availableOutgoingBitrate || 0;
+    const rttMs = (selectedPair?.currentRoundTripTime || 0) * 1000;
+    const congestion = lossRatio > 0.06 || rttMs > 340 || available > 0 && available < baseBitrate * 0.72 || actualBitrate > 0 && actualBitrate < baseBitrate * 0.45;
+    const nextBitrate = congestion ? Math.round(baseBitrate * 0.58) : baseBitrate;
+    await tuneScreenShareConnection(mediaConn, nextBitrate);
+  } catch {
+    // getStats can fail while a WebRTC sender is closing or changing tracks.
+  }
+}
+
+function startScreenQualityMonitor() {
+  stopScreenQualityMonitor();
+  screenShareState.qualityMonitor = setInterval(() => {
+    sampleAdaptiveScreenQuality().catch(() => {});
+  }, SCREEN_STREAM_QUALITY_POLL_MS);
+}
+
+async function getScreenCaptureStream(sourceId, options) {
+  const constraints = getScreenStreamConstraints(sourceId, options);
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (error) {
+    if (options?.audio) {
+      return navigator.mediaDevices.getUserMedia(getScreenStreamConstraints(sourceId, { ...options, audio: false }));
+    }
+    throw error;
+  }
+}
+
+function sendScreenShareState(extra = {}) {
+  if (!callState.peerId || callState.status === "idle") {
+    return;
+  }
+
+  sendProtocolMessage(connections.get(callState.peerId), "screen-share-state", {
+    callId: callState.callId,
+    active: Boolean(screenShareState.localStream),
+    sourceName: screenShareState.sourceName,
+    quality: screenShareState.quality,
+    fps: screenShareState.fps,
+    audio: screenShareState.audioEnabled,
+    viewerWatching: screenShareState.remoteViewerWatching,
+    ...extra
+  });
+}
+
+function stopLocalScreenShare({ notifyPeer = true, message = "" } = {}) {
+  stopScreenQualityMonitor();
+  const mediaConn = screenShareState.localMediaConn;
+  const stream = screenShareState.localStream;
+
+  screenShareState.localMediaConn = null;
+  screenShareState.localStream = null;
+  screenShareState.sourceId = "";
+  screenShareState.sourceName = "";
+  screenShareState.audioEnabled = false;
+  screenShareState.remoteViewerWatching = true;
+  mediaConn?.close();
+  stream?.getTracks().forEach((track) => track.stop());
+
+  if (notifyPeer) {
+    sendScreenShareState({ active: false });
+  }
+  if (message) {
+    addSystemMessage(message);
+  }
+  refreshCallUi();
+  refreshCallStage();
+}
+
+function stopRemoteScreenShare({ message = "" } = {}) {
+  const mediaConn = screenShareState.remoteMediaConn;
+  const stream = screenShareState.remoteStream;
+
+  screenShareState.remoteMediaConn = null;
+  screenShareState.remoteStream = null;
+  screenShareState.remoteAudioEnabled = false;
+  screenShareState.viewerWatching = true;
+  screenShareState.hiddenByViewer = false;
+  mediaConn?.close();
+  stream?.getTracks().forEach((track) => track.stop());
+  if (message) {
+    addSystemMessage(message);
+  }
+  refreshCallUi();
+  refreshCallStage();
+}
+
+function closeRemoteScreenShareForViewer() {
+  if (callState.peerId && callState.callId) {
+    sendProtocolMessage(connections.get(callState.peerId), "screen-watch-state", {
+      callId: callState.callId,
+      watching: false
+    });
+  }
+  stopRemoteScreenShare({ message: "Screen stream closed." });
+}
+
+async function startLocalScreenShare(source, { quality = screenShareState.quality, fps = screenShareState.fps, audio = screenShareState.audioEnabled } = {}) {
+  if (!peer?.open || callState.status === "idle" || !callState.peerId) {
+    return;
+  }
+
+  const peerId = callState.peerId;
+  const conn = connections.get(peerId);
+  if (!conn?.open) {
+    setStatus("offline", "The active peer is not ready yet.");
+    return;
+  }
+
+  let stream = null;
+  try {
+    stream = await getScreenCaptureStream(source.id, { quality, fps, audio });
+    const videoTrack = stream.getVideoTracks()[0] || null;
+    if (!videoTrack) {
+      throw new Error("No screen video track available.");
+    }
+    videoTrack.contentHint = "detail";
+    videoTrack.addEventListener("ended", () => {
+      if (screenShareState.localStream === stream) {
+        stopLocalScreenShare({ notifyPeer: true, message: "Screen stream stopped." });
+      }
+    }, { once: true });
+
+    stopLocalScreenShare({ notifyPeer: false });
+    screenShareState.localStream = stream;
+    screenShareState.sourceId = source.id;
+    screenShareState.sourceName = source.name || "Screen";
+    screenShareState.quality = normalizeScreenQuality(quality);
+    screenShareState.fps = normalizeScreenFps(fps);
+    screenShareState.audioEnabled = Boolean(stream.getAudioTracks().length);
+    screenShareState.remoteViewerWatching = true;
+
+    const mediaConn = peer.call(peerId, stream, {
+      metadata: {
+        ...createChatMetadata(),
+        kind: "screen",
+        callId: callState.callId,
+        sourceName: screenShareState.sourceName,
+        quality: screenShareState.quality,
+        fps: screenShareState.fps,
+        audio: screenShareState.audioEnabled
+      }
+    });
+    screenShareState.localMediaConn = mediaConn;
+    mediaConn.on("close", () => {
+      if (screenShareState.localMediaConn === mediaConn) {
+        stopLocalScreenShare({ notifyPeer: false });
+      }
+    });
+    mediaConn.on("error", (error) => {
+      if (screenShareState.localMediaConn === mediaConn) {
+        addSystemMessage(`Screen stream error: ${error.message}`);
+        stopLocalScreenShare({ notifyPeer: true });
+      }
+    });
+    await tuneScreenShareConnection(mediaConn);
+    startScreenQualityMonitor();
+    sendScreenShareState({ active: true });
+    addSystemMessage(`Streaming ${screenShareState.sourceName}.`);
+    refreshCallUi();
+    refreshCallStage();
+  } catch (error) {
+    stream?.getTracks().forEach((track) => track.stop());
+    const message = formatScreenCaptureError(error);
+    setStatus("offline", message);
+    addSystemMessage(message);
+  }
+}
+
+function handleIncomingScreenShare(mediaConn) {
+  const peerId = mediaConn.peer;
+  const callId = mediaConn.metadata?.callId;
+  if (callState.peerId !== peerId || callState.callId !== callId || callState.status === "idle") {
+    rejectIncomingMediaCall(mediaConn);
+    return;
+  }
+
+  stopRemoteScreenShare();
+  screenShareState.remoteMediaConn = mediaConn;
+  screenShareState.remoteAudioEnabled = Boolean(mediaConn.metadata?.audio);
+  mediaConn.answer();
+  mediaConn.on("stream", (stream) => {
+    if (screenShareState.remoteMediaConn !== mediaConn) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    screenShareState.remoteStream = stream;
+    screenShareState.remoteAudioEnabled = Boolean(stream.getAudioTracks().length);
+    addSystemMessage(`${getPeerLabel(peerId, connections.get(peerId))} started streaming.`);
+    refreshCallUi();
+    refreshCallStage();
+  });
+  mediaConn.on("close", () => {
+    if (screenShareState.remoteMediaConn === mediaConn) {
+      stopRemoteScreenShare({ message: "Screen stream ended." });
+    }
+  });
+  mediaConn.on("error", () => {
+    if (screenShareState.remoteMediaConn === mediaConn) {
+      stopRemoteScreenShare({ message: "Screen stream ended." });
+    }
+  });
+}
+
+function handleRemoteScreenShareState(peerId, data) {
+  if (callState.peerId !== peerId || callState.callId !== data.callId) {
+    return;
+  }
+
+  if (data.active === false) {
+    stopRemoteScreenShare();
+    return;
+  }
+  screenShareState.remoteAudioEnabled = Boolean(data.audio);
+  if (typeof data.viewerWatching === "boolean") {
+    screenShareState.remoteViewerWatching = data.viewerWatching;
+  }
+  refreshCallStage();
+}
+
+function handleRemoteScreenWatchState(peerId, data) {
+  if (callState.peerId !== peerId || callState.callId !== data.callId) {
+    return;
+  }
+
+  if (data.watching === false) {
+    stopLocalScreenShare({ notifyPeer: false, message: "Screen stream closed." });
+    return;
+  }
+
+  screenShareState.remoteViewerWatching = data.watching !== false;
+  screenShareState.localStream?.getVideoTracks().forEach((track) => {
+    track.enabled = screenShareState.remoteViewerWatching;
+  });
+  screenShareState.localStream?.getAudioTracks().forEach((track) => {
+    track.enabled = screenShareState.remoteViewerWatching;
+  });
+  refreshCallStage();
+}
+
 async function startVoiceCall() {
   if (!activePeerId || isCallBusy()) {
     return;
@@ -3768,6 +4207,11 @@ function handleIncomingMediaCall(mediaConn) {
     return;
   }
 
+  if (mediaConn.metadata?.kind === "screen") {
+    handleIncomingScreenShare(mediaConn);
+    return;
+  }
+
   const callId = mediaConn.metadata?.callId;
   const peerId = mediaConn.peer;
   if (
@@ -3893,6 +4337,7 @@ function openContactMenu(event, id) {
   closeMessageMenu();
   closeAppMenu();
   closeParticipantMenu();
+  closeStreamMenu();
   contextContactId = id;
 
   const contact = findContact(id);
@@ -3916,6 +4361,7 @@ function openAppMenu(event) {
   closeContactMenu();
   closeMessageMenu();
   closeParticipantMenu();
+  closeStreamMenu();
 
   const rect = titlebarLogo.getBoundingClientRect();
   appMenu.style.left = `${Math.min(rect.left, window.innerWidth - 164)}px`;
@@ -3932,6 +4378,7 @@ function openMessageMenu(event, messageItem) {
   closeContactMenu();
   closeAppMenu();
   closeParticipantMenu();
+  closeStreamMenu();
 
   contextMessage = messageItem;
 
@@ -3954,6 +4401,7 @@ function openParticipantMenu(event, target) {
   closeContactMenu();
   closeAppMenu();
   closeMessageMenu();
+  closeStreamMenu();
   contextParticipantTarget = target;
 
   const peerId = callState.peerId;
@@ -3973,6 +4421,146 @@ function openParticipantMenu(event, target) {
 function closeParticipantMenu() {
   participantMenu.classList.add("hidden");
   contextParticipantTarget = null;
+}
+
+function closeStreamMenu() {
+  streamMenu.classList.add("hidden");
+  contextStreamTarget = "";
+}
+
+function openStreamMenu(event, target) {
+  event.preventDefault();
+  if (callState.status === "idle") {
+    return;
+  }
+
+  closeContactMenu();
+  closeAppMenu();
+  closeMessageMenu();
+  closeParticipantMenu();
+  contextStreamTarget = target;
+  const isLocal = target === "local";
+
+  streamMenuQuality.classList.toggle("hidden", !isLocal);
+  streamMenuSource.classList.toggle("hidden", !isLocal);
+  streamMenuAudio.classList.toggle("hidden", !isLocal);
+  streamMenuStop.classList.toggle("hidden", !isLocal);
+  streamMenuWatch.classList.toggle("hidden", isLocal);
+  streamMenuAudio.setAttribute("aria-checked", String(screenShareState.audioEnabled));
+  streamMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 212)}px`;
+  streamMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 164)}px`;
+  streamMenu.classList.remove("hidden");
+}
+
+function getStreamSourceType(source) {
+  return String(source?.id || "").startsWith("screen:") ? "screens" : "windows";
+}
+
+function setActiveStreamSourceTab(tab) {
+  activeStreamSourceTab = tab === "windows" ? "windows" : "screens";
+  streamTabScreens?.classList.toggle("active", activeStreamSourceTab === "screens");
+  streamTabWindows?.classList.toggle("active", activeStreamSourceTab === "windows");
+  streamTabScreens?.setAttribute("aria-selected", String(activeStreamSourceTab === "screens"));
+  streamTabWindows?.setAttribute("aria-selected", String(activeStreamSourceTab === "windows"));
+}
+
+function createStreamSourceEmptyState(tab) {
+  const empty = document.createElement("div");
+  empty.className = "screen-source-empty";
+  const icon = document.createElement("i");
+  icon.className = tab === "screens" ? "fa-solid fa-display" : "fa-solid fa-window-maximize";
+  icon.setAttribute("aria-hidden", "true");
+  const label = document.createElement("strong");
+  label.textContent = tab === "screens" ? "No screens found" : "No app windows found";
+  empty.append(icon, label);
+  return empty;
+}
+
+function renderScreenSources(sources = availableScreenSources) {
+  availableScreenSources = Array.isArray(sources) ? sources : [];
+  const visibleSources = availableScreenSources.filter((source) => getStreamSourceType(source) === activeStreamSourceTab);
+  if (!selectedScreenSource || getStreamSourceType(selectedScreenSource) !== activeStreamSourceTab) {
+    selectedScreenSource = visibleSources[0] || null;
+  }
+  screenSourceList.replaceChildren();
+  for (const source of visibleSources) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "screen-source-button";
+    button.dataset.sourceId = source.id;
+    button.setAttribute("aria-pressed", String(selectedScreenSource?.id === source.id));
+
+    const badge = document.createElement("span");
+    badge.className = "screen-source-badge";
+    const badgeIcon = document.createElement("i");
+    badgeIcon.className = getStreamSourceType(source) === "screens" ? "fa-solid fa-display" : "fa-solid fa-window-maximize";
+    badgeIcon.setAttribute("aria-hidden", "true");
+    badge.append(badgeIcon);
+    const image = document.createElement("img");
+    image.alt = "";
+    image.src = source.thumbnail || "";
+    const label = document.createElement("span");
+    label.className = "screen-source-name";
+    label.textContent = source.name || "Screen";
+    button.append(image, badge, label);
+    button.addEventListener("click", () => {
+      selectedScreenSource = source;
+      for (const item of screenSourceList.querySelectorAll(".screen-source-button")) {
+        item.setAttribute("aria-pressed", "false");
+      }
+      button.setAttribute("aria-pressed", "true");
+      streamStartButton.disabled = false;
+    });
+    screenSourceList.append(button);
+  }
+  streamStartButton.disabled = !selectedScreenSource;
+  if (!visibleSources.length) {
+    screenSourceList.append(createStreamSourceEmptyState(activeStreamSourceTab));
+  }
+}
+
+async function openStreamSetup({ reuseCurrent = false } = {}) {
+  if (callState.status === "idle" || !callState.peerId) {
+    return;
+  }
+
+  closeStreamMenu();
+  setActiveStreamSourceTab("screens");
+  streamQualitySelect.value = normalizeScreenQuality(screenShareState.quality);
+  streamFpsSelect.value = String(normalizeScreenFps(screenShareState.fps));
+  streamAudioToggle.checked = Boolean(screenShareState.audioEnabled);
+  streamModal.classList.remove("hidden");
+  screenSourceList.replaceChildren();
+  const loading = document.createElement("div");
+  loading.className = "screen-source-empty";
+  const loadingIcon = document.createElement("i");
+  loadingIcon.className = "fa-solid fa-spinner";
+  loadingIcon.setAttribute("aria-hidden", "true");
+  const loadingText = document.createElement("strong");
+  loadingText.textContent = "Loading sources...";
+  loading.append(loadingIcon, loadingText);
+  screenSourceList.append(loading);
+  streamStartButton.disabled = true;
+
+  try {
+    const sources = await window.aeroChat?.getScreenSources?.() || [];
+    if (reuseCurrent && screenShareState.sourceId) {
+      const current = sources.find((source) => source.id === screenShareState.sourceId);
+      if (current) {
+        setActiveStreamSourceTab(getStreamSourceType(current));
+        selectedScreenSource = current;
+      }
+    }
+    renderScreenSources(sources);
+  } catch {
+    renderScreenSources([]);
+  }
+}
+
+function closeStreamSetup() {
+  streamModal.classList.add("hidden");
+  selectedScreenSource = null;
+  availableScreenSources = [];
 }
 
 function deleteMessageLocally(peerId, messageId) {
@@ -4456,6 +5044,16 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
     if (data?.type === "camera-state") {
       handleRemoteCameraState(peerId, data);
+      return;
+    }
+
+    if (data?.type === "screen-share-state") {
+      handleRemoteScreenShareState(peerId, data);
+      return;
+    }
+
+    if (data?.type === "screen-watch-state") {
+      handleRemoteScreenWatchState(peerId, data);
       return;
     }
 
@@ -4970,6 +5568,15 @@ callCamera.addEventListener("click", () => {
   setLocalCameraEnabled(!callState.localCameraEnabled);
 });
 
+callStream.addEventListener("click", () => {
+  if (screenShareState.localStream) {
+    stopLocalScreenShare({ notifyPeer: true, message: "Screen stream stopped." });
+    return;
+  }
+
+  openStreamSetup();
+});
+
 callHangup.addEventListener("click", () => {
   if (isActionOnCooldown("call", CALL_ACTION_COOLDOWN_MS, "Please wait before changing call state.")) {
     return;
@@ -4978,11 +5585,74 @@ callHangup.addEventListener("click", () => {
 });
 
 localParticipantCard?.addEventListener("contextmenu", (event) => {
+  if (screenShareState.localStream) {
+    openStreamMenu(event, "local");
+    return;
+  }
   openParticipantMenu(event, "local");
 });
 
 remoteParticipantCard?.addEventListener("contextmenu", (event) => {
+  if (screenShareState.remoteStream) {
+    openStreamMenu(event, "remote");
+    return;
+  }
   openParticipantMenu(event, "remote");
+});
+
+streamModalClose.addEventListener("click", closeStreamSetup);
+
+streamModal.addEventListener("click", (event) => {
+  if (event.target === streamModal) {
+    closeStreamSetup();
+  }
+});
+
+streamTabScreens.addEventListener("click", () => {
+  setActiveStreamSourceTab("screens");
+  renderScreenSources();
+});
+
+streamTabWindows.addEventListener("click", () => {
+  setActiveStreamSourceTab("windows");
+  renderScreenSources();
+});
+
+streamStartButton.addEventListener("click", async () => {
+  if (!selectedScreenSource) {
+    return;
+  }
+
+  const source = selectedScreenSource;
+  const options = {
+    quality: normalizeScreenQuality(streamQualitySelect.value),
+    fps: normalizeScreenFps(streamFpsSelect.value),
+    audio: streamAudioToggle.checked
+  };
+  closeStreamSetup();
+  await startLocalScreenShare(source, options);
+});
+
+streamMenuQuality.addEventListener("click", () => {
+  openStreamSetup({ reuseCurrent: true });
+});
+
+streamMenuSource.addEventListener("click", () => {
+  openStreamSetup();
+});
+
+streamMenuAudio.addEventListener("click", () => {
+  openStreamSetup({ reuseCurrent: true });
+});
+
+streamMenuWatch.addEventListener("click", () => {
+  closeRemoteScreenShareForViewer();
+  closeStreamMenu();
+});
+
+streamMenuStop.addEventListener("click", () => {
+  stopLocalScreenShare({ notifyPeer: true, message: "Screen stream stopped." });
+  closeStreamMenu();
 });
 
 disconnectChat.addEventListener("click", () => {
@@ -5474,6 +6144,9 @@ document.addEventListener("click", (event) => {
   if (!participantMenu.contains(event.target)) {
     closeParticipantMenu();
   }
+  if (!streamMenu.contains(event.target)) {
+    closeStreamMenu();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
@@ -5482,8 +6155,10 @@ document.addEventListener("keydown", (event) => {
     closeContactMenu();
     closeMessageMenu();
     closeParticipantMenu();
+    closeStreamMenu();
     updateModal.classList.add("hidden");
     settingsModal.classList.add("hidden");
+    closeStreamSetup();
   }
 });
 

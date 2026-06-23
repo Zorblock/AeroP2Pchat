@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
+  getScreenSources: () => ipcRenderer.invoke("get-screen-sources"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
   showNotification: (details) => ipcRenderer.invoke("show-app-notification", details),
   closeNotification: (id) => ipcRenderer.invoke("close-app-notification", id),

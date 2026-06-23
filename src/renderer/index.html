@@ -366,6 +366,10 @@
               <i class="fa-solid fa-video" aria-hidden="true"></i>
               <span>Show Cam</span>
             </button>
+            <button id="call-stream" type="button" class="call-action stream icon-only-button hidden" title="Share screen" aria-label="Share screen">
+              <i class="fa-solid fa-display" aria-hidden="true"></i>
+              <span>Stream</span>
+            </button>
             <button id="call-hangup" type="button" class="call-action hangup icon-only-button hidden" title="Hang up" aria-label="Hang up">
               <i class="fa-solid fa-phone-slash" aria-hidden="true"></i>
               <span>Hang up</span>
@@ -698,6 +702,83 @@
         <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
         <span>Show Name</span>
       </button>
+    </div>
+
+    <div id="stream-menu" class="context-menu stream-menu hidden" role="menu">
+      <button id="stream-menu-quality" type="button" role="menuitem">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        <span>Quality</span>
+      </button>
+      <button id="stream-menu-source" type="button" role="menuitem">
+        <i class="fa-solid fa-display" aria-hidden="true"></i>
+        <span>Switch screen</span>
+      </button>
+      <button id="stream-menu-audio" type="button" role="menuitemcheckbox" aria-checked="false">
+        <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+        <span>Screen audio</span>
+      </button>
+      <button id="stream-menu-watch" type="button" role="menuitem">
+        <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
+        <span>Close Stream</span>
+      </button>
+      <button id="stream-menu-stop" type="button" role="menuitem" class="danger">
+        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+        <span>Stop stream</span>
+      </button>
+    </div>
+
+    <div id="stream-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="stream-modal-title">
+      <div class="stream-dialog">
+        <div class="stream-dialog-header">
+          <div>
+            <span class="stream-dialog-kicker">Screen Share</span>
+            <h3 id="stream-modal-title">Start stream</h3>
+          </div>
+          <button id="stream-modal-close" class="stream-close-button icon-only-button" type="button" title="Close stream setup" aria-label="Close stream setup">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="stream-controls">
+          <label>
+            <span>Quality</span>
+            <select id="stream-quality-select">
+              <option value="480p">480p</option>
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p</option>
+              <option value="native">Native</option>
+            </select>
+          </label>
+          <label>
+            <span>FPS</span>
+            <select id="stream-fps-select">
+              <option value="15">15</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+            </select>
+          </label>
+          <label class="stream-audio-toggle">
+            <input id="stream-audio-toggle" type="checkbox" />
+            <span>Share screen audio</span>
+          </label>
+        </div>
+        <div class="stream-source-tabs" role="tablist" aria-label="Stream source type">
+          <button id="stream-tab-screens" class="stream-source-tab active" type="button" role="tab" aria-selected="true">
+            <i class="fa-solid fa-display" aria-hidden="true"></i>
+            <span>Bildschirme</span>
+          </button>
+          <button id="stream-tab-windows" class="stream-source-tab" type="button" role="tab" aria-selected="false">
+            <i class="fa-solid fa-window-maximize" aria-hidden="true"></i>
+            <span>Anwendungen</span>
+          </button>
+        </div>
+        <div id="screen-source-list" class="screen-source-list"></div>
+        <div class="stream-dialog-actions">
+          <button id="stream-start-button" class="stream-start-button" type="button" disabled>
+            <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+            <span>Start stream</span>
+          </button>
+        </div>
+      </div>
     </div>
   </body>
 </html>

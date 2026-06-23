@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, clipboard, ipcMain, powerMonitor, screen, shell, session } = require("electron");
+const { app, BrowserWindow, Menu, Tray, clipboard, desktopCapturer, ipcMain, powerMonitor, screen, shell, session } = require("electron");
 const { createWriteStream, existsSync, readFileSync } = require("node:fs");
 const { mkdir, mkdtemp, readFile, rm, writeFile } = require("node:fs/promises");
 const { createHash } = require("node:crypto");
@@ -924,6 +924,25 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("get-screen-sources", async (event) => {
+    const requestingWindow = BrowserWindow.fromWebContents(event.sender);
+    if (requestingWindow !== mainWindow) {
+      return [];
+    }
+
+    const sources = await desktopCapturer.getSources({
+      types: ["screen", "window"],
+      thumbnailSize: { width: 320, height: 180 },
+      fetchWindowIcons: true
+    });
+    return sources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      displayId: source.display_id,
+      thumbnail: source.thumbnail?.toDataURL() || "",
+      appIcon: source.appIcon?.toDataURL?.() || ""
+    }));
+  });
   ipcMain.handle("write-clipboard", (_event, text) => {
     clipboard.writeText(String(text || ""));
     return { ok: true };
