@@ -293,7 +293,10 @@
           <span class="label">Update</span>
           <strong id="update-title">Update available</strong>
           <p id="update-text"></p>
-          <button id="update-button" type="button">Update</button>
+          <div class="update-actions">
+            <button id="update-button" type="button">Update</button>
+            <button id="update-ignore-button" class="ghost-button" type="button">Ignore</button>
+          </div>
         </div>
 
         <div class="peers-card">
@@ -318,9 +321,9 @@
 
       <section class="chat-panel" aria-label="Chat">
         <header class="chat-header">
-          <div>
-            <span class="label">Chat</span>
-            <h2 id="chat-title">Ready to connect</h2>
+          <div class="chat-heading">
+            <span id="chat-meta" class="chat-meta">Idle</span>
+            <h2 id="chat-title">No active chat</h2>
           </div>
           <div class="chat-actions">
             <button id="call-chat" class="ghost-button call" type="button" disabled title="Start voice call">
@@ -339,7 +342,8 @@
         </header>
 
         <div id="call-banner" class="call-banner hidden" aria-live="polite">
-          <span id="call-text">Voice call</span>
+          <span id="call-text" class="call-state">Voice</span>
+          <span id="call-peer-name" class="call-peer-name">Peer</span>
           <span id="call-peer-status" class="call-peer-status hidden"></span>
           <div class="call-banner-actions">
             <button id="call-accept" type="button" class="call-action accept hidden">
@@ -615,6 +619,10 @@
       <button id="app-menu-update" class="hidden" type="button" role="menuitem">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>Install update</span>
+      </button>
+      <button id="app-menu-update-ignore" class="hidden" type="button" role="menuitem">
+        <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>
+        <span>Ignore update hint</span>
       </button>
       <button id="app-menu-settings" type="button" role="menuitem">
         <i class="fa-solid fa-gear" aria-hidden="true"></i>

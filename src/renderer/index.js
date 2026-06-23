@@ -23,12 +23,14 @@ const appShell = document.querySelector(".app-shell");
 const sidebarResizer = document.querySelector("#sidebar-resizer");
 const contactSearchInput = document.querySelector("#contact-search");
 const peerList = document.querySelector("#peer-list");
+const chatMeta = document.querySelector("#chat-meta");
 const chatTitle = document.querySelector("#chat-title");
 const callChat = document.querySelector("#call-chat");
 const clearChat = document.querySelector("#clear-chat");
 const disconnectChat = document.querySelector("#disconnect-chat");
 const callBanner = document.querySelector("#call-banner");
 const callText = document.querySelector("#call-text");
+const callPeerName = document.querySelector("#call-peer-name");
 const callPeerStatus = document.querySelector("#call-peer-status");
 const callAccept = document.querySelector("#call-accept");
 const callDecline = document.querySelector("#call-decline");
@@ -45,6 +47,7 @@ const updateCard = document.querySelector("#update-card");
 const updateTitle = document.querySelector("#update-title");
 const updateText = document.querySelector("#update-text");
 const updateButton = document.querySelector("#update-button");
+const updateIgnoreButton = document.querySelector("#update-ignore-button");
 const updateModal = document.querySelector("#update-modal");
 const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
@@ -97,6 +100,7 @@ const appMenuOnline = document.querySelector("#app-menu-online");
 const appMenuDnd = document.querySelector("#app-menu-dnd");
 const appMenuOffline = document.querySelector("#app-menu-offline");
 const appMenuUpdate = document.querySelector("#app-menu-update");
+const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
 const appMenuSettings = document.querySelector("#app-menu-settings");
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
@@ -155,6 +159,7 @@ let activePeerId = null;
 let myPeerId = "";
 let peer = null;
 let availableUpdate = null;
+let ignoredUpdateVersion = "";
 let contacts = [];
 let contextContactId = "";
 let contextMessage = null;
@@ -1554,7 +1559,7 @@ function updateTypingIndicator() {
     return;
   }
 
-  typingIndicator.textContent = `${getPeerLabel(activePeerId, connections.get(activePeerId))} is typing...`;
+  typingIndicator.textContent = `${getPeerLabel(activePeerId, connections.get(activePeerId))} typing...`;
   typingIndicator.classList.remove("hidden");
 }
 
@@ -1795,11 +1800,49 @@ function compareVersions(left, right) {
 
 function clearUpdateAvailableUi() {
   availableUpdate = null;
+  ignoredUpdateVersion = "";
   headerUpdateButton.classList.add("hidden");
   updateCard.classList.add("hidden");
   titlebarLogo.classList.remove("update-available");
   titlebarLogo.removeAttribute("title");
   appMenuUpdate.classList.add("hidden");
+  appMenuUpdateIgnore.classList.add("hidden");
+}
+
+function syncAvailableUpdateUi() {
+  if (!availableUpdate) {
+    clearUpdateAvailableUi();
+    return;
+  }
+
+  const isIgnored = ignoredUpdateVersion === availableUpdate.version;
+  updateTitle.textContent = "Update available";
+  updateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+  updateButton.textContent = platform === "win32" ? "Install update" : "Show command";
+  updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
+  updateIgnoreButton.disabled = isIgnored;
+  headerUpdateButton.classList.add("hidden");
+  titlebarLogo.classList.toggle("update-available", !isIgnored);
+  titlebarLogo.title = isIgnored
+    ? `Update ${availableUpdate.version} available`
+    : `Update ${availableUpdate.version} available`;
+  appMenuUpdate.classList.remove("hidden");
+  appMenuUpdateIgnore.classList.remove("hidden");
+  appMenuUpdate.querySelector("span").textContent = platform === "win32"
+    ? `Install ${availableUpdate.version}`
+    : `Update ${availableUpdate.version}`;
+  appMenuUpdateIgnore.querySelector("span").textContent = isIgnored
+    ? `Ignored ${availableUpdate.version}`
+    : `Ignore update hint`;
+}
+
+function ignoreAvailableUpdateHint() {
+  if (!availableUpdate) {
+    return;
+  }
+
+  ignoredUpdateVersion = availableUpdate.version;
+  syncAvailableUpdateUi();
 }
 
 async function checkForUpdates() {
@@ -1837,14 +1880,7 @@ async function checkForUpdates() {
       windowsSha512
     };
 
-    updateTitle.textContent = "Update available";
-    updateText.textContent = `Version ${latestVersion} is ready. You are using ${currentVersion}.`;
-    updateButton.textContent = platform === "win32" ? "Install update" : "Show command";
-    headerUpdateButton.classList.add("hidden");
-    titlebarLogo.classList.add("update-available");
-    titlebarLogo.title = `Update ${latestVersion} available`;
-    appMenuUpdate.classList.remove("hidden");
-    appMenuUpdate.querySelector("span").textContent = platform === "win32" ? `Install ${latestVersion}` : `Update ${latestVersion}`;
+    syncAvailableUpdateUi();
   } catch {
     clearUpdateAvailableUi();
   }
@@ -2122,34 +2158,36 @@ function refreshCallUi() {
 
   if (callState.status === "idle") {
     callBanner.classList.add("hidden");
+    callPeerName.textContent = "";
     return;
   }
 
   callBanner.classList.remove("hidden");
   const label = getActiveCallLabel() || "Peer";
+  callPeerName.textContent = label;
 
   if (callState.status === "incoming") {
-    callText.textContent = `${label} is calling`;
+    callText.textContent = "Incoming";
     callAccept.classList.remove("hidden");
     callDecline.classList.remove("hidden");
     return;
   }
 
   if (callState.status === "outgoing") {
-    callText.textContent = `Calling ${label}...`;
+    callText.textContent = "Calling";
     callHangup.classList.remove("hidden");
     return;
   }
 
   if (callState.status === "connecting") {
-    callText.textContent = `Connecting voice with ${label}...`;
+    callText.textContent = "Connecting";
     callMute.classList.remove("hidden");
     callDeafen.classList.remove("hidden");
     callHangup.classList.remove("hidden");
     return;
   }
 
-  callText.textContent = `In voice call with ${label}`;
+  callText.textContent = "Voice";
   callMute.classList.remove("hidden");
   callDeafen.classList.remove("hidden");
   callHangup.classList.remove("hidden");
@@ -3361,7 +3399,8 @@ function refreshPeers() {
 
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
   const canChat = Boolean(activeConn?.open);
-  chatTitle.textContent = activePeerId ? `Connected to ${getPeerLabel(activePeerId, activeConn)}` : "Ready to connect";
+  chatTitle.textContent = activePeerId ? getPeerLabel(activePeerId, activeConn) : "No active chat";
+  chatMeta.textContent = activePeerId ? "Connected" : "Idle";
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
   disconnectChat.disabled = !canChat;
@@ -4327,8 +4366,13 @@ async function installAvailableUpdate() {
 
 headerUpdateButton.addEventListener("click", installAvailableUpdate);
 updateButton.addEventListener("click", installAvailableUpdate);
+updateIgnoreButton.addEventListener("click", ignoreAvailableUpdateHint);
 appMenuUpdate.addEventListener("click", () => {
   installAvailableUpdate();
+  closeAppMenu();
+});
+appMenuUpdateIgnore.addEventListener("click", () => {
+  ignoreAvailableUpdateHint();
   closeAppMenu();
 });
 
