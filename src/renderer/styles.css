@@ -1087,13 +1087,14 @@ input:disabled {
   aspect-ratio: 16 / 9;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.92);
   border-radius: 28px;
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(164, 232, 247, 0.62)),
     radial-gradient(circle at 24% 10%, rgba(255, 255, 255, 0.88), transparent 8rem);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 0 0 1px rgba(90, 192, 222, 0.26),
     0 10px 20px rgba(7, 83, 120, 0.12);
   transition:
     border-color 140ms ease,
@@ -1113,7 +1114,9 @@ input:disabled {
 }
 
 .participant-card.camera-on {
-  background: #082533;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.24), rgba(116, 214, 239, 0.16)),
+    linear-gradient(180deg, #bfe8f6, #8fd6ea 55%, #68c0df);
 }
 
 .participant-card.speaking {
@@ -1183,11 +1186,11 @@ input:disabled {
   height: 22px;
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(5, 30, 44, 0.92), rgba(5, 30, 44, 0.76));
-  color: #f4fcff;
+  background: linear-gradient(180deg, rgba(241, 252, 255, 0.94), rgba(162, 230, 244, 0.86));
+  color: #0b4d66;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 3px 10px rgba(3, 20, 31, 0.26);
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 3px 10px rgba(34, 125, 158, 0.18);
   font-size: 10px;
 }
 
@@ -1238,8 +1241,8 @@ input:disabled {
 
 .participant-card.camera-on .participant-meta strong,
 .participant-card.camera-on .participant-meta span {
-  color: #f4fcff;
-  text-shadow: 0 1px 12px rgba(2, 15, 22, 0.45);
+  color: #0b3950;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .participant-card.camera-on .participant-meta {
@@ -1252,13 +1255,15 @@ input:disabled {
   max-width: calc(100% - 22px);
   margin: 0;
   padding: 6px 14px 5px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   border-bottom: 0;
   border-radius: 18px 18px 0 0;
-  background: linear-gradient(180deg, rgba(5, 30, 44, 0.76), rgba(5, 30, 44, 0.58));
+  background:
+    linear-gradient(180deg, rgba(244, 253, 255, 0.88), rgba(177, 236, 248, 0.8)),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.48), transparent 72%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 12px rgba(3, 20, 31, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 4px 12px rgba(34, 125, 158, 0.14);
 }
 
 .messages {
