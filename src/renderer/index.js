@@ -2424,13 +2424,11 @@ function refreshCallStage() {
   }
   if (localParticipantStatus) {
     localParticipantStatus.textContent = inCallWithStagePeer
-      ? (callState.localErrorMessage || (callState.localCameraEnabled ? "Camera live" : (callState.localAudioAvailable ? "Audio only" : "No microphone")))
-      : "You";
+      ? (callState.localErrorMessage || "")
+      : "";
   }
   if (remoteParticipantStatus) {
-    remoteParticipantStatus.textContent = inCallWithStagePeer
-      ? (callState.remoteCameraEnabled ? "Camera live" : "Audio only")
-      : "Contact";
+    remoteParticipantStatus.textContent = "";
   }
 
   setVideoElementStream(localVideo, showLocalVideo ? callState.localCameraStream : null);
