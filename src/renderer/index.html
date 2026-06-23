@@ -433,7 +433,44 @@
               <select id="microphone-select"></select>
               <label for="speaker-select">Output</label>
               <select id="speaker-select"></select>
+              <label for="mic-profile-select">Noise profile</label>
+              <select id="mic-profile-select">
+                <option value="standard">Standard</option>
+                <option value="custom">Custom</option>
+              </select>
+              <label for="mic-mode-select">Sensitivity</label>
+              <select id="mic-mode-select">
+                <option value="auto">Auto</option>
+                <option value="manual">Manual</option>
+              </select>
             </div>
+            <label class="settings-range" for="mic-sensitivity-slider">
+              <div class="settings-range-header">
+                <span>Mic sensitivity</span>
+                <strong id="mic-sensitivity-label">55%</strong>
+              </div>
+              <div class="settings-range-body">
+                <input id="mic-sensitivity-slider" type="range" min="0" max="100" step="1" />
+              </div>
+            </label>
+            <label class="settings-range" for="mic-noise-reduction-slider">
+              <div class="settings-range-header">
+                <span>Background noise</span>
+                <strong id="mic-noise-reduction-label">55%</strong>
+              </div>
+              <div class="settings-range-body">
+                <input id="mic-noise-reduction-slider" type="range" min="0" max="100" step="1" />
+              </div>
+            </label>
+            <label class="settings-range" for="mic-boost-slider">
+              <div class="settings-range-header">
+                <span>Mic boost</span>
+                <strong id="mic-boost-label">100%</strong>
+              </div>
+              <div class="settings-range-body">
+                <input id="mic-boost-slider" type="range" min="0" max="200" step="1" />
+              </div>
+            </label>
             <label class="settings-range" for="remote-volume-slider">
               <div class="settings-range-header">
                 <span>Call volume</span>

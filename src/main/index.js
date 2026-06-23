@@ -16,6 +16,9 @@ const configFileName = "config.json";
 const defaultSidebarWidth = 230;
 const minSidebarWidth = 170;
 const maxSidebarWidth = 360;
+const defaultMicBoost = 100;
+const defaultMicSensitivity = 55;
+const defaultMicNoiseReduction = 55;
 const allowMultipleInstances = process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
 const autostartDesktopFileName = "aero-p2p-chat.desktop";
 let mainWindow = null;
@@ -63,6 +66,19 @@ function getDefaultAppSettings() {
   };
 }
 
+function getDefaultAudioSettings() {
+  return {
+    inputDeviceId: "default",
+    outputDeviceId: "default",
+    remoteVolume: 100,
+    micMode: "auto",
+    micSensitivity: defaultMicSensitivity,
+    micBoost: defaultMicBoost,
+    micNoiseReduction: defaultMicNoiseReduction,
+    micProfile: "standard"
+  };
+}
+
 function normalizeConfig(config = {}) {
   const settings = {
     ...getDefaultAppSettings(),
@@ -81,6 +97,30 @@ function normalizeConfig(config = {}) {
   if (!config.appSettings.autostart) {
     config.appSettings.startHidden = false;
   }
+
+  const audio = {
+    ...getDefaultAudioSettings(),
+    ...(config.audio && typeof config.audio === "object" ? config.audio : {})
+  };
+
+  config.audio = {
+    inputDeviceId: typeof audio.inputDeviceId === "string" ? audio.inputDeviceId : "default",
+    outputDeviceId: typeof audio.outputDeviceId === "string" ? audio.outputDeviceId : "default",
+    remoteVolume: Number.isFinite(audio.remoteVolume)
+      ? Math.round(Math.max(0, Math.min(100, audio.remoteVolume)))
+      : 100,
+    micMode: audio.micMode === "manual" ? "manual" : "auto",
+    micSensitivity: Number.isFinite(audio.micSensitivity)
+      ? Math.round(Math.max(0, Math.min(100, audio.micSensitivity)))
+      : defaultMicSensitivity,
+    micBoost: Number.isFinite(audio.micBoost)
+      ? Math.round(Math.max(0, Math.min(200, audio.micBoost)))
+      : defaultMicBoost,
+    micNoiseReduction: Number.isFinite(audio.micNoiseReduction)
+      ? Math.round(Math.max(0, Math.min(100, audio.micNoiseReduction)))
+      : defaultMicNoiseReduction,
+    micProfile: audio.micProfile === "custom" ? "custom" : "standard"
+  };
 
   return config;
 }
