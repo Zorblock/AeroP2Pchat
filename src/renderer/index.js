@@ -134,6 +134,7 @@ const MAX_AUTO_LEVEL = 0.06;
 const MIN_AUTO_LEVEL = 0.01;
 const MANUAL_LEVEL_RANGE = 0.085;
 const VOICE_METER_FFT = 2048;
+const CONNECT_TIMEOUT_MS = 12000;
 let activePeerId = null;
 let myPeerId = "";
 let peer = null;
@@ -178,6 +179,7 @@ let localVoiceGateIsOpen = false;
 let localVoiceGateHoldUntil = 0;
 let outgoingCallTimeout = null;
 let lastFailedConnectId = "";
+const connectTimeouts = new Map();
 let intentionalPeerDisconnect = false;
 let suppressPeerCloseMessages = false;
 const callState = {
@@ -892,6 +894,7 @@ function saveAppSettings(updates = {}) {
 
 function closeAllPeerConnections() {
   clearOutgoingCallTimeout();
+  clearAllConnectTimeouts();
   stopLocalRingtone();
   suppressPeerCloseMessages = true;
   try {
@@ -1253,6 +1256,21 @@ function setStatus(kind, text) {
   statusText.textContent = text;
 }
 
+function clearConnectTimeout(peerId) {
+  const timeout = connectTimeouts.get(peerId);
+  if (timeout) {
+    clearTimeout(timeout);
+    connectTimeouts.delete(peerId);
+  }
+}
+
+function clearAllConnectTimeouts() {
+  for (const timeout of connectTimeouts.values()) {
+    clearTimeout(timeout);
+  }
+  connectTimeouts.clear();
+}
+
 function hideConnectRetry() {
   lastFailedConnectId = "";
   retryConnectButton?.classList.add("hidden");
@@ -1263,6 +1281,65 @@ function showConnectRetry(peerId) {
   if (retryConnectButton) {
     retryConnectButton.classList.toggle("hidden", !lastFailedConnectId);
   }
+}
+
+function showUnreachablePeerFeedback(peerId, { label = "", reason = "" } = {}) {
+  clearConnectTimeout(peerId);
+  const peerLabel = label || getPeerLabel(peerId, pendingConnections.get(peerId)?.conn || connections.get(peerId));
+  const pending = pendingConnections.get(peerId);
+  if (pending?.conn) {
+    pending.conn.close();
+  }
+  pendingConnections.delete(peerId);
+  connections.delete(peerId);
+  if (activePeerId === peerId) {
+    activePeerId = connections.keys().next().value ?? null;
+    renderChatHistory();
+  }
+
+  showConnectRetry(peerId);
+  setStatus("offline", `${peerLabel} is not reachable right now. Use Retry to try again.`);
+  addSystemMessage(reason || `${peerLabel} is not reachable right now.`);
+  refreshPeers();
+}
+
+function isPeerUnreachableError(error) {
+  const type = String(error?.type || "").toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    type === "peer-unavailable" ||
+    type === "network" ||
+    type === "server-error" ||
+    message.includes("could not connect to peer") ||
+    message.includes("peer-unavailable") ||
+    message.includes("is unavailable") ||
+    message.includes("not available") ||
+    message.includes("lost connection")
+  );
+}
+
+function startConnectTimeout(peerId, conn) {
+  clearConnectTimeout(peerId);
+  connectTimeouts.set(peerId, setTimeout(() => {
+    const entry = pendingConnections.get(peerId);
+    if (!entry || entry.conn !== conn || entry.direction !== "outgoing") {
+      return;
+    }
+    showUnreachablePeerFeedback(peerId, {
+      label: getPeerLabel(peerId, conn),
+      reason: `${getPeerLabel(peerId, conn)} did not answer in time.`
+    });
+  }, CONNECT_TIMEOUT_MS));
+}
+
+function getOutgoingPendingPeerId() {
+  for (const [peerId, entry] of pendingConnections) {
+    if (entry.direction === "outgoing") {
+      return peerId;
+    }
+  }
+
+  return "";
 }
 
 function formatTime(date = new Date()) {
@@ -2620,6 +2697,7 @@ function sendProtocolMessage(conn, type, extra = {}) {
 }
 
 function removePeer(peerId, { silent = false } = {}) {
+  clearConnectTimeout(peerId);
   if (callState.peerId === peerId) {
     endVoiceCall({ notifyPeer: false, message: silent ? "" : "Voice call ended.", silent });
   }
@@ -2826,6 +2904,7 @@ function acceptConnection(peerId) {
   }
 
   const peerLabel = getPeerLabel(peerId, entry.conn);
+  clearConnectTimeout(peerId);
 
   pendingConnections.delete(peerId);
   connections.set(peerId, entry.conn);
@@ -2856,6 +2935,7 @@ function declineConnection(peerId) {
   }
 
   const peerLabel = getPeerLabel(peerId, entry.conn);
+  clearConnectTimeout(peerId);
 
   sendProtocolMessage(entry.conn, "connection-declined");
   entry.conn.close();
@@ -2872,6 +2952,7 @@ function promoteOutgoingConnection(peerId) {
   }
 
   const peerLabel = getPeerLabel(peerId, entry.conn);
+  clearConnectTimeout(peerId);
 
   pendingConnections.delete(peerId);
   connections.set(peerId, entry.conn);
@@ -2940,9 +3021,11 @@ function attachConnectionHandlers(conn, peerId, direction) {
     }
 
     if (data?.type === "connection-declined") {
+      clearConnectTimeout(peerId);
       pendingConnections.delete(peerId);
       conn.close();
-      setStatus("offline", `${peerLabel()} declined your request.`);
+      showConnectRetry(peerId);
+      setStatus("offline", `${peerLabel()} declined your request. Use Retry to try again.`);
       addSystemMessage(`${peerLabel()} declined your connection request.`);
       refreshPeers();
       return;
@@ -3012,17 +3095,18 @@ function attachConnectionHandlers(conn, peerId, direction) {
   });
 
   conn.on("error", (error) => {
-    const offlineConnectError = direction === "outgoing" && ["peer-unavailable", "network"].includes(error?.type);
-    if (offlineConnectError) {
-      removePeer(peerId);
-      showConnectRetry(peerId);
-      setStatus("offline", "That contact is offline right now. Tap Retry to try again.");
-      addSystemMessage(`${peerLabel()} is offline right now.`);
+    if (direction === "outgoing" && isPeerUnreachableError(error)) {
+      showUnreachablePeerFeedback(peerId, {
+        label: peerLabel(),
+        reason: `${peerLabel()} could not be reached. They may be offline or not connected to the signaling server.`
+      });
       return;
     }
 
-    setStatus("offline", `Connection error: ${error.message}`);
-    addSystemMessage(`Error with ${peerLabel()}: ${error.message}`);
+    const message = error?.message || "The connection failed.";
+    setStatus("offline", `Could not connect to ${peerLabel()}. Use Retry to try again.`);
+    showConnectRetry(peerId);
+    addSystemMessage(`Connection with ${peerLabel()} failed: ${message}`);
   });
 }
 
@@ -3059,6 +3143,9 @@ function registerConnection(conn, options = {}) {
 
   pendingConnections.set(peerId, { conn, direction });
   attachConnectionHandlers(conn, peerId, direction);
+  if (direction === "outgoing") {
+    startConnectTimeout(peerId, conn);
+  }
 
   if (direction === "incoming") {
     if (isTrusted(peerIdentityId)) {
@@ -3278,8 +3365,17 @@ function createPeer() {
       return;
     }
 
-    setStatus("offline", error.message);
-    addSystemMessage(`PeerJS error: ${error.message}`);
+    const outgoingPeerId = getOutgoingPendingPeerId();
+    if (isPeerUnreachableError(error) && outgoingPeerId) {
+      showUnreachablePeerFeedback(outgoingPeerId, {
+        reason: "That contact is offline or cannot be reached right now."
+      });
+      return;
+    }
+
+    const message = error.message || "The peer connection failed.";
+    setStatus("offline", "Connection failed. Check your internet connection and try again.");
+    addSystemMessage(`Connection error: ${message}`);
   });
 
   nextPeer.on("close", () => {
