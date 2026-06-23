@@ -1508,9 +1508,10 @@ function shouldAcceptIncomingMessage(peerId) {
 }
 
 function formatTime(date = new Date()) {
-  return date.toLocaleTimeString("en-US", {
+  return date.toLocaleTimeString("de-DE", {
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    hour12: false
   });
 }
 
@@ -1637,22 +1638,24 @@ function createChatMessage(item) {
   const bubble = document.createElement("article");
   bubble.className = "bubble";
 
-  const meta = document.createElement("span");
-  meta.className = "bubble-meta";
-  meta.textContent = `${sender === "me" ? "You" : getPeerLabel(peerId, connections.get(peerId))} · ${time ?? formatTime()}`;
+  const footer = document.createElement("span");
+  footer.className = "bubble-footer";
+  const timestamp = document.createElement("time");
+  timestamp.textContent = time ?? formatTime();
+  footer.append(timestamp);
   if (sender === "me") {
     const state = document.createElement("span");
     state.className = `message-state ${deliveryStatus}`;
     state.title = formatDeliveryStatus(deliveryStatus);
     state.setAttribute("aria-label", formatDeliveryStatus(deliveryStatus));
     state.append(...createDeliveryStatusIcons(deliveryStatus));
-    meta.append(state);
+    footer.append(state);
   }
 
   const body = document.createElement("p");
   body.textContent = text;
 
-  bubble.append(meta, body);
+  bubble.append(body, footer);
   row.append(bubble);
 
   bubble.addEventListener("contextmenu", (event) => {
