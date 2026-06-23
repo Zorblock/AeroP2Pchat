@@ -1244,10 +1244,16 @@ input:disabled {
 
 .participant-card.camera-on .participant-meta {
   align-self: end;
-  width: calc(100% - 16px);
-  margin: auto 8px 8px;
-  padding: 16px 10px 10px;
-  background: linear-gradient(180deg, rgba(3, 16, 24, 0), rgba(3, 16, 24, 0.62) 42%, rgba(4, 23, 34, 0.84));
+  width: fit-content;
+  max-width: calc(100% - 16px);
+  margin: auto auto 8px;
+  padding: 7px 14px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(5, 30, 44, 0.88), rgba(5, 30, 44, 0.72));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 8px 16px rgba(3, 20, 31, 0.18);
 }
 
 .messages {
