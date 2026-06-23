@@ -73,6 +73,7 @@ function getDefaultAppSettings() {
 function getDefaultAudioSettings() {
   return {
     inputDeviceId: "default",
+    cameraDeviceId: "default",
     outputDeviceId: "default",
     remoteVolume: 100,
     micMode: "auto",
@@ -113,6 +114,7 @@ function normalizeConfig(config = {}) {
 
   config.audio = {
     inputDeviceId: typeof audio.inputDeviceId === "string" ? audio.inputDeviceId : "default",
+    cameraDeviceId: typeof audio.cameraDeviceId === "string" ? audio.cameraDeviceId : "default",
     outputDeviceId: typeof audio.outputDeviceId === "string" ? audio.outputDeviceId : "default",
     remoteVolume: Number.isFinite(audio.remoteVolume)
       ? Math.round(Math.max(0, Math.min(100, audio.remoteVolume)))

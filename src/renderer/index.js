@@ -70,6 +70,7 @@ const settingsClose = document.querySelector("#settings-close");
 const nicknameInput = document.querySelector("#nickname-input");
 const saveNickname = document.querySelector("#save-nickname");
 const microphoneSelect = document.querySelector("#microphone-select");
+const cameraSelect = document.querySelector("#camera-select");
 const speakerSelect = document.querySelector("#speaker-select");
 const micProfileSelect = document.querySelector("#mic-profile-select");
 const voiceCustomControls = document.querySelector("#voice-custom-controls");
@@ -526,6 +527,7 @@ function normalizeAudioConfig() {
   }
 
   appConfig.audio.inputDeviceId = typeof appConfig.audio.inputDeviceId === "string" ? appConfig.audio.inputDeviceId : "default";
+  appConfig.audio.cameraDeviceId = typeof appConfig.audio.cameraDeviceId === "string" ? appConfig.audio.cameraDeviceId : "default";
   appConfig.audio.outputDeviceId = typeof appConfig.audio.outputDeviceId === "string" ? appConfig.audio.outputDeviceId : "default";
   appConfig.audio.remoteVolume = Number.isFinite(appConfig.audio.remoteVolume)
     ? Math.max(0, Math.min(100, Math.round(appConfig.audio.remoteVolume)))
@@ -2940,6 +2942,43 @@ function createVoiceAudioConstraints() {
   return audio;
 }
 
+function createCameraVideoConstraints() {
+  normalizeAudioConfig();
+  const deviceId = appConfig.audio.cameraDeviceId;
+  const video = {
+    width: { ideal: CALL_CAMERA_WIDTH },
+    height: { ideal: CALL_CAMERA_HEIGHT },
+    frameRate: { ideal: 16, max: CALL_CAMERA_MAX_FRAMERATE }
+  };
+
+  if (deviceId && deviceId !== "default") {
+    video.deviceId = { exact: deviceId };
+  }
+
+  return video;
+}
+
+function formatCameraError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+  const name = String(error?.name || "");
+
+  if (name === "NotAllowedError") {
+    return "Camera blocked";
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "No camera found";
+  }
+  if (name === "NotReadableError" || message.includes("hardware resources") || message.includes("0xc00d3704") || code.includes("0xc00d3704")) {
+    return "Camera busy or unavailable";
+  }
+  if (name === "OverconstrainedError") {
+    return "Selected camera unavailable";
+  }
+
+  return "Could not access your camera.";
+}
+
 function improveVoiceSdp(sdp = "") {
   const opusPayloads = Array.from(sdp.matchAll(/^a=rtpmap:(\d+) opus\/48000(?:\/\d+)?$/gim), (match) => match[1]);
   let nextSdp = sdp;
@@ -3309,16 +3348,12 @@ async function setLocalCameraEnabled(enabled) {
     if (nextEnabled) {
       cameraStream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: {
-          width: { ideal: CALL_CAMERA_WIDTH },
-          height: { ideal: CALL_CAMERA_HEIGHT },
-          frameRate: { ideal: 16, max: CALL_CAMERA_MAX_FRAMERATE }
-        }
+        video: createCameraVideoConstraints()
       });
       replacementTrack = cameraStream.getVideoTracks()[0] || null;
       if (!replacementTrack) {
         cameraStream.getTracks().forEach((track) => track.stop());
-        throw new Error("Could not access your camera.");
+        throw new Error("No camera track available.");
       }
     } else {
       replacementTrack = createPlaceholderVideoTrack();
@@ -3347,7 +3382,9 @@ async function setLocalCameraEnabled(enabled) {
     sendLocalCameraState();
   } catch (error) {
     cameraStream?.getTracks().forEach((track) => track.stop());
-    const message = error?.message || (nextEnabled ? "Could not access your camera." : "Could not disable your camera.");
+    const message = nextEnabled
+      ? formatCameraError(error)
+      : (error?.message || "Could not disable your camera.");
     setStatus("offline", message);
     addSystemMessage(message);
   }
@@ -3695,6 +3732,7 @@ function setSelectValueOrDefault(select, value) {
 async function refreshAudioDevices() {
   if (!navigator.mediaDevices?.enumerateDevices) {
     microphoneSelect.replaceChildren(createDeviceOption("default", "Default microphone"));
+    cameraSelect.replaceChildren(createDeviceOption("default", "Default camera"));
     speakerSelect.replaceChildren(createDeviceOption("default", "Default output"));
     return;
   }
@@ -3702,6 +3740,7 @@ async function refreshAudioDevices() {
   normalizeAudioConfig();
   const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
   const microphones = devices.filter((device) => device.kind === "audioinput");
+  const cameras = devices.filter((device) => device.kind === "videoinput");
   const speakers = devices.filter((device) => device.kind === "audiooutput");
 
   microphoneSelect.replaceChildren(createDeviceOption("default", "Default microphone"));
@@ -3710,6 +3749,14 @@ async function refreshAudioDevices() {
       continue;
     }
     microphoneSelect.append(createDeviceOption(device.deviceId, device.label || `Microphone ${index + 1}`));
+  }
+
+  cameraSelect.replaceChildren(createDeviceOption("default", "Default camera"));
+  for (const [index, device] of cameras.entries()) {
+    if (device.deviceId === "default") {
+      continue;
+    }
+    cameraSelect.append(createDeviceOption(device.deviceId, device.label || `Camera ${index + 1}`));
   }
 
   speakerSelect.replaceChildren(createDeviceOption("default", "Default output"));
@@ -3721,6 +3768,7 @@ async function refreshAudioDevices() {
   }
 
   setSelectValueOrDefault(microphoneSelect, appConfig.audio.inputDeviceId);
+  setSelectValueOrDefault(cameraSelect, appConfig.audio.cameraDeviceId);
   setSelectValueOrDefault(speakerSelect, appConfig.audio.outputDeviceId);
 }
 
@@ -4843,6 +4891,14 @@ microphoneSelect.addEventListener("change", () => {
   appConfig.audio.inputDeviceId = microphoneSelect.value || "default";
   saveAudioConfig();
   scheduleVoiceSettingsReapply();
+});
+
+cameraSelect.addEventListener("change", () => {
+  appConfig.audio.cameraDeviceId = cameraSelect.value || "default";
+  saveAudioConfig();
+  if (callState.localCameraEnabled) {
+    setLocalCameraEnabled(true);
+  }
 });
 
 speakerSelect.addEventListener("change", async () => {
