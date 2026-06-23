@@ -204,12 +204,33 @@ confirm_keep_user_data() {
 }
 
 find_running_app_pids() {
-  if command -v pgrep >/dev/null 2>&1; then
-    pgrep -f "$APPIMAGE_PATH" 2>/dev/null || true
-    return
-  fi
-
-  ps -eo pid=,args= 2>/dev/null | awk -v app="$APPIMAGE_PATH" 'index($0, app) > 0 { print $1 }' || true
+  ps -eo pid=,args= 2>/dev/null | awk \
+    -v self="$$" \
+    -v appimage="$APPIMAGE_PATH" \
+    -v bin="$BIN_PATH" \
+    -v app_id="$APP_ID" \
+    -v app_name="$APP_NAME" \
+    -v app_slug="aero-p2p-chat" '
+      {
+        pid = $1
+        line = $0
+        sub(/^[[:space:]]*[0-9]+[[:space:]]+/, "", line)
+        if (pid == self) {
+          next
+        }
+        if (
+          index(line, appimage) > 0 ||
+          index(line, bin) > 0 ||
+          index(line, app_id) > 0 ||
+          index(line, app_name) > 0 ||
+          index(line, app_slug) > 0
+        ) {
+          if (index(line, "install.sh") == 0) {
+            print pid
+          }
+        }
+      }
+    ' || true
 }
 
 close_running_instances() {
@@ -318,12 +339,12 @@ install_app() {
       return
     fi
     info "Updating to ${latest_version}..."
+    close_running_instances
   else
     info "Installing ${latest_version}..."
   fi
 
   download "$APPIMAGE_URL" "$tmp_appimage"
-  close_running_instances
   chmod +x "$tmp_appimage"
   mv "$tmp_appimage" "$APPIMAGE_PATH"
   printf '%s\n' "$latest_version" > "$VERSION_PATH"
@@ -381,6 +402,7 @@ uninstall_app() {
     keep_user_data=0
   fi
 
+  close_running_instances
   rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
   rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
 
