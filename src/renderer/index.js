@@ -116,6 +116,7 @@ const pendingConnections = new Map();
 const chatHistory = new Map();
 const unreadCounts = new Map();
 const remoteIdentities = new Map();
+const remoteReadReceiptsEnabled = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
@@ -1643,7 +1644,7 @@ function createChatMessage(item) {
   const timestamp = document.createElement("time");
   timestamp.textContent = time ?? formatTime();
   footer.append(timestamp);
-  if (sender === "me") {
+  if (sender === "me" && areReadReceiptsVisibleForPeer(peerId)) {
     const state = document.createElement("span");
     state.className = `message-state ${deliveryStatus}`;
     state.title = formatDeliveryStatus(deliveryStatus);
@@ -1666,8 +1667,11 @@ function createChatMessage(item) {
 }
 
 function formatDeliveryStatus(status) {
+  if (!appConfig.appSettings?.readReceipts) {
+    return "Message status disabled";
+  }
   if (status === "read") {
-    return appConfig.appSettings?.readReceipts ? "Read" : "Delivered";
+    return "Read";
   }
   if (status === "delivered") {
     return "Delivered";
@@ -1676,7 +1680,7 @@ function formatDeliveryStatus(status) {
 }
 
 function createDeliveryStatusIcons(status) {
-  const visibleStatus = status === "read" && !appConfig.appSettings?.readReceipts ? "delivered" : status;
+  const visibleStatus = status === "read" ? "read" : status;
   const indicator = document.createElement("span");
   indicator.className = `message-state-dot ${visibleStatus === "read" ? "read" : "sent"}`;
   indicator.setAttribute("aria-hidden", "true");
@@ -1691,7 +1695,24 @@ function refreshMessageDeliveryState(peerId, messageId) {
   const item = ensureChatHistory(peerId).find((message) => message.id === messageId);
   const row = item ? messages.querySelector(`[data-message-id="${messageId}"]`) : null;
   const state = row?.querySelector(".message-state");
-  if (!item || !state) {
+  if (!item || !row) {
+    return;
+  }
+  if (!areReadReceiptsVisibleForPeer(peerId)) {
+    state?.remove();
+    return;
+  }
+  const footer = row.querySelector(".bubble-footer");
+  if (!state && footer) {
+    const nextState = document.createElement("span");
+    nextState.className = `message-state ${item.deliveryStatus || "sent"}`;
+    nextState.title = formatDeliveryStatus(item.deliveryStatus || "sent");
+    nextState.setAttribute("aria-label", formatDeliveryStatus(item.deliveryStatus || "sent"));
+    nextState.append(...createDeliveryStatusIcons(item.deliveryStatus || "sent"));
+    footer.append(nextState);
+    return;
+  }
+  if (!state) {
     return;
   }
 
@@ -3095,6 +3116,22 @@ function sendProtocolMessage(conn, type, extra = {}) {
   }
 }
 
+function areReadReceiptsVisibleForPeer(peerId) {
+  return Boolean(appConfig.appSettings?.readReceipts && remoteReadReceiptsEnabled.get(peerId) !== false);
+}
+
+function sendReceiptSettings(conn) {
+  return sendProtocolMessage(conn, "receipt-settings", {
+    readReceipts: Boolean(appConfig.appSettings?.readReceipts)
+  });
+}
+
+function broadcastReceiptSettings() {
+  for (const conn of connections.values()) {
+    sendReceiptSettings(conn);
+  }
+}
+
 function removePeer(peerId, { silent = false } = {}) {
   clearConnectTimeout(peerId);
   clearOutgoingMessageQueue(peerId);
@@ -3111,6 +3148,7 @@ function removePeer(peerId, { silent = false } = {}) {
     localTypingTimers.delete(peerId);
   }
   lastTypingSentAt.delete(peerId);
+  remoteReadReceiptsEnabled.delete(peerId);
   if (callState.peerId === peerId) {
     endVoiceCall({ notifyPeer: false, message: silent ? "" : "Voice call ended.", silent });
   }
@@ -3346,6 +3384,7 @@ function acceptConnection(peerId) {
   activePeerId = peerId;
 
   if (entry.conn.open) {
+    sendReceiptSettings(entry.conn);
     sendProtocolMessage(entry.conn, "connection-accepted");
     pinContact(getPeerIdentityId(peerId, entry.conn), getPeerLabel(peerId, entry.conn));
     setStatus("online", `Connected to ${peerLabel}`);
@@ -3393,6 +3432,7 @@ function promoteOutgoingConnection(peerId) {
   connections.set(peerId, entry.conn);
   activePeerId = peerId;
   pinContact(getPeerIdentityId(peerId, entry.conn), peerLabel);
+  sendReceiptSettings(entry.conn);
   setStatus("online", `Connected to ${peerLabel}`);
   renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
@@ -3406,6 +3446,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
   conn.on("open", () => {
     hideConnectRetry();
+    sendReceiptSettings(conn);
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
       sendProtocolMessage(conn, "connection-request");
@@ -3419,6 +3460,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
       pendingConnections.delete(peerId);
       connections.set(peerId, conn);
       activePeerId = peerId;
+      sendReceiptSettings(conn);
       sendProtocolMessage(conn, "connection-accepted");
       pinContact(getPeerIdentityId(peerId, conn), peerLabel());
       setStatus("online", `Connected to ${peerLabel()}`);
@@ -3505,6 +3547,14 @@ function attachConnectionHandlers(conn, peerId, direction) {
       return;
     }
 
+    if (data?.type === "receipt-settings") {
+      remoteReadReceiptsEnabled.set(peerId, data.readReceipts !== false);
+      if (activePeerId === peerId) {
+        renderChatHistory();
+      }
+      return;
+    }
+
     if (data?.type === "message-delivered" && typeof data.messageId === "string") {
       setMessageDeliveryState(peerId, data.messageId, "delivered");
       return;
@@ -3537,7 +3587,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
       peerId,
       time: message.time
     });
-    if (message.id) {
+    if (message.id && appConfig.appSettings?.readReceipts) {
       sendProtocolMessage(conn, "message-delivered", { messageId: message.id });
     }
     if (message.id && activePeerId === peerId && appConfig.appSettings?.readReceipts && isAppFocused()) {
@@ -4135,10 +4185,10 @@ focusedNotificationsToggle.addEventListener("change", () => {
 
 readReceiptsToggle.addEventListener("change", () => {
   saveAppSettings({ readReceipts: readReceiptsToggle.checked });
+  broadcastReceiptSettings();
+  renderChatHistory();
   if (readReceiptsToggle.checked) {
     sendReadReceiptsForActiveChat();
-  } else {
-    renderChatHistory();
   }
 });
 
