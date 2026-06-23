@@ -2559,12 +2559,15 @@ function createParticipantBadge(iconClass, title, state = "") {
   return badge;
 }
 
-function renderParticipantBadges(container, { muted = false, deafened = false } = {}) {
+function renderParticipantBadges(container, { muted = false, deafened = false, streamHidden = false } = {}) {
   if (!container) {
     return;
   }
 
   container.replaceChildren();
+  if (streamHidden) {
+    container.append(createParticipantBadge("fa-solid fa-display", "Stream hidden", "stream"));
+  }
   if (muted) {
     container.append(createParticipantBadge("fa-solid fa-microphone-slash", "Muted", "muted"));
   }
@@ -2589,7 +2592,9 @@ function refreshCallStage() {
   const localLabel = getLocalParticipantLabel();
   const remoteLabel = getRemoteParticipantLabel(stagePeerId);
   const localScreenActive = Boolean(screenShareState.localStream);
-  const remoteScreenActive = Boolean(screenShareState.remoteStream) && screenShareState.viewerWatching && !screenShareState.hiddenByViewer;
+  const remoteStreamAvailable = Boolean(screenShareState.remoteStream);
+  const remoteScreenHidden = remoteStreamAvailable && (!screenShareState.viewerWatching || screenShareState.hiddenByViewer);
+  const remoteScreenActive = remoteStreamAvailable && !remoteScreenHidden;
   const localDisplayStream = localScreenActive ? screenShareState.localStream : callState.localCameraStream;
   const remoteDisplayStream = remoteScreenActive ? screenShareState.remoteStream : callState.remoteStream;
   const showLocalVideo = inCallWithStagePeer && Boolean(localDisplayStream) && (localScreenActive || callState.localCameraEnabled);
@@ -2610,7 +2615,7 @@ function refreshCallStage() {
       : "";
   }
   if (remoteParticipantStatus) {
-    remoteParticipantStatus.textContent = remoteScreenActive ? "Streaming" : "";
+    remoteParticipantStatus.textContent = remoteScreenActive ? "Streaming" : remoteScreenHidden ? "Stream hidden" : "";
   }
   localParticipantCard?.classList.toggle("hide-name", !showLocalName);
   remoteParticipantCard?.classList.toggle("hide-name", !showRemoteName);
@@ -2625,7 +2630,8 @@ function refreshCallStage() {
   });
   renderParticipantBadges(remoteParticipantBadges, {
     muted: remoteCallStatus.muted,
-    deafened: remoteCallStatus.deafened
+    deafened: remoteCallStatus.deafened,
+    streamHidden: remoteScreenHidden
   });
   updateParticipantCard(
     localParticipantCard,
@@ -3862,14 +3868,21 @@ function stopRemoteScreenShare({ message = "" } = {}) {
   refreshCallStage();
 }
 
-function closeRemoteScreenShareForViewer() {
+function setRemoteScreenWatching(watching) {
+  screenShareState.viewerWatching = Boolean(watching);
+  screenShareState.hiddenByViewer = !screenShareState.viewerWatching;
+  if (screenShareState.remoteStream) {
+    screenShareState.remoteStream.getTracks().forEach((track) => {
+      track.enabled = screenShareState.viewerWatching;
+    });
+  }
   if (callState.peerId && callState.callId) {
     sendProtocolMessage(connections.get(callState.peerId), "screen-watch-state", {
       callId: callState.callId,
-      watching: false
+      watching: screenShareState.viewerWatching
     });
   }
-  stopRemoteScreenShare({ message: "Screen stream closed." });
+  refreshCallStage();
 }
 
 async function startLocalScreenShare(source, { quality = screenShareState.quality, fps = screenShareState.fps, audio = screenShareState.audioEnabled } = {}) {
@@ -3997,11 +4010,6 @@ function handleRemoteScreenShareState(peerId, data) {
 
 function handleRemoteScreenWatchState(peerId, data) {
   if (callState.peerId !== peerId || callState.callId !== data.callId) {
-    return;
-  }
-
-  if (data.watching === false) {
-    stopLocalScreenShare({ notifyPeer: false, message: "Screen stream closed." });
     return;
   }
 
@@ -4447,6 +4455,17 @@ function openStreamMenu(event, target) {
   streamMenuStop.classList.toggle("hidden", !isLocal);
   streamMenuWatch.classList.toggle("hidden", isLocal);
   streamMenuAudio.setAttribute("aria-checked", String(screenShareState.audioEnabled));
+  if (!isLocal) {
+    const hidden = !screenShareState.viewerWatching || screenShareState.hiddenByViewer;
+    const icon = streamMenuWatch.querySelector("i");
+    const label = streamMenuWatch.querySelector("span");
+    if (icon) {
+      icon.className = hidden ? "fa-solid fa-eye" : "fa-solid fa-eye-slash";
+    }
+    if (label) {
+      label.textContent = hidden ? "Show Stream" : "Close Stream";
+    }
+  }
   streamMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 212)}px`;
   streamMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 164)}px`;
   streamMenu.classList.remove("hidden");
@@ -5658,7 +5677,7 @@ streamMenuAudio.addEventListener("click", () => {
 });
 
 streamMenuWatch.addEventListener("click", () => {
-  closeRemoteScreenShareForViewer();
+  setRemoteScreenWatching(!screenShareState.viewerWatching || screenShareState.hiddenByViewer);
   closeStreamMenu();
 });
 

@@ -1221,6 +1221,10 @@ input:disabled {
   color: #d6efff;
 }
 
+.participant-badge.stream {
+  color: #0d5873;
+}
+
 .participant-meta {
   position: relative;
   z-index: 2;
