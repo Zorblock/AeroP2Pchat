@@ -380,6 +380,10 @@
         <section id="call-stage" class="call-stage hidden" aria-label="Call stage">
           <article id="local-participant-card" class="participant-card local">
             <video id="local-video" class="participant-video hidden" autoplay muted playsinline></video>
+            <video id="local-pip-video" class="participant-pip-video hidden" autoplay muted playsinline></video>
+            <button id="local-stream-fullscreen" class="stream-fullscreen-button icon-only-button hidden" type="button" title="Expand stream" aria-label="Expand stream">
+              <i class="fa-solid fa-expand" aria-hidden="true"></i>
+            </button>
             <div id="local-participant-badges" class="participant-badges" aria-live="polite"></div>
             <div class="participant-meta">
               <strong id="local-participant-name" class="auto-fit-text" data-fit-min="9" data-fit-max="17">You</strong>
@@ -388,6 +392,10 @@
           </article>
           <article id="remote-participant-card" class="participant-card remote">
             <video id="remote-video" class="participant-video hidden" autoplay playsinline></video>
+            <video id="remote-pip-video" class="participant-pip-video hidden" autoplay playsinline></video>
+            <button id="remote-stream-fullscreen" class="stream-fullscreen-button icon-only-button hidden" type="button" title="Expand stream" aria-label="Expand stream">
+              <i class="fa-solid fa-expand" aria-hidden="true"></i>
+            </button>
             <div id="remote-participant-badges" class="participant-badges" aria-live="polite"></div>
             <div class="participant-meta">
               <strong id="remote-participant-name" class="auto-fit-text" data-fit-min="9" data-fit-max="17">Contact</strong>
@@ -720,6 +728,10 @@
       <button id="stream-menu-watch" type="button" role="menuitem">
         <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
         <span>Close Stream</span>
+      </button>
+      <button id="stream-menu-fullscreen" type="button" role="menuitem">
+        <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        <span>Expand stream</span>
       </button>
       <button id="stream-menu-stop" type="button" role="menuitem" class="danger">
         <i class="fa-solid fa-stop" aria-hidden="true"></i>

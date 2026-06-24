@@ -44,6 +44,10 @@ const localParticipantCard = document.querySelector("#local-participant-card");
 const remoteParticipantCard = document.querySelector("#remote-participant-card");
 const localVideo = document.querySelector("#local-video");
 const remoteVideo = document.querySelector("#remote-video");
+const localPipVideo = document.querySelector("#local-pip-video");
+const remotePipVideo = document.querySelector("#remote-pip-video");
+const localStreamFullscreen = document.querySelector("#local-stream-fullscreen");
+const remoteStreamFullscreen = document.querySelector("#remote-stream-fullscreen");
 const localParticipantName = document.querySelector("#local-participant-name");
 const remoteParticipantName = document.querySelector("#remote-participant-name");
 const localParticipantStatus = document.querySelector("#local-participant-status");
@@ -133,6 +137,7 @@ const streamMenuQuality = document.querySelector("#stream-menu-quality");
 const streamMenuSource = document.querySelector("#stream-menu-source");
 const streamMenuAudio = document.querySelector("#stream-menu-audio");
 const streamMenuWatch = document.querySelector("#stream-menu-watch");
+const streamMenuFullscreen = document.querySelector("#stream-menu-fullscreen");
 const streamMenuStop = document.querySelector("#stream-menu-stop");
 const streamModal = document.querySelector("#stream-modal");
 const streamModalClose = document.querySelector("#stream-modal-close");
@@ -172,11 +177,12 @@ const CALL_VIDEO_MIN_BITRATE = 120000;
 const CALL_VIDEO_QUALITY_POLL_MS = 4000;
 const SCREEN_STREAM_MIN_BITRATE = 180000;
 const SCREEN_STREAM_QUALITY_POLL_MS = 3000;
+const SCREEN_STREAM_BUFFER_DELAY_SECONDS = 0.28;
 const SCREEN_STREAM_PROFILES = {
-  "480p": { label: "480p", height: 480 },
-  "720p": { label: "720p", height: 720 },
-  "1080p": { label: "1080p", height: 1080 },
-  native: { label: "Native", height: 0 }
+  "480p": { label: "480p", height: 480, bitrate: 1100000 },
+  "720p": { label: "720p", height: 720, bitrate: 2400000 },
+  "1080p": { label: "1080p", height: 1080, bitrate: 4200000 },
+  native: { label: "Native", height: 0, bitrate: 5200000 }
 };
 const SCREEN_STREAM_FPS_OPTIONS = [15, 30, 60];
 const MAX_CHAT_HISTORY_ITEMS = 500;
@@ -218,6 +224,7 @@ let contextStreamTarget = "";
 let selectedScreenSource = null;
 let availableScreenSources = [];
 let activeStreamSourceTab = "screens";
+let streamFullscreenTarget = "";
 let removeUpdateProgressListener = null;
 const remoteAudio = new Audio();
 remoteAudio.autoplay = true;
@@ -226,6 +233,8 @@ remoteAudio.volume = 1;
 remoteAudio.preload = "auto";
 remoteAudio.style.display = "none";
 document.body.append(remoteAudio);
+localPipVideo && (localPipVideo.muted = true);
+remotePipVideo && (remotePipVideo.muted = true);
 const callJoinAudio = new Audio("sound/call-join.ogg");
 const callLeaveAudio = new Audio("sound/call-leave.ogg");
 const connectedAudio = new Audio("sound/connected.ogg");
@@ -2382,14 +2391,9 @@ function normalizeScreenFps(value) {
 function getScreenStreamBaseBitrate(quality = screenShareState.quality, fps = screenShareState.fps) {
   const normalizedQuality = normalizeScreenQuality(quality);
   const normalizedFps = normalizeScreenFps(fps);
-  const baseByQuality = {
-    "480p": 720000,
-    "720p": 1350000,
-    "1080p": 2400000,
-    native: 3200000
-  };
-  const fpsFactor = normalizedFps === 60 ? 0.72 : normalizedFps === 15 ? 1.18 : 1;
-  return Math.round(baseByQuality[normalizedQuality] * fpsFactor);
+  const profile = SCREEN_STREAM_PROFILES[normalizedQuality];
+  const fpsFactor = normalizedFps === 60 ? 1.42 : normalizedFps === 15 ? 0.72 : 1;
+  return Math.round(profile.bitrate * fpsFactor);
 }
 
 function getScreenStreamConstraints(sourceId, { quality = screenShareState.quality, fps = screenShareState.fps, audio = false } = {}) {
@@ -2398,12 +2402,14 @@ function getScreenStreamConstraints(sourceId, { quality = screenShareState.quali
   const mandatory = {
     chromeMediaSource: "desktop",
     chromeMediaSourceId: sourceId,
-    minFrameRate: normalizedFps,
+    minFrameRate: Math.min(15, normalizedFps),
     maxFrameRate: normalizedFps
   };
 
   if (profile.height > 0) {
     const width = Math.round(profile.height * 16 / 9);
+    mandatory.minWidth = Math.min(width, 1280);
+    mandatory.minHeight = Math.min(profile.height, 720);
     mandatory.maxWidth = width;
     mandatory.maxHeight = profile.height;
   }
@@ -2429,19 +2435,37 @@ function formatScreenCaptureError(error) {
   return "Could not start screen stream.";
 }
 
-function setVideoElementStream(video, stream) {
+function prepareLiveVideoElement(video, { smoothPlayback = false } = {}) {
+  if (!video) {
+    return;
+  }
+
+  video.autoplay = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.disablePictureInPicture = true;
+  video.controls = false;
+  video.playbackRate = 1;
+  video.dataset.smoothPlayback = smoothPlayback ? "true" : "false";
+}
+
+function setVideoElementStream(video, stream, options = {}) {
   if (!video) {
     return;
   }
 
   if (video.srcObject !== stream) {
+    video.pause();
     video.srcObject = stream || null;
   }
 
   if (stream) {
+    prepareLiveVideoElement(video, options);
     video.play().catch(() => {});
   } else {
     video.pause();
+    video.removeAttribute("src");
+    video.load();
   }
 }
 
@@ -2547,6 +2571,42 @@ function updateParticipantCard(card, video, shouldShowVideo, speaking, hasError 
   video?.classList.toggle("hidden", !shouldShowVideo);
 }
 
+function hasStreamForTarget(target) {
+  return target === "local"
+    ? Boolean(screenShareState.localStream)
+    : Boolean(screenShareState.remoteStream && screenShareState.viewerWatching && !screenShareState.hiddenByViewer);
+}
+
+function setStreamFullscreenTarget(target = "") {
+  const nextTarget = hasStreamForTarget(target) ? target : "";
+  streamFullscreenTarget = nextTarget;
+  callStage?.classList.toggle("stream-fullscreen", Boolean(nextTarget));
+  callStage?.classList.toggle("fullscreen-local", nextTarget === "local");
+  callStage?.classList.toggle("fullscreen-remote", nextTarget === "remote");
+  appShell?.classList.toggle("stream-fullscreen-active", Boolean(nextTarget));
+  refreshCallStage();
+}
+
+function toggleStreamFullscreen(target) {
+  setStreamFullscreenTarget(streamFullscreenTarget === target ? "" : target);
+}
+
+function updateStreamFullscreenControl(button, target) {
+  if (!button) {
+    return;
+  }
+
+  const active = streamFullscreenTarget === target;
+  button.classList.toggle("hidden", !hasStreamForTarget(target));
+  button.classList.toggle("active", active);
+  const icon = button.querySelector("i");
+  if (icon) {
+    icon.className = active ? "fa-solid fa-compress" : "fa-solid fa-expand";
+  }
+  button.title = active ? "Shrink stream" : "Expand stream";
+  button.setAttribute("aria-label", button.title);
+}
+
 function createParticipantBadge(iconClass, title, state = "") {
   const badge = document.createElement("span");
   badge.className = `participant-badge ${state}`.trim();
@@ -2581,10 +2641,17 @@ function refreshCallStage() {
   const inCall = callState.status !== "idle" && Boolean(callState.peerId);
   if (!stagePeerId || !inCall) {
     callStage?.classList.add("hidden");
+    callStage?.classList.remove("stream-fullscreen", "fullscreen-local", "fullscreen-remote");
+    appShell?.classList.remove("stream-fullscreen-active");
+    streamFullscreenTarget = "";
     setVideoElementStream(localVideo, null);
     setVideoElementStream(remoteVideo, null);
+    setVideoElementStream(localPipVideo, null);
+    setVideoElementStream(remotePipVideo, null);
     localParticipantCard?.classList.remove("streaming");
     remoteParticipantCard?.classList.remove("streaming");
+    updateStreamFullscreenControl(localStreamFullscreen, "local");
+    updateStreamFullscreenControl(remoteStreamFullscreen, "remote");
     return;
   }
 
@@ -2597,10 +2664,20 @@ function refreshCallStage() {
   const remoteScreenActive = remoteStreamAvailable && !remoteScreenHidden;
   const localDisplayStream = localScreenActive ? screenShareState.localStream : callState.localCameraStream;
   const remoteDisplayStream = remoteScreenActive ? screenShareState.remoteStream : callState.remoteStream;
+  const localPipStream = localScreenActive && callState.localCameraEnabled ? callState.localCameraStream : null;
+  const remotePipStream = remoteScreenActive && callState.remoteCameraEnabled ? callState.remoteStream : null;
   const showLocalVideo = inCallWithStagePeer && Boolean(localDisplayStream) && (localScreenActive || callState.localCameraEnabled);
   const showRemoteVideo = inCallWithStagePeer && Boolean(remoteDisplayStream) && (remoteScreenActive || callState.remoteCameraEnabled);
+  const showLocalPip = inCallWithStagePeer && Boolean(localPipStream);
+  const showRemotePip = inCallWithStagePeer && Boolean(remotePipStream);
   const showLocalName = !showLocalVideo || isOwnVideoNameVisible() || Boolean(callState.localErrorMessage);
   const showRemoteName = !showRemoteVideo || isPeerVideoNameVisible(stagePeerId);
+
+  if (!hasStreamForTarget(streamFullscreenTarget)) {
+    streamFullscreenTarget = "";
+    callStage?.classList.remove("stream-fullscreen", "fullscreen-local", "fullscreen-remote");
+    appShell?.classList.remove("stream-fullscreen-active");
+  }
 
   callStage?.classList.remove("hidden");
   if (localParticipantName) {
@@ -2621,9 +2698,21 @@ function refreshCallStage() {
   remoteParticipantCard?.classList.toggle("hide-name", !showRemoteName);
   localParticipantCard?.classList.toggle("streaming", localScreenActive);
   remoteParticipantCard?.classList.toggle("streaming", remoteScreenActive);
+  localParticipantCard?.classList.toggle("has-pip", showLocalPip);
+  remoteParticipantCard?.classList.toggle("has-pip", showRemotePip);
+  callStage?.classList.toggle("stream-fullscreen", Boolean(streamFullscreenTarget));
+  callStage?.classList.toggle("fullscreen-local", streamFullscreenTarget === "local");
+  callStage?.classList.toggle("fullscreen-remote", streamFullscreenTarget === "remote");
+  appShell?.classList.toggle("stream-fullscreen-active", Boolean(streamFullscreenTarget));
 
-  setVideoElementStream(localVideo, showLocalVideo ? localDisplayStream : null);
-  setVideoElementStream(remoteVideo, showRemoteVideo ? remoteDisplayStream : null);
+  setVideoElementStream(localVideo, showLocalVideo ? localDisplayStream : null, { smoothPlayback: localScreenActive });
+  setVideoElementStream(remoteVideo, showRemoteVideo ? remoteDisplayStream : null, { smoothPlayback: remoteScreenActive });
+  setVideoElementStream(localPipVideo, showLocalPip ? localPipStream : null);
+  setVideoElementStream(remotePipVideo, showRemotePip ? remotePipStream : null);
+  localPipVideo?.classList.toggle("hidden", !showLocalPip);
+  remotePipVideo?.classList.toggle("hidden", !showRemotePip);
+  updateStreamFullscreenControl(localStreamFullscreen, "local");
+  updateStreamFullscreenControl(remoteStreamFullscreen, "remote");
   renderParticipantBadges(localParticipantBadges, {
     muted: callState.muted,
     deafened: callState.deafened
@@ -2851,6 +2940,7 @@ function resetCallState() {
   const incomingMediaConn = callState.incomingMediaConn;
   const localStream = callState.localStream;
   const localCameraStream = callState.localCameraStream;
+  const remoteStream = callState.remoteStream;
   const videoQualityMonitor = callState.videoQualityMonitor;
 
   Object.assign(callState, {
@@ -2885,6 +2975,7 @@ function resetCallState() {
   localStream?._rawVoiceStream?.getTracks().forEach((track) => track.stop());
   localStream?.getTracks().forEach((track) => stopMediaTrack(track));
   localCameraStream?.getTracks().forEach((track) => track.stop());
+  remoteStream?.getTracks().forEach((track) => track.stop());
   resetVoiceProcessingState();
   if (videoQualityMonitor) {
     clearInterval(videoQualityMonitor);
@@ -3669,6 +3760,9 @@ function attachMediaConnectionHandlers(mediaConn, peerId, callId) {
       return;
     }
 
+    if (callState.remoteStream && callState.remoteStream !== stream) {
+      callState.remoteStream.getTracks().forEach((track) => track.stop());
+    }
     callState.remoteStream = stream;
     remoteAudio.srcObject = stream;
     setRemoteVolume(getPeerPlaybackVolume(peerId), { persist: false });
@@ -3716,7 +3810,7 @@ async function tuneScreenShareConnection(mediaConn, bitrate = getScreenStreamBas
     }
 
     const parameters = sender.getParameters();
-    parameters.degradationPreference = "maintain-resolution";
+    parameters.degradationPreference = bitrate < getScreenStreamBaseBitrate() ? "maintain-framerate" : "balanced";
     parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
     parameters.encodings[0].maxBitrate = Math.max(SCREEN_STREAM_MIN_BITRATE, bitrate);
     parameters.encodings[0].maxFramerate = screenShareState.fps;
@@ -3724,6 +3818,25 @@ async function tuneScreenShareConnection(mediaConn, bitrate = getScreenStreamBas
     await sender.setParameters(parameters).catch(() => {});
     if (sender.track) {
       sender.track.contentHint = "detail";
+    }
+  }
+}
+
+function tuneIncomingScreenShareConnection(mediaConn) {
+  const peerConnection = mediaConn?.peerConnection;
+  if (!peerConnection?.getReceivers) {
+    return;
+  }
+
+  for (const receiver of peerConnection.getReceivers()) {
+    if (receiver.track?.kind !== "video") {
+      continue;
+    }
+
+    try {
+      receiver.playoutDelayHint = SCREEN_STREAM_BUFFER_DELAY_SECONDS;
+    } catch {
+      // Some WebRTC builds expose the property as read-only.
     }
   }
 }
@@ -3837,6 +3950,9 @@ function stopLocalScreenShare({ notifyPeer = true, message = "" } = {}) {
   screenShareState.sourceName = "";
   screenShareState.audioEnabled = false;
   screenShareState.remoteViewerWatching = true;
+  if (streamFullscreenTarget === "local") {
+    streamFullscreenTarget = "";
+  }
   mediaConn?.close();
   stream?.getTracks().forEach((track) => track.stop());
 
@@ -3859,6 +3975,9 @@ function stopRemoteScreenShare({ message = "" } = {}) {
   screenShareState.remoteAudioEnabled = false;
   screenShareState.viewerWatching = true;
   screenShareState.hiddenByViewer = false;
+  if (streamFullscreenTarget === "remote") {
+    streamFullscreenTarget = "";
+  }
   mediaConn?.close();
   stream?.getTracks().forEach((track) => track.stop());
   if (message) {
@@ -3871,6 +3990,9 @@ function stopRemoteScreenShare({ message = "" } = {}) {
 function setRemoteScreenWatching(watching) {
   screenShareState.viewerWatching = Boolean(watching);
   screenShareState.hiddenByViewer = !screenShareState.viewerWatching;
+  if (!screenShareState.viewerWatching && streamFullscreenTarget === "remote") {
+    streamFullscreenTarget = "";
+  }
   if (screenShareState.remoteStream) {
     screenShareState.remoteStream.getTracks().forEach((track) => {
       track.enabled = screenShareState.viewerWatching;
@@ -3969,11 +4091,14 @@ function handleIncomingScreenShare(mediaConn) {
   screenShareState.remoteMediaConn = mediaConn;
   screenShareState.remoteAudioEnabled = Boolean(mediaConn.metadata?.audio);
   mediaConn.answer();
+  tuneIncomingScreenShareConnection(mediaConn);
+  setTimeout(() => tuneIncomingScreenShareConnection(mediaConn), 800);
   mediaConn.on("stream", (stream) => {
     if (screenShareState.remoteMediaConn !== mediaConn) {
       stream.getTracks().forEach((track) => track.stop());
       return;
     }
+    tuneIncomingScreenShareConnection(mediaConn);
     screenShareState.remoteStream = stream;
     screenShareState.remoteAudioEnabled = Boolean(stream.getAudioTracks().length);
     addSystemMessage(`${getPeerLabel(peerId, connections.get(peerId))} started streaming.`);
@@ -4454,7 +4579,17 @@ function openStreamMenu(event, target) {
   streamMenuAudio.classList.toggle("hidden", !isLocal);
   streamMenuStop.classList.toggle("hidden", !isLocal);
   streamMenuWatch.classList.toggle("hidden", isLocal);
+  streamMenuFullscreen.classList.toggle("hidden", !hasStreamForTarget(target));
   streamMenuAudio.setAttribute("aria-checked", String(screenShareState.audioEnabled));
+  const fullscreenIcon = streamMenuFullscreen.querySelector("i");
+  const fullscreenLabel = streamMenuFullscreen.querySelector("span");
+  const fullscreenActive = streamFullscreenTarget === target;
+  if (fullscreenIcon) {
+    fullscreenIcon.className = fullscreenActive ? "fa-solid fa-compress" : "fa-solid fa-expand";
+  }
+  if (fullscreenLabel) {
+    fullscreenLabel.textContent = fullscreenActive ? "Shrink stream" : "Expand stream";
+  }
   if (!isLocal) {
     const hidden = !screenShareState.viewerWatching || screenShareState.hiddenByViewer;
     const icon = streamMenuWatch.querySelector("i");
@@ -4467,7 +4602,7 @@ function openStreamMenu(event, target) {
     }
   }
   streamMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 212)}px`;
-  streamMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 164)}px`;
+  streamMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 202)}px`;
   streamMenu.classList.remove("hidden");
 }
 
@@ -5631,6 +5766,16 @@ remoteParticipantCard?.addEventListener("contextmenu", (event) => {
   openParticipantMenu(event, "remote");
 });
 
+localStreamFullscreen?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleStreamFullscreen("local");
+});
+
+remoteStreamFullscreen?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleStreamFullscreen("remote");
+});
+
 streamModalClose.addEventListener("click", closeStreamSetup);
 
 streamModal.addEventListener("click", (event) => {
@@ -5678,6 +5823,13 @@ streamMenuAudio.addEventListener("click", () => {
 
 streamMenuWatch.addEventListener("click", () => {
   setRemoteScreenWatching(!screenShareState.viewerWatching || screenShareState.hiddenByViewer);
+  closeStreamMenu();
+});
+
+streamMenuFullscreen.addEventListener("click", () => {
+  if (contextStreamTarget) {
+    toggleStreamFullscreen(contextStreamTarget);
+  }
   closeStreamMenu();
 });
 
