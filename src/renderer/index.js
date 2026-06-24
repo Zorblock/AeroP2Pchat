@@ -2836,6 +2836,10 @@ function refreshCallUi() {
   callHangup.classList.add("hidden");
   callMute.classList.toggle("active", callState.muted);
   callDeafen.classList.toggle("active", callState.deafened);
+  callMute.classList.toggle("enabled", !callState.muted);
+  callMute.classList.toggle("disabled", callState.muted);
+  callDeafen.classList.toggle("enabled", !callState.deafened);
+  callDeafen.classList.toggle("disabled", callState.deafened);
   callCamera.classList.toggle("active", callState.localCameraEnabled);
   callStream.classList.toggle("active", Boolean(screenShareState.localStream));
   callCamera.classList.toggle("camera", true);
