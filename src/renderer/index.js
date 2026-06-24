@@ -74,6 +74,8 @@ const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
 const nicknameInput = document.querySelector("#nickname-input");
 const saveNickname = document.querySelector("#save-nickname");
+const themeLight = document.querySelector("#theme-light");
+const themeDark = document.querySelector("#theme-dark");
 const microphoneSelect = document.querySelector("#microphone-select");
 const cameraSelect = document.querySelector("#camera-select");
 const speakerSelect = document.querySelector("#speaker-select");
@@ -202,6 +204,7 @@ const DEFAULT_MIC_EQ_LOW = 0;
 const DEFAULT_MIC_EQ_MID = 0;
 const DEFAULT_MIC_EQ_HIGH = 0;
 const DEFAULT_SIDEBAR_WIDTH = 230;
+const DEFAULT_THEME = "light";
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
 const MIN_CHAT_WIDTH = 320;
@@ -523,6 +526,7 @@ ownId.textContent = identity.id;
 nicknameInput.value = identity.nickname || "";
 normalizeAudioConfig();
 normalizeAppSettings();
+applyAppTheme(appConfig.appSettings.theme);
 applySidebarWidth(appConfig.appSettings.sidebarWidth);
 renderAudioSettings();
 setupSidebarResizer();
@@ -944,6 +948,9 @@ function normalizeAppSettings() {
     presenceStatus: ["online", "dnd", "offline"].includes(appConfig.appSettings.presenceStatus)
       ? appConfig.appSettings.presenceStatus
       : "online",
+    theme: ["light", "dark"].includes(appConfig.appSettings.theme)
+      ? appConfig.appSettings.theme
+      : DEFAULT_THEME,
     sidebarWidth: Number.isFinite(appConfig.appSettings.sidebarWidth) ? appConfig.appSettings.sidebarWidth : DEFAULT_SIDEBAR_WIDTH
   };
 
@@ -977,11 +984,20 @@ function normalizeAppSettings() {
   }
 }
 
+function applyAppTheme(theme = DEFAULT_THEME) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = nextTheme;
+  document.body.dataset.theme = nextTheme;
+}
+
 function renderAppSettings() {
   normalizeAppSettings();
+  applyAppTheme(appConfig.appSettings.theme);
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
   updateTitlebarPresenceIndicator();
+  themeLight.checked = appConfig.appSettings.theme === "light";
+  themeDark.checked = appConfig.appSettings.theme === "dark";
   autostartToggle.checked = appConfig.appSettings.autostart;
   autostartOpen.checked = !appConfig.appSettings.startHidden;
   autostartHidden.checked = appConfig.appSettings.startHidden;
@@ -5984,6 +6000,18 @@ autostartHidden.addEventListener("change", () => {
 
 closeToTrayToggle.addEventListener("change", () => {
   saveAppSettings({ closeToTray: closeToTrayToggle.checked });
+});
+
+themeLight.addEventListener("change", () => {
+  if (themeLight.checked) {
+    saveAppSettings({ theme: "light" });
+  }
+});
+
+themeDark.addEventListener("change", () => {
+  if (themeDark.checked) {
+    saveAppSettings({ theme: "dark" });
+  }
 });
 
 notificationsToggle.addEventListener("change", () => {
