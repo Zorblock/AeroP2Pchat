@@ -48,5 +48,5 @@ if (!fs.existsSync(unpackedDir)) {
   process.exit(1);
 }
 
-fs.writeFileSync(markerPath, unpackedDir, "utf8");
+fs.writeFileSync(markerPath, path.relative(root, unpackedDir), "utf8");
 console.log(`Windows build output: ${path.relative(root, unpackedDir)}`);

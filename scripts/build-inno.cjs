@@ -5,8 +5,14 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const scriptPath = path.join(root, "create-setup.iss");
 const markerPath = path.join(root, "dist", "build", "latest-win-dir.txt");
-const unpackedDir = fs.existsSync(markerPath)
-  ? fs.readFileSync(markerPath, "utf8").trim()
+const markerValue = fs.existsSync(markerPath) ? fs.readFileSync(markerPath, "utf8").trim() : "";
+const markerUnpackedDir = markerValue
+  ? path.resolve(root, markerValue)
+  : "";
+const markerRelativeToRoot = markerUnpackedDir ? path.relative(root, markerUnpackedDir) : "";
+const markerIsInsideRoot = markerRelativeToRoot && !markerRelativeToRoot.startsWith("..") && !path.isAbsolute(markerRelativeToRoot);
+const unpackedDir = markerIsInsideRoot && fs.existsSync(markerUnpackedDir)
+  ? markerUnpackedDir
   : path.join(root, "dist", "build", "win-unpacked");
 const candidates = [
   "ISCC.exe",
