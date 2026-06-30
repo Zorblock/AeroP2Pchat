@@ -849,13 +849,12 @@ input:disabled {
 
 .contact-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px 24px;
+  grid-template-columns: minmax(0, 1fr) 24px;
   gap: 4px;
 }
 
 .contact-name,
-.contact-edit,
-.contact-remove {
+.contact-menu-button {
   min-height: 29px;
   border: 1px solid rgba(28, 139, 170, 0.28);
   border-radius: 5px;
@@ -886,21 +885,18 @@ input:disabled {
   text-overflow: ellipsis;
 }
 
-.contact-edit,
-.contact-remove {
+.contact-menu-button {
   display: grid;
   place-items: center;
   padding: 0;
-}
-
-.contact-edit {
   background: linear-gradient(#ffffff, #dffaff);
   color: #17647e;
+  opacity: 0.72;
 }
 
-.contact-remove {
-  background: linear-gradient(#ffffff, #ffe7eb);
-  color: #8a3040;
+.contact-menu-button:hover,
+.contact-menu-button:focus-visible {
+  opacity: 1;
 }
 
 .contact-badges {
@@ -3259,7 +3255,7 @@ body[data-theme="dark"] .call-action.toggle.active {
 }
 
 body[data-theme="dark"] .contact-name,
-body[data-theme="dark"] .contact-edit,
+body[data-theme="dark"] .contact-menu-button,
 body[data-theme="dark"] .peer-chip,
 body[data-theme="dark"] .request-item,
 body[data-theme="dark"] .theme-switcher span,
@@ -3602,7 +3598,7 @@ body[data-theme="dark"] .settings-choice.disabled input {
 
 body[data-theme="dark"] .theme-switcher span,
 body[data-theme="dark"] .contact-name,
-body[data-theme="dark"] .contact-edit,
+body[data-theme="dark"] .contact-menu-button,
 body[data-theme="dark"] .peer-chip,
 body[data-theme="dark"] .request-item,
 body[data-theme="dark"] .screen-source-button {
@@ -3822,7 +3818,7 @@ body,
 .participant-card.camera-on .participant-meta,
 .peer-chip,
 .contact-name,
-.contact-edit,
+.contact-menu-button,
 .contact-remove,
 .contact-badge,
 .request-item,
@@ -4083,7 +4079,7 @@ textarea:focus {
 
 .peer-chip,
 .contact-name,
-.contact-edit,
+.contact-menu-button,
 .contact-remove,
 .request-item,
 .theme-switcher span,
@@ -4289,7 +4285,7 @@ body[data-theme="dark"] .stream-audio-toggle,
 body[data-theme="dark"] .participant-card,
 body[data-theme="dark"] .peer-chip,
 body[data-theme="dark"] .contact-name,
-body[data-theme="dark"] .contact-edit,
+body[data-theme="dark"] .contact-menu-button,
 body[data-theme="dark"] .request-item,
 body[data-theme="dark"] .theme-switcher span {
   border-color: var(--ui-line);

@@ -5851,31 +5851,21 @@ function refreshPeers() {
       openContactMenu(event, contact.id);
     });
 
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "contact-remove";
-    remove.title = "Remove contact";
-    remove.setAttribute("aria-label", "Remove contact");
-    remove.append(renderIcon("fa-solid fa-xmark"));
-    remove.addEventListener("click", () => {
-      removeContact(contact.id);
-    });
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.className = "contact-edit";
-    edit.title = "Edit nickname";
-    edit.setAttribute("aria-label", "Edit nickname");
-    edit.append(renderIcon("fa-solid fa-pen"));
-    edit.addEventListener("click", () => {
-      openSettings(contact.id);
+    const menu = document.createElement("button");
+    menu.type = "button";
+    menu.className = "contact-menu-button";
+    menu.title = "Contact actions";
+    menu.setAttribute("aria-label", `Open actions for ${contact.label}`);
+    menu.append(renderIcon("fa-solid fa-ellipsis"));
+    menu.addEventListener("click", (event) => {
+      openContactMenu(event, contact.id);
     });
 
     row.addEventListener("contextmenu", (event) => {
       openContactMenu(event, contact.id);
     });
 
-    row.append(name, edit, remove);
+    row.append(name, menu);
     peerList.append(row);
   }
 
