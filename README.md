@@ -1,6 +1,6 @@
 # Aero P2P Chat
 
-Aero P2P Chat is a compact Electron desktop chat client with a Frutiger Aero inspired interface. It uses PeerJS/WebRTC data connections so chat messages travel peer-to-peer after both users are connected.
+Aero P2P Chat is a compact Electron desktop chat client for direct peer-to-peer conversations. It uses PeerJS/WebRTC data connections so chat messages travel peer-to-peer after both users are connected.
 
 ## Features
 
