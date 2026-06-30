@@ -1,6 +1,6 @@
 {
   "name": "aero-p2p-chat",
-  "version": "26.12.1",
+  "version": "26.13.0",
   "description": "A clean Frutiger Aero styled Electron peer-to-peer chat client.",
   "author": "Jonas Grimm",
   "main": "out/main/index.js",
