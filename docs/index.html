@@ -7,13 +7,13 @@
     <title>Aero P2P Chat</title>
     <meta
       name="description"
-      content="Aero P2P Chat is a clean desktop peer-to-peer chat app for Windows and Linux."
+      content="Aero P2P Chat is a desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and native Windows and Linux builds."
     />
     <meta name="author" content="Zorblock" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://zorblock.github.io/AeroP2Pchat/" />
 
-    <meta name="theme-color" content="#f4f8fb" />
+    <meta name="theme-color" content="#eef4f7" />
     <meta name="color-scheme" content="light" />
     <meta name="application-name" content="Aero P2P Chat" />
 
@@ -22,7 +22,7 @@
     <meta property="og:title" content="Aero P2P Chat" />
     <meta
       property="og:description"
-      content="A clean desktop peer-to-peer chat app for Windows and Linux."
+      content="A desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and native Windows and Linux builds."
     />
     <meta property="og:url" content="https://zorblock.github.io/AeroP2Pchat/" />
     <meta
@@ -45,6 +45,8 @@
       </a>
 
       <nav aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#workflow">How it works</a>
         <a href="#download">Download</a>
         <a href="https://github.com/Zorblock/AeroP2Pchat" rel="noopener">
           GitHub
@@ -55,16 +57,17 @@
     <main>
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Desktop peer-to-peer chat</p>
-          <h1 id="hero-title">Aero P2P Chat</h1>
+          <p class="eyebrow">Direct desktop messaging</p>
+          <h1 id="hero-title">Chat from one desktop to another.</h1>
           <p class="lead">
-            A simple desktop chat app for direct conversations between two
-            devices. Share an ID, connect, and talk without turning it into a
-            whole project.
+            Aero P2P Chat gives every user an Aero ID, lets contacts connect by
+            request, and keeps the conversation in a focused Windows and Linux
+            app with voice, camera, screen sharing, and update tools built in.
           </p>
 
           <div class="actions">
             <a class="button primary" href="#download">Download</a>
+            <a class="button secondary" href="#features">Explore features</a>
           </div>
 
           <dl class="facts" aria-label="App details">
@@ -77,81 +80,257 @@
               <dd>Windows, Linux</dd>
             </div>
             <div>
-              <dt>CLI</dt>
+              <dt>Command</dt>
               <dd>aerop2p</dd>
             </div>
           </dl>
         </div>
 
-        <div class="product-panel" aria-label="Aero P2P Chat preview">
-          <img src="logo.png" alt="Aero P2P Chat logo" />
-          <div>
-            <span>Connected</span>
-            <strong>Ready to chat</strong>
+        <div class="app-preview" aria-label="Aero P2P Chat interface preview">
+          <div class="preview-titlebar">
+            <div class="preview-brand">
+              <img src="logo.png" alt="" />
+              <div>
+                <strong>Aero P2P Chat</strong>
+                <span>Peer connected</span>
+              </div>
+            </div>
+            <div class="preview-window-buttons" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <div class="preview-shell">
+            <aside class="preview-sidebar">
+              <div class="preview-id-card">
+                <span>My Aero ID</span>
+                <strong>aero-7k2p-91qf</strong>
+              </div>
+              <div class="preview-connect">
+                <span>Friend Aero ID</span>
+                <div>
+                  <strong>aero-mila-42</strong>
+                  <b>Connect</b>
+                </div>
+              </div>
+              <div class="preview-status">
+                <span></span>
+                Ready to chat
+              </div>
+              <div class="preview-contact active">
+                <strong>Mila</strong>
+                <span>Online now</span>
+              </div>
+              <div class="preview-contact">
+                <strong>Jonas</strong>
+                <span>Last chat saved</span>
+              </div>
+            </aside>
+
+            <section class="preview-chat">
+              <div class="preview-chat-head">
+                <div>
+                  <span>Active chat</span>
+                  <strong>Mila</strong>
+                </div>
+                <div class="preview-tools" aria-hidden="true">
+                  <span>Call</span>
+                  <span>Stream</span>
+                </div>
+              </div>
+
+              <div class="preview-call">
+                <span>Voice</span>
+                <strong>Screen stream ready</strong>
+              </div>
+
+              <div class="preview-messages">
+                <p class="message theirs">I pasted your Aero ID.</p>
+                <p class="message mine">Nice, we are connected directly now.</p>
+                <p class="message theirs">Start a call?</p>
+              </div>
+
+              <div class="preview-compose">
+                <span>Write a message...</span>
+                <b>Send</b>
+              </div>
+            </section>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section feature-section" id="features">
         <div class="section-heading">
-          <h2>What it does</h2>
+          <p class="eyebrow">Built from the real app</p>
+          <h2>Everything important is already in the desktop client.</h2>
           <p>
-            The important pieces are close at hand: messages, calls, and
-            updates in one small desktop app.
+            The website now reflects what Aero P2P Chat actually does: contact
+            requests, direct chat, calls, screen sharing, notifications,
+            settings, and update flows.
           </p>
         </div>
 
         <div class="feature-grid">
           <article>
-            <h3>Direct chat</h3>
-            <p>Share your ID, connect, and start messaging.</p>
+            <span class="feature-icon">ID</span>
+            <h3>Aero IDs</h3>
+            <p>
+              Copy your own Aero ID, send it to a friend, or paste theirs into
+              the connect field.
+            </p>
           </article>
           <article>
-            <h3>Voice support</h3>
-            <p>Use the built-in call controls when you need more than text.</p>
+            <span class="feature-icon">OK</span>
+            <h3>Connection requests</h3>
+            <p>
+              Incoming contacts ask before they join, with trusted contacts and
+              nicknames supported in the app.
+            </p>
           </article>
           <article>
-            <h3>Desktop updates</h3>
-            <p>Check updates in-app or from the terminal with the CLI.</p>
+            <span class="feature-icon">VC</span>
+            <h3>Voice, camera, stream</h3>
+            <p>
+              Call controls include mute, deafen, camera, screen share, stream
+              quality, and fullscreen viewing.
+            </p>
           </article>
+          <article>
+            <span class="feature-icon">RX</span>
+            <h3>Readable chat state</h3>
+            <p>
+              Typing state, message delivery, read receipts, and clear chat
+              actions keep conversations understandable.
+            </p>
+          </article>
+          <article>
+            <span class="feature-icon">NT</span>
+            <h3>Desktop notifications</h3>
+            <p>
+              Message and call notifications can appear outside the window, with
+              sound settings for calls and events.
+            </p>
+          </article>
+          <article>
+            <span class="feature-icon">UP</span>
+            <h3>Updates and CLI</h3>
+            <p>
+              Windows uses the setup installer, Linux uses AppImage support, and
+              both expose the <code class="inline-code">aerop2p</code> command.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section workflow-section" id="workflow">
+        <div class="section-heading">
+          <p class="eyebrow">How it works</p>
+          <h2>Share an ID, accept the request, start talking.</h2>
+        </div>
+
+        <ol class="workflow-list">
+          <li>
+            <span>1</span>
+            <div>
+              <h3>Copy your Aero ID</h3>
+              <p>
+                The app creates an ID when it starts. Send it to the person you
+                want to reach.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>2</span>
+            <div>
+              <h3>Connect by request</h3>
+              <p>
+                Your friend pastes the ID, sends a request, and the receiving
+                side accepts before the chat opens.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>3</span>
+            <div>
+              <h3>Use chat, calls, or screen share</h3>
+              <p>
+                Messages travel over WebRTC after the PeerJS signaling step, and
+                media controls stay inside the same conversation.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section details-section">
+        <div class="detail-panel">
+          <div>
+            <p class="eyebrow">Desktop behavior</p>
+            <h2>Feels native without hiding where things are.</h2>
+          </div>
+          <div class="detail-grid">
+            <article>
+              <h3>Tray and startup</h3>
+              <p>
+                Start on sign-in, open normally or minimized, and close to tray
+                when you want Aero to stay available.
+              </p>
+            </article>
+            <article>
+              <h3>Light and dark themes</h3>
+              <p>
+                The app stores settings in Electron userData and keeps the
+                interface consistent across Windows and Linux.
+              </p>
+            </article>
+            <article>
+              <h3>Audio controls</h3>
+              <p>
+                Voice isolation, sensitivity, noise reduction, boost, EQ, and
+                remote volume controls are available in settings.
+              </p>
+            </article>
+          </div>
         </div>
       </section>
 
       <section class="section download-section" id="download">
         <div class="section-heading">
-          <h2>Download</h2>
+          <p class="eyebrow">Get Aero</p>
+          <h2>Download for your desktop.</h2>
           <p>
-            Choose the version for your desktop. Windows uses the setup
-            installer, Linux can use the AppImage directly or the installer
-            script for menu and terminal integration.
+            Pick the current release for your system. The Linux installer is the
+            recommended path when you want the AppImage, menu entry, icon, and
+            terminal command set up together.
           </p>
         </div>
 
         <div class="download-grid">
-          <article class="download-card">
+          <article class="download-card recommended">
             <div>
               <p class="platform">Windows</p>
               <h3>Setup installer</h3>
               <p>
-                Download the latest Windows installer and follow the setup
-                steps.
+                Installs Aero P2P Chat and keeps the Windows update flow simple.
               </p>
             </div>
             <a
               class="button primary"
               href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
             >
-              Download
+              Download for Windows
             </a>
           </article>
 
           <article class="download-card">
             <div>
               <p class="platform">Linux</p>
-              <h3>AppImage or installer</h3>
+              <h3>AppImage</h3>
               <p>
-                Run the installer script for the AppImage, app menu entry, and
-                the <code class="inline-code">aerop2p</code> terminal command.
+                Download the portable AppImage directly, or use the recommended
+                installer command below.
               </p>
             </div>
             <a
@@ -164,7 +343,13 @@
         </div>
 
         <div class="installer-block">
-          <p class="platform">Linux installer command (Recommended)</p>
+          <div>
+            <p class="platform">Linux installer command (Recommended)</p>
+            <p>
+              Installs the AppImage, desktop entry, icon, and
+              <code class="inline-code">aerop2p</code> terminal command.
+            </p>
+          </div>
           <div class="command-box">
             <code id="install-command"
               >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
@@ -176,7 +361,10 @@
 
         <div class="link-row">
           <a href="https://github.com/Zorblock/AeroP2Pchat/releases">
-            View releases
+            View all releases
+          </a>
+          <a href="https://github.com/Zorblock/AeroP2Pchat" rel="noopener">
+            Source on GitHub
           </a>
         </div>
       </section>
