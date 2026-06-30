@@ -17,8 +17,23 @@ function Read-ManifestValue([string]$Text, [string]$Key) {
   return ""
 }
 
+function Convert-ResponseContentToText($Content) {
+  if ($Content -is [byte[]]) {
+    return [System.Text.Encoding]::UTF8.GetString($Content)
+  }
+  return [string]$Content
+}
+
 function Get-LatestManifest {
-  (Invoke-WebRequest -UseBasicParsing -Uri $ManifestUrl).Content
+  $response = Invoke-WebRequest -UseBasicParsing -Uri $ManifestUrl
+  Convert-ResponseContentToText $response.Content
+}
+
+function Start-App {
+  if (-not (Test-Path $AppExe)) {
+    throw "$AppName executable not found."
+  }
+  Start-Process -FilePath $AppExe -ArgumentList "--disable-logging" -WorkingDirectory $PSScriptRoot | Out-Null
 }
 
 function Show-Status {
@@ -27,6 +42,11 @@ function Show-Status {
   try {
     $manifest = Get-LatestManifest
     $latest = Read-ManifestValue $manifest "version"
+    if (-not $latest) {
+      Write-Host "Latest:    unknown"
+      Write-Host "Could not read latest version."
+      return
+    }
     Write-Host "Latest:    $latest"
     if ($latest -and $latest -ne $CurrentVersion) {
       Write-Host "Update available. Run: __CLI_COMMAND_NAME__ update"
@@ -77,9 +97,9 @@ function Install-Update {
 }
 
 switch ($Command.ToLowerInvariant()) {
-  "open" { Start-Process -FilePath $AppExe; break }
-  "run" { Start-Process -FilePath $AppExe; break }
-  "start" { Start-Process -FilePath $AppExe; break }
+  "open" { Start-App; break }
+  "run" { Start-App; break }
+  "start" { Start-App; break }
   "status" { Show-Status; break }
   "update" { Install-Update; break }
   "install" { Install-Update; break }
