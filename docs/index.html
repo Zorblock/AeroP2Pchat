@@ -4,38 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Aero P2P Chat — Frutiger Aero Peer-to-Peer Messenger</title>
+    <title>Aero P2P Chat</title>
     <meta
       name="description"
-      content="Aero P2P Chat is a glossy Frutiger Aero styled peer-to-peer desktop messenger with direct Aero IDs, private chats, voice calls and a clean glass interface."
-    />
-    <meta
-      name="keywords"
-      content="Aero P2P Chat, P2P chat, peer to peer messenger, Frutiger Aero, desktop chat, voice chat, Aero messenger, Windows chat, Linux chat"
+      content="Aero P2P Chat is a desktop peer-to-peer messenger for Windows and Linux."
     />
     <meta name="author" content="Zorblock" />
     <meta name="robots" content="index, follow" />
-
     <link rel="canonical" href="https://zorblock.github.io/AeroP2Pchat/" />
 
-    <meta name="theme-color" content="#70f2ff" />
+    <meta name="theme-color" content="#f4f8fb" />
     <meta name="color-scheme" content="light" />
     <meta name="application-name" content="Aero P2P Chat" />
 
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Aero P2P Chat" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Aero P2P Chat" />
-    <meta
-      property="og:title"
-      content="Aero P2P Chat — Frutiger Aero Peer-to-Peer Messenger"
-    />
+    <meta property="og:title" content="Aero P2P Chat" />
     <meta
       property="og:description"
-      content="A glossy Frutiger Aero styled desktop messenger with direct peer-to-peer chat, Aero IDs, voice calls and a clean glass interface."
+      content="A desktop peer-to-peer messenger for Windows and Linux."
     />
     <meta property="og:url" content="https://zorblock.github.io/AeroP2Pchat/" />
     <meta
@@ -43,296 +30,150 @@
       content="https://zorblock.github.io/AeroP2Pchat/logo.png"
     />
     <meta property="og:image:alt" content="Aero P2P Chat logo" />
-    <meta property="og:locale" content="en_US" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Aero P2P Chat — Frutiger Aero Peer-to-Peer Messenger"
-    />
-    <meta
-      name="twitter:description"
-      content="Direct P2P desktop chat with voice calls, Aero IDs and a glossy Frutiger Aero interface."
-    />
-    <meta
-      name="twitter:image"
-      content="https://zorblock.github.io/AeroP2Pchat/logo.png"
-    />
-    <meta name="twitter:image:alt" content="Aero P2P Chat logo" />
 
     <link rel="preload" href="logo.png" as="image" />
     <link rel="icon" type="image/png" href="logo.png" />
-    <link rel="shortcut icon" type="image/png" href="logo.png" />
     <link rel="apple-touch-icon" href="logo.png" />
-
-    <link rel="preconnect" href="https://github.com" />
-    <link rel="preconnect" href="https://objects.githubusercontent.com" />
-    <link rel="preconnect" href="https://unpkg.com" />
-
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
-    <div class="bubble one"></div>
-    <div class="bubble two"></div>
-    <div class="bubble three"></div>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Aero P2P Chat home">
+        <img src="logo.png" alt="" />
+        <span>Aero P2P Chat</span>
+      </a>
 
-    <div class="page">
-      <header>
-        <a class="brand" href="#">
-          <img src="logo.png" alt="Aero P2P Chat logo" />
-          <span>Aero P2P Chat</span>
+      <nav aria-label="Main navigation">
+        <a href="#download">Download</a>
+        <a href="#linux">Linux</a>
+        <a href="https://github.com/Zorblock/AeroP2Pchat" rel="noopener">
+          GitHub
         </a>
+      </nav>
+    </header>
 
-        <nav class="nav" aria-label="Navigation">
-          <a href="#features">Features</a>
-          <a href="#download">Download</a>
-          <a href="#linux">Linux</a>
-        </nav>
-      </header>
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Desktop P2P messenger</p>
+          <h1 id="hero-title">Aero P2P Chat</h1>
+          <p class="lead">
+            A small desktop chat app for direct peer-to-peer conversations using
+            Aero IDs. Available for Windows and Linux.
+          </p>
 
-      <main>
-        <section class="hero">
-          <div>
-            <div class="badge">
-              <span></span>
-              Direct peer-to-peer desktop chat
-            </div>
-
-            <h1>
-              Chat with<br />
-              <span class="gradient-text">Aero energy.</span>
-            </h1>
-
-            <p class="lead">
-              Aero P2P Chat is a glossy Frutiger Aero styled desktop messenger.
-              Connect with an Aero ID, send messages directly, start voice calls
-              and enjoy a clean glass interface.
-            </p>
-
-            <div class="actions">
-              <a
-                id="hero-windows-download"
-                class="btn primary"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
-              >
-                <strong>Download for Windows</strong>
-              </a>
-
-              <a class="btn secondary" href="#linux">
-                <strong>Install on Linux</strong>
-              </a>
-
-              <a
-                class="btn ghost"
-                href="https://github.com/Zorblock/AeroP2Pchat"
-                target="_blank"
-                rel="noopener"
-              >
-                <strong>Open GitHub</strong>
-              </a>
-            </div>
-            <span class="tiny">
-              The Windows button downloads the latest setup .exe directly from
-              GitHub Releases.
-            </span>
-          </div>
-
-          <div class="hero-card" aria-hidden="true">
-            <div class="orb">
-              <img src="logo.png" alt="" />
-            </div>
-
-            <div class="mock-chat">
-              <div class="mock-top">
-                <span>Aero P2P Chat</span>
-                <span class="status"><i></i> Online</span>
-              </div>
-
-              <div class="msg left">Connected with an Aero ID ✨</div>
-              <div class="msg right">Direct, clean and P2P.</div>
-              <div class="msg left">Voice and chat ready.</div>
-            </div>
-          </div>
-        </section>
-
-        <section id="features">
-          <div class="section-title">
-            <h2>Everything a clean P2P chat needs.</h2>
-            <p>
-              Aero P2P Chat combines direct connections, a shiny Aero interface
-              and simple downloads for Windows and Linux.
-            </p>
-          </div>
-
-          <div class="grid">
-            <article class="card">
-              <div class="icon">💬</div>
-              <h3>Direct chat</h3>
-              <p>
-                Connect using an Aero ID and message friends without unnecessary
-                account friction.
-              </p>
-            </article>
-
-            <article class="card">
-              <div class="icon">🎙️</div>
-              <h3>Voice calls</h3>
-              <p>
-                Start calls directly from the app and talk through a clean
-                desktop interface.
-              </p>
-            </article>
-
-            <article class="card">
-              <div class="icon">🫧</div>
-              <h3>Frutiger Aero style</h3>
-              <p>
-                Glass panels, water colors, soft highlights, bubbles and a
-                futuristic glossy look.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section id="download">
-          <div class="download-panel">
-            <div>
-              <h2>Download Aero P2P Chat</h2>
-              <p>
-                Download the latest Windows installer directly, or use the Linux
-                install command below. Linux users can also download the
-                AppImage manually.
-              </p>
-            </div>
-
-            <div class="download-buttons">
-              <a
-                id="windows-download"
-                class="btn primary"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
-              >
-                <strong>Download for Windows</strong>
-              </a>
-
-              <a class="btn secondary" href="#linux">
-                <strong>Install on Linux</strong>
-              </a>
-
-              <a
-                class="btn ghost"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases"
-                target="_blank"
-                rel="noopener"
-              >
-                <strong>All releases</strong>
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section id="linux">
-          <div class="section-title">
-            <h2>Linux install</h2>
-            <p>
-              Use the terminal command for the normal Linux installation. You
-              can also download the AppImage directly as an alternative.
-            </p>
-          </div>
-
-          <div class="terminal">
-            <div class="terminal-head">
-              <span>Terminal install</span>
-              <span class="dots" aria-hidden="true">
-                <i></i><i></i><i></i>
-              </span>
-            </div>
-
-            <code id="install-command"
-              >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
-              sh</code
+          <div class="actions" id="download">
+            <a
+              class="button primary"
+              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
             >
-
-            <div class="copy-row">
-              <button id="copy-install" class="btn secondary" type="button">
-                <strong>Copy install command</strong>
-              </button>
-
-              <a
-                id="linux-appimage-download"
-                class="btn ghost small"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux.AppImage"
-              >
-                <strong>Download AppImage</strong>
-              </a>
-            </div>
+              Download for Windows
+            </a>
+            <a class="button secondary" href="#linux">Install on Linux</a>
           </div>
-        </section>
-      </main>
 
-      <footer>
-        © <span id="year"></span>
-        <a href="https://jonasgrimm.de" target="_blank" rel="noopener"
-          >Jonas Grimm</a
-        >
-        · Aero P2P Chat · built with glass, bubbles and P2P energy.
-      </footer>
-    </div>
+          <dl class="facts" aria-label="App details">
+            <div>
+              <dt>Connection</dt>
+              <dd>PeerJS / WebRTC</dd>
+            </div>
+            <div>
+              <dt>Platforms</dt>
+              <dd>Windows, Linux</dd>
+            </div>
+            <div>
+              <dt>CLI</dt>
+              <dd>aerop2p</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="product-panel" aria-label="Aero P2P Chat preview">
+          <img src="logo.png" alt="Aero P2P Chat logo" />
+          <div>
+            <span>Connected</span>
+            <strong>Aero ID ready</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <h2>What it does</h2>
+          <p>Simple desktop chat without accounts or a heavy service layer.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article>
+            <h3>Direct chat</h3>
+            <p>Share an Aero ID, connect, and start messaging.</p>
+          </article>
+          <article>
+            <h3>Voice support</h3>
+            <p>Use the built-in call controls when you need more than text.</p>
+          </article>
+          <article>
+            <h3>Desktop updates</h3>
+            <p>Check updates in-app or from the terminal with the CLI.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section install-section" id="linux">
+        <div class="section-heading">
+          <h2>Linux install</h2>
+          <p>Run the installer from GitHub Pages. It installs the AppImage and
+            the `aerop2p` terminal command.</p>
+        </div>
+
+        <div class="command-box">
+          <code id="install-command"
+            >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
+            sh</code
+          >
+          <button id="copy-install" type="button">Copy</button>
+        </div>
+
+        <div class="link-row">
+          <a
+            href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux.AppImage"
+          >
+            Download AppImage
+          </a>
+          <a href="https://github.com/Zorblock/AeroP2Pchat/releases">
+            View releases
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>© <span id="year"></span> Aero P2P Chat</span>
+      <a href="https://jonasgrimm.de" rel="noopener">jonasgrimm.de</a>
+    </footer>
 
     <script>
       const installCommand =
         'curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh';
+      const copyButton = document.getElementById("copy-install");
+      const commandElement = document.getElementById("install-command");
+      const yearElement = document.getElementById("year");
 
-      const year = document.getElementById("year");
-      const copyInstall = document.getElementById("copy-install");
-      const installCommandElement = document.getElementById("install-command");
+      commandElement.textContent = installCommand;
+      yearElement.textContent = new Date().getFullYear();
 
-      year.textContent = new Date().getFullYear();
-      installCommandElement.textContent = installCommand;
-
-      copyInstall.addEventListener("click", async () => {
+      copyButton.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(installCommand);
-          copyInstall.querySelector("strong").textContent = "Copied!";
+          copyButton.textContent = "Copied";
         } catch {
-          copyInstall.querySelector("strong").textContent = "Copy failed";
+          copyButton.textContent = "Failed";
         }
 
-        setTimeout(() => {
-          copyInstall.querySelector("strong").textContent =
-            "Copy install command";
-        }, 1600);
-      });
-    </script>
-
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/lenis@1.3.23/dist/lenis.css"
-    />
-    <script src="https://unpkg.com/lenis@1.3.23/dist/lenis.min.js"></script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          return;
-        }
-
-        if (!window.Lenis) {
-          return;
-        }
-
-        if (window.lenis) {
-          return;
-        }
-
-        const lenis = new Lenis({
-          autoRaf: true,
-          anchors: true,
-          smoothWheel: true,
-          syncTouch: false,
-        });
-
-        window.lenis = lenis;
+        window.setTimeout(() => {
+          copyButton.textContent = "Copy";
+        }, 1400);
       });
     </script>
   </body>
