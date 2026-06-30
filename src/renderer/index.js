@@ -5656,6 +5656,7 @@ function getPeerIdentityId(peerId, conn) {
 
 function openContactMenu(event, id) {
   event.preventDefault();
+  event.stopPropagation?.();
   closeMessageMenu();
   closeAppMenu();
   closeParticipantMenu();
@@ -5677,6 +5678,21 @@ function openContactMenu(event, id) {
   contactMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 164)}px`;
   contactMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 132)}px`;
   contactMenu.classList.remove("hidden");
+}
+
+function openContactMenuFromButton(event, id) {
+  event.preventDefault();
+  event.stopPropagation();
+  const rect = event.currentTarget.getBoundingClientRect();
+  openContactMenu(
+    {
+      preventDefault() {},
+      stopPropagation() {},
+      clientX: rect.right,
+      clientY: rect.bottom + 4,
+    },
+    id,
+  );
 }
 
 function closeContactMenu() {
@@ -6199,7 +6215,7 @@ function refreshPeers() {
     menu.setAttribute("aria-label", `Open actions for ${contact.label}`);
     menu.append(renderIcon("fa-solid fa-ellipsis"));
     menu.addEventListener("click", (event) => {
-      openContactMenu(event, contact.id);
+      openContactMenuFromButton(event, contact.id);
     });
 
     row.addEventListener("contextmenu", (event) => {
