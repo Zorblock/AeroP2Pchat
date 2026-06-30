@@ -39,6 +39,12 @@
       href="https://unpkg.com/lenis@1.3.25/dist/lenis.css"
     />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/scrollreveal@4.0.0/dist/scrollreveal.min.js"></script>
+    <script>
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("sr-reduced-motion");
+      }
+    </script>
   </head>
 
   <body>
@@ -60,7 +66,7 @@
 
     <main>
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
+        <div class="hero-copy reveal">
           <p class="eyebrow">Direct desktop messaging</p>
           <h1 id="hero-title">Chat from one desktop to another.</h1>
           <p class="lead">
@@ -90,7 +96,10 @@
           </dl>
         </div>
 
-        <div class="app-preview" aria-label="Aero P2P Chat interface preview">
+        <div
+          class="app-preview reveal"
+          aria-label="Aero P2P Chat interface preview"
+        >
           <div class="preview-titlebar">
             <div class="preview-brand">
               <img src="logo.png" alt="" />
@@ -166,7 +175,7 @@
       </section>
 
       <section class="section feature-section" id="features">
-        <div class="section-heading">
+        <div class="section-heading reveal">
           <p class="eyebrow">Built from the real app</p>
           <h2>Everything important is already in the desktop client.</h2>
           <p>
@@ -177,7 +186,7 @@
         </div>
 
         <div class="feature-grid">
-          <article>
+          <article class="reveal">
             <span class="feature-icon">ID</span>
             <h3>Aero IDs</h3>
             <p>
@@ -185,7 +194,7 @@
               the connect field.
             </p>
           </article>
-          <article>
+          <article class="reveal">
             <span class="feature-icon">OK</span>
             <h3>Connection requests</h3>
             <p>
@@ -193,7 +202,7 @@
               nicknames supported in the app.
             </p>
           </article>
-          <article>
+          <article class="reveal">
             <span class="feature-icon">VC</span>
             <h3>Voice, camera, stream</h3>
             <p>
@@ -201,7 +210,7 @@
               quality, and fullscreen viewing.
             </p>
           </article>
-          <article>
+          <article class="reveal">
             <span class="feature-icon">RX</span>
             <h3>Readable chat state</h3>
             <p>
@@ -209,7 +218,7 @@
               actions keep conversations understandable.
             </p>
           </article>
-          <article>
+          <article class="reveal">
             <span class="feature-icon">NT</span>
             <h3>Desktop notifications</h3>
             <p>
@@ -217,7 +226,7 @@
               sound settings for calls and events.
             </p>
           </article>
-          <article>
+          <article class="reveal">
             <span class="feature-icon">UP</span>
             <h3>Updates and CLI</h3>
             <p>
@@ -229,13 +238,13 @@
       </section>
 
       <section class="section workflow-section" id="workflow">
-        <div class="section-heading">
+        <div class="section-heading reveal">
           <p class="eyebrow">How it works</p>
           <h2>Share an ID, accept the request, start talking.</h2>
         </div>
 
         <ol class="workflow-list">
-          <li>
+          <li class="reveal">
             <span>1</span>
             <div>
               <h3>Copy your Aero ID</h3>
@@ -245,7 +254,7 @@
               </p>
             </div>
           </li>
-          <li>
+          <li class="reveal">
             <span>2</span>
             <div>
               <h3>Connect by request</h3>
@@ -255,7 +264,7 @@
               </p>
             </div>
           </li>
-          <li>
+          <li class="reveal">
             <span>3</span>
             <div>
               <h3>Use chat, calls, or screen share</h3>
@@ -269,7 +278,7 @@
       </section>
 
       <section class="section details-section">
-        <div class="detail-panel">
+        <div class="detail-panel reveal">
           <div>
             <p class="eyebrow">Desktop behavior</p>
             <h2>Feels native without hiding where things are.</h2>
@@ -301,7 +310,7 @@
       </section>
 
       <section class="section download-section" id="download">
-        <div class="section-heading">
+        <div class="section-heading reveal">
           <p class="eyebrow">Get Aero</p>
           <h2>Download for your desktop.</h2>
           <p>
@@ -312,7 +321,7 @@
         </div>
 
         <div class="download-grid">
-          <article class="download-card recommended">
+          <article class="download-card recommended reveal">
             <div>
               <p class="platform">Windows</p>
               <h3>Setup installer</h3>
@@ -328,7 +337,7 @@
             </a>
           </article>
 
-          <article class="download-card">
+          <article class="download-card reveal">
             <div>
               <p class="platform">Linux</p>
               <h3>AppImage</h3>
@@ -346,7 +355,7 @@
           </article>
         </div>
 
-        <div class="installer-block">
+        <div class="installer-block reveal">
           <div>
             <p class="platform">Linux installer command (Recommended)</p>
             <p>
@@ -408,6 +417,33 @@
           syncTouch: false,
           stopInertiaOnNavigate: true,
         });
+      }
+
+      if (!prefersReducedMotion.matches && window.ScrollReveal) {
+        const reveal = ScrollReveal({
+          distance: "24px",
+          duration: 760,
+          easing: "cubic-bezier(0.22, 0.8, 0.2, 1)",
+          interval: 80,
+          opacity: 0,
+          origin: "bottom",
+          reset: false,
+          viewFactor: 0.16,
+        });
+
+        reveal.reveal(".hero-copy", { distance: "18px", duration: 820 });
+        reveal.reveal(".app-preview", {
+          delay: 120,
+          distance: "20px",
+          duration: 880,
+          origin: "right",
+        });
+        reveal.reveal(".section-heading");
+        reveal.reveal(".feature-grid article", { interval: 70 });
+        reveal.reveal(".workflow-list li", { interval: 90 });
+        reveal.reveal(".detail-panel", { distance: "18px" });
+        reveal.reveal(".download-card", { interval: 80 });
+        reveal.reveal(".installer-block", { delay: 90, distance: "18px" });
       }
 
       copyButton.addEventListener("click", async () => {

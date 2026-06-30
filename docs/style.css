@@ -18,6 +18,10 @@
   box-sizing: border-box;
 }
 
+html.sr:not(.sr-reduced-motion) .reveal {
+  visibility: hidden;
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 108px;
