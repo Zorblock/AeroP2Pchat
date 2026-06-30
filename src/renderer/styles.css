@@ -4476,6 +4476,49 @@ body[data-theme="dark"] .screen-source-badge {
   box-shadow: none;
 }
 
+body[data-theme="dark"] .participant-card {
+  border-color: #294456;
+  background: #0d151d !important;
+}
+
+body[data-theme="dark"] .participant-card.speaking {
+  border-color: rgba(101, 226, 151, 0.92);
+  background: #102018 !important;
+  box-shadow:
+    0 0 0 2px rgba(101, 226, 151, 0.32),
+    0 0 24px rgba(70, 210, 128, 0.24);
+}
+
+body[data-theme="dark"] .participant-card.speaking .participant-meta {
+  border-color: rgba(101, 226, 151, 0.38);
+  background: rgba(13, 34, 24, 0.96) !important;
+}
+
+body[data-theme="dark"] .participant-badge {
+  border-color: rgba(111, 171, 194, 0.4);
+  background: #142633 !important;
+  color: #9fd9ea;
+}
+
+body[data-theme="dark"] .participant-badge.muted {
+  border-color: rgba(238, 101, 125, 0.62);
+  background: #3a151f !important;
+  color: #ffb7c5;
+}
+
+body[data-theme="dark"] .participant-badge.deafened {
+  border-color: rgba(91, 166, 232, 0.62);
+  background: #11263c !important;
+  color: #96d3ff;
+}
+
+body[data-theme="dark"] .participant-badge.stream,
+body[data-theme="dark"] .screen-source-badge {
+  border-color: rgba(92, 215, 149, 0.62);
+  background: #123924 !important;
+  color: #8ff0b5;
+}
+
 body[data-theme="dark"] .call-health {
   border-color: rgba(101, 197, 142, 0.36);
   background: #10241c !important;
