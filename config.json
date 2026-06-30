@@ -1,4 +1,21 @@
 {
   "repo": "Zorblock/AeroP2Pchat",
-  "branch": "main"
+  "branch": "main",
+  "app": {
+    "name": "Aero P2P Chat",
+    "id": "de.jonasgrimm.aerop2pchat",
+    "packageName": "aero-p2p-chat"
+  },
+  "linux": {
+    "installDirName": "aero-p2p-chat",
+    "commandName": "aero-p2p-chat",
+    "autostartDesktopFileName": "aero-p2p-chat.desktop"
+  },
+  "release": {
+    "artifactName": "Aero-P2P-Chat-${version}-${os}-${arch}.${ext}",
+    "windowsInstallerAsset": "Aero-P2P-Chat-Windows-Setup.exe",
+    "windowsSetupBaseName": "Aero-P2P-Chat-Setup",
+    "linuxAppImageAsset": "Aero-P2P-Chat-Linux.AppImage",
+    "linuxWorkflow": "linux-appimage-release.yml"
+  }
 }

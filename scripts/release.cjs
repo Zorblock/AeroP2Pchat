@@ -8,11 +8,14 @@ const rootDir = path.join(__dirname, "..");
 const packagePath = path.join(rootDir, "package.json");
 const lockPath = path.join(rootDir, "package-lock.json");
 const projectConfigPath = path.join(rootDir, "config.json");
+const projectConfig = JSON.parse(fs.readFileSync(projectConfigPath, "utf8"));
 const apiVersion = "2026-03-10";
-const appName = "Aero P2P Chat";
-const userAgent = "aero-p2p-chat-release-script";
-const windowsUploadName = "Aero-P2P-Chat-Windows-Setup.exe";
-const linuxUploadName = "Aero-P2P-Chat-Linux.AppImage";
+const appName = projectConfig.app.name;
+const userAgent = `${projectConfig.app.packageName}-release-script`;
+const windowsUploadName = projectConfig.release.windowsInstallerAsset;
+const windowsSetupBaseName = projectConfig.release.windowsSetupBaseName;
+const linuxUploadName = projectConfig.release.linuxAppImageAsset;
+const linuxWorkflowId = projectConfig.release.linuxWorkflow;
 
 const useColor = process.stdout.isTTY || process.env.FORCE_COLOR;
 const colorCodes = {
@@ -368,7 +371,7 @@ function createLatestManifest({ pkg, setupPath, appImagePath, version, owner, re
           `linuxSize: ${linux.size}`
         ]
       : []),
-    `productName: ${yamlQuote(pkg.build && pkg.build.productName ? pkg.build.productName : appName)}`,
+    `productName: ${yamlQuote(appName)}`,
     ""
   ].join("\n");
   const manifestPath = path.join(rootDir, "dist", "installer", "latest.yml");
@@ -501,9 +504,8 @@ async function getRepositoryDefaultBranch(token, owner, repo) {
 
 async function triggerLinuxReleaseWorkflow(token, owner, repo, version) {
   const ref = process.env.GITHUB_REF_NAME || (await getRepositoryDefaultBranch(token, owner, repo));
-  const workflowId = "linux-appimage-release.yml";
   logStep(`Trigger Linux AppImage workflow on ${ref}`);
-  await githubRequest(token, `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${encodeURIComponent(workflowId)}/dispatches`, {
+  await githubRequest(token, `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${encodeURIComponent(linuxWorkflowId)}/dispatches`, {
     method: "POST",
     body: JSON.stringify({ ref, inputs: { version } })
   });
@@ -684,7 +686,7 @@ async function releaseLinuxAppImage({ token, owner, repo, version }) {
 
   logHeader("Build");
   run("node", ["scripts/run-electron-vite.cjs", "build"]);
-  runWithRetry("npx", ["electron-builder", "--linux", "AppImage", "--publish", "never"], {
+  runWithRetry("npx", ["electron-builder", "--config", "electron-builder.config.cjs", "--linux", "AppImage", "--publish", "never"], {
     attempts: 3
   });
   const appImageUploadPath = createUploadCopy(findAppImage(), linuxUploadName);
@@ -727,7 +729,6 @@ async function main() {
   try {
     const options = parseArgs();
     const pkgBefore = readJson(packagePath);
-    const projectConfig = readJson(projectConfigPath);
     const configuredRepo = getRepoParts(projectConfig);
     owner = process.env.GITHUB_OWNER || configuredRepo.owner;
     repo = process.env.GITHUB_REPO || configuredRepo.repo;
@@ -772,7 +773,7 @@ async function main() {
     logSuccess("Cleaned dist and out");
     run("npm", ["run", "setup"]);
 
-    const setupPath = path.join(rootDir, "dist", "installer", `Aero-P2P-Chat-Setup-${nextVersion}.exe`);
+    const setupPath = path.join(rootDir, "dist", "installer", `${windowsSetupBaseName}-${nextVersion}.exe`);
     if (!fs.existsSync(setupPath)) {
       throw new Error(`Setup file not found: ${setupPath}`);
     }

@@ -6,13 +6,14 @@ const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join } = require("node:path");
 const { spawn } = require("node:child_process");
-const projectConfig = require("../../config.json");
+const projectConfig = __PROJECT_CONFIG__;
 
 const windowIcon = process.platform === "win32"
   ? join(__dirname, "../../assets/app.ico")
   : join(__dirname, "../../assets/linux-icons/512x512.png");
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
+const appDisplayName = projectConfig.app.name;
 const userConfigFileName = "config.json";
 const defaultSidebarWidth = 230;
 const minSidebarWidth = 170;
@@ -24,7 +25,7 @@ const defaultMicEqLow = 0;
 const defaultMicEqMid = 0;
 const defaultMicEqHigh = 0;
 const allowMultipleInstances = process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
-const autostartDesktopFileName = "aero-p2p-chat.desktop";
+const autostartDesktopFileName = projectConfig.linux.autostartDesktopFileName;
 let mainWindow = null;
 let tray = null;
 let appConfig = {};
@@ -190,7 +191,7 @@ async function applyLinuxAutostartSettings() {
   const desktopEntry = [
     "[Desktop Entry]",
     "Type=Application",
-    "Name=Aero P2P Chat",
+    `Name=${appDisplayName}`,
     `Exec=${quoteDesktopValue(executable)}${args ? ` ${args}` : ""}`,
     "Terminal=false",
     "X-GNOME-Autostart-enabled=true"
@@ -257,7 +258,7 @@ function createTray() {
   }
 
   tray = new Tray(windowIcon);
-  tray.setToolTip("Aero P2P Chat");
+  tray.setToolTip(appDisplayName);
   tray.on("click", showMainWindow);
   updateTrayMenu();
   return tray;
@@ -724,7 +725,7 @@ function assertTrustedInstallerUrl(rawUrl) {
   const url = new URL(rawUrl);
   const isTrustedHost = url.hostname === releaseHost;
   const isTrustedPath = url.pathname.startsWith(releasePathPrefix);
-  const isInstaller = basename(url.pathname) === "Aero-P2P-Chat-Windows-Setup.exe";
+  const isInstaller = basename(url.pathname) === projectConfig.release.windowsInstallerAsset;
 
   if (!isTrustedHost || !isTrustedPath || !isInstaller) {
     throw new Error("Refused untrusted update URL.");
@@ -827,7 +828,7 @@ async function installWindowsUpdate(rawUrl, version, expectedSha256 = "", expect
 
   const url = assertTrustedInstallerUrl(rawUrl);
   const updateDir = await mkdtemp(join(tmpdir(), "aero-p2p-update-"));
-  const setupPath = join(updateDir, `Aero-P2P-Chat-Setup-${version || "latest"}.exe`);
+  const setupPath = join(updateDir, `${projectConfig.release.windowsSetupBaseName}-${version || "latest"}.exe`);
 
   onProgress({ phase: "download", percent: 0, receivedBytes: 0, totalBytes: null });
   await downloadFile(url, setupPath, onProgress);
@@ -862,7 +863,7 @@ function createWindow({ hidden = false } = {}) {
     height: 560,
     minWidth: 620,
     minHeight: 440,
-    title: "Aero P2P Chat",
+    title: appDisplayName,
     icon: windowIcon,
     frame: false,
     titleBarStyle: "hidden",

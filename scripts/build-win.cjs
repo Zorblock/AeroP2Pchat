@@ -38,6 +38,8 @@ fs.rmSync(outputDir, { recursive: true, force: true });
 run("node", ["scripts/run-electron-vite.cjs", "build"]);
 run("npx", [
   "electron-builder",
+  "--config",
+  "electron-builder.config.cjs",
   "--win",
   "--dir",
   `--config.directories.output=${path.relative(root, outputDir)}`

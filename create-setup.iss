@@ -2,11 +2,12 @@
 ; Aero P2P Chat Setup Script
 ; ================================
 
-#define MyAppName "Aero P2P Chat"
+#define MyAppName GetEnv("AERO_APP_NAME")
 #define MyAppVersion GetEnv("npm_package_version")
-#define MyAppPublisher "Jonas Grimm"
+#define MyAppPublisher GetEnv("AERO_APP_AUTHOR")
 #define MyAppURL "https://jonasgrimm.de"
-#define MyAppExeName "Aero P2P Chat.exe"
+#define MyAppExeName GetEnv("AERO_APP_EXE_NAME")
+#define MySetupBaseName GetEnv("AERO_WINDOWS_SETUP_BASE_NAME")
 #ifndef WinUnpackedDir
 #define WinUnpackedDir "dist\build\win-unpacked"
 #endif
@@ -22,7 +23,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 AppCopyright=Copyright (c) 2026 {#MyAppPublisher}
 
-DefaultDirName={userappdata}\jonasgrimm.de\Aero P2P Chat
+DefaultDirName={userappdata}\jonasgrimm.de\{#MyAppName}
 UsePreviousAppDir=no
 DisableDirPage=yes
 DisableProgramGroupPage=yes
@@ -33,7 +34,7 @@ UninstallDisplayName={#MyAppName}
 Uninstallable=yes
 
 OutputDir=dist\installer
-OutputBaseFilename=Aero-P2P-Chat-Setup-{#MyAppVersion}
+OutputBaseFilename={#MySetupBaseName}-{#MyAppVersion}
 SetupIconFile=assets\app.ico
 VersionInfoVersion={#MyAppVersion}
 VersionInfoProductVersion={#MyAppVersion}

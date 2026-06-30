@@ -3,17 +3,20 @@ set -eu
 
 APP_NAME="Aero P2P Chat"
 APP_ID="de.jonasgrimm.aerop2pchat"
+APP_SLUG="aero-p2p-chat"
+APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux.AppImage"
+APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/refs/heads/main"
 
-APPIMAGE_URL="${RELEASE_BASE}/Aero-P2P-Chat-Linux.AppImage"
+APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
 ICON_URL="${RAW_BASE}/assets/linux-icons/512x512.png"
 
 DATA_HOME="${XDG_DATA_HOME:-"$HOME/.local/share"}"
 CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
-INSTALL_DIR="${DATA_HOME}/aero-p2p-chat"
+INSTALL_DIR="${DATA_HOME}/${APP_SLUG}"
 BIN_DIR="$HOME/.local/bin"
 APPLICATIONS_DIR="${DATA_HOME}/applications"
 ICON_SIZE="512x512"
@@ -21,9 +24,9 @@ ICON_DIR="${DATA_HOME}/icons/hicolor/${ICON_SIZE}/apps"
 OLD_ICON_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 APP_DATA_DIR="${CONFIG_HOME}/Aero P2P Chat"
 
-APPIMAGE_PATH="$INSTALL_DIR/Aero-P2P-Chat.AppImage"
+APPIMAGE_PATH="$INSTALL_DIR/${APPIMAGE_INSTALL_NAME}"
 VERSION_PATH="$INSTALL_DIR/version"
-BIN_PATH="$BIN_DIR/aero-p2p-chat"
+BIN_PATH="$BIN_DIR/${APP_SLUG}"
 DESKTOP_PATH="$APPLICATIONS_DIR/${APP_ID}.desktop"
 ICON_PATH="$ICON_DIR/${APP_ID}.png"
 
@@ -151,7 +154,7 @@ Exec=${APPIMAGE_PATH} %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
-StartupWMClass=Aero P2P Chat
+StartupWMClass=${APP_NAME}
 EOF
     if command -v update-desktop-database >/dev/null 2>&1; then
         update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
@@ -210,7 +213,7 @@ find_running_app_pids() {
     -v bin="$BIN_PATH" \
     -v app_id="$APP_ID" \
     -v app_name="$APP_NAME" \
-    -v app_slug="aero-p2p-chat" '
+    -v app_slug="$APP_SLUG" '
       {
         pid = $1
         line = $0
@@ -353,7 +356,7 @@ install_app() {
     ok "${APP_NAME} ${latest_version} installed."
     print_paths
     if ! printf '%s' ":$PATH:" | grep -q ":$BIN_DIR:"; then
-        warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: aero-p2p-chat"
+        warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: $APP_SLUG"
     fi
 }
 

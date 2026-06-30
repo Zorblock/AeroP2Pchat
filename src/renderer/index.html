@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aero P2P Chat</title>
+    <title>App</title>
     <link rel="preload" href="boot-logo.png" as="image" />
     <style>
       :root {
@@ -218,10 +218,10 @@
     <script type="module" src="/index.js"></script>
   </head>
   <body class="app-loading">
-    <div id="boot-screen" class="boot-screen" aria-label="Loading Aero P2P Chat">
+    <div id="boot-screen" class="boot-screen" aria-label="Loading app" data-app-aria-template="Loading {name}">
       <section class="boot-panel">
         <img class="boot-logo" src="boot-logo.png" alt="" aria-hidden="true" />
-        <h1 class="boot-title">Aero P2P Chat</h1>
+        <h1 class="boot-title" data-app-name>App</h1>
         <span id="boot-status" class="boot-status">Loading interface</span>
         <div class="boot-progress" aria-hidden="true">
           <div id="boot-progress-fill" class="boot-progress-fill"></div>
@@ -242,7 +242,7 @@
             <span id="titlebar-presence" class="titlebar-presence online"></span>
           </div>
           <div>
-            <strong>Aero P2P Chat</strong>
+            <strong data-app-name>App</strong>
             <span id="titlebar-subtitle">Ready</span>
           </div>
         </div>
@@ -474,7 +474,7 @@
             <div class="settings-options">
               <label class="settings-check">
                 <input id="autostart-toggle" type="checkbox" />
-                <span>Start Aero P2P Chat when I sign in</span>
+                <span data-app-template="Start {name} when I sign in">Start app when I sign in</span>
               </label>
               <div class="settings-choice" id="autostart-mode-group">
                 <label>

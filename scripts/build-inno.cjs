@@ -7,6 +7,7 @@ const scriptPath = path.join(root, "create-setup.iss");
 const markerPath = path.join(root, "dist", "build", "latest-win-dir.txt");
 const buildRoot = path.join(root, "dist", "build");
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+const projectConfig = JSON.parse(fs.readFileSync(path.join(root, "config.json"), "utf8"));
 const markerValue = fs.existsSync(markerPath) ? fs.readFileSync(markerPath, "utf8").trim() : "";
 const markerUnpackedDir = markerValue
   ? path.resolve(root, markerValue)
@@ -52,7 +53,11 @@ const result = spawnSync(compiler, [`/DWinUnpackedDir=${unpackedDir}`, scriptPat
   cwd: root,
   env: {
     ...process.env,
-    npm_package_version: process.env.npm_package_version || packageJson.version
+    npm_package_version: process.env.npm_package_version || packageJson.version,
+    AERO_APP_NAME: projectConfig.app.name,
+    AERO_APP_AUTHOR: packageJson.author,
+    AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
+    AERO_WINDOWS_SETUP_BASE_NAME: projectConfig.release.windowsSetupBaseName
   },
   stdio: "inherit",
   shell: compiler === "ISCC" || compiler === "ISCC.exe"

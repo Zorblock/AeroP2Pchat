@@ -1,9 +1,10 @@
 import Peer, { util } from "peerjs";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
-import projectConfig from "../../config.json";
 import packageInfo from "../../package.json";
 import "./styles.css";
+
+const projectConfig = __PROJECT_CONFIG__;
 
 const titlebarLogo = document.querySelector("#titlebar-logo");
 const titlebarAvatar = document.querySelector(".titlebar-avatar");
@@ -424,6 +425,7 @@ await waitForImageReady(bootLogo);
 setBootProgress(18, "Preparing interface");
 
 const currentVersion = packageInfo.version;
+const appDisplayName = projectConfig.app.name;
 const githubRepo = projectConfig.repo;
 const githubBranch = projectConfig.branch || "main";
 const githubRepoUrl = `https://github.com/${githubRepo}`;
@@ -431,6 +433,18 @@ const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const linuxInstallCommand = `curl -fsSL https://raw.githubusercontent.com/${githubRepo}/refs/heads/${githubBranch}/install.sh | sh -s -- update`;
 const platform = window.aeroChat?.platform ?? "browser";
+
+document.title = appDisplayName;
+document.querySelectorAll("[data-app-name]").forEach((element) => {
+  element.textContent = appDisplayName;
+});
+document.querySelectorAll("[data-app-template]").forEach((element) => {
+  element.textContent = element.dataset.appTemplate.replace("{name}", appDisplayName);
+});
+document.querySelectorAll("[data-app-aria-template]").forEach((element) => {
+  element.setAttribute("aria-label", element.dataset.appAriaTemplate.replace("{name}", appDisplayName));
+});
+
 const peerConnectionConfig = {
   iceServers: [
     // Keep the ICE list simple and avoid Twilio's default STUN host, which can
@@ -4450,7 +4464,7 @@ function isSupportedDataChannel() {
 
 function createChatMetadata() {
   return {
-    app: "Aero P2P Chat",
+    app: appDisplayName,
     identityId: identity.id,
     previousIdentityIds: getKnownPreviousIdentityIds(identity.previousIds, identity.id),
     nickname: identity.nickname || "",
@@ -4769,7 +4783,7 @@ function isKnownChatConnection(conn) {
     return false;
   }
 
-  return conn.label === CHAT_LABEL || conn.metadata?.app === "Aero P2P Chat" || !conn.metadata;
+  return conn.label === CHAT_LABEL || conn.metadata?.app === appDisplayName || !conn.metadata;
 }
 
 function normalizeMessage(data) {
@@ -6102,7 +6116,7 @@ window.aeroChat?.onNotificationAction?.((action) => {
 });
 
 function openLinuxUpdateModal() {
-  modalText.textContent = `Run this command to update Aero P2P Chat to version ${availableUpdate?.version ?? "latest"}.`;
+  modalText.textContent = `Run this command to update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}.`;
   linuxCommand.textContent = linuxInstallCommand;
   updateModal.classList.remove("hidden");
 }
