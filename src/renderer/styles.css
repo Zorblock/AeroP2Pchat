@@ -2968,6 +2968,241 @@ body[data-theme="dark"] .blocked-list::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #5ae6cb, #26b9dd 52%, #0b6f96);
 }
 
+body[data-theme="dark"] {
+  color: #edf7fa;
+  background:
+    linear-gradient(135deg, rgba(8, 16, 23, 0.94), rgba(2, 6, 11, 0.98)),
+    #050a10;
+}
+
+body[data-theme="dark"] .window-frame {
+  border-color: rgba(132, 155, 168, 0.24);
+  background:
+    linear-gradient(180deg, rgba(18, 30, 39, 0.96), rgba(9, 17, 25, 0.98)),
+    #070d14;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 42px rgba(0, 0, 0, 0.66);
+}
+
+body[data-theme="dark"] .titlebar {
+  background: linear-gradient(180deg, rgba(22, 40, 50, 0.96), rgba(10, 22, 31, 0.98));
+}
+
+body[data-theme="dark"] .app-shell {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.36)),
+    #050b12;
+}
+
+body[data-theme="dark"] .connection-panel,
+body[data-theme="dark"] .chat-panel,
+body[data-theme="dark"] .modal-panel,
+body[data-theme="dark"] .stream-dialog {
+  border-color: rgba(125, 154, 169, 0.28);
+  background:
+    linear-gradient(145deg, rgba(16, 29, 38, 0.98), rgba(6, 13, 20, 0.99)),
+    #071018;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+body[data-theme="dark"] .modal-header h2,
+body[data-theme="dark"] .settings-section h3,
+body[data-theme="dark"] .settings-field span,
+body[data-theme="dark"] .settings-range-header strong,
+body[data-theme="dark"] .settings-check,
+body[data-theme="dark"] .settings-choice label,
+body[data-theme="dark"] .theme-switcher span {
+  color: #edf7fa;
+}
+
+body[data-theme="dark"] .settings-section h3 {
+  color: #9fc5d1;
+}
+
+body[data-theme="dark"] .titlebar-brand span,
+body[data-theme="dark"] .label,
+body[data-theme="dark"] .chat-meta,
+body[data-theme="dark"] .status-region,
+body[data-theme="dark"] .empty-peer,
+body[data-theme="dark"] .messages.empty::before,
+body[data-theme="dark"] .typing-indicator,
+body[data-theme="dark"] .message-row.system,
+body[data-theme="dark"] .modal-panel p,
+body[data-theme="dark"] .settings-range-header,
+body[data-theme="dark"] .context-menu-label,
+body[data-theme="dark"] .participant-menu-range strong,
+body[data-theme="dark"] .stream-dialog-kicker,
+body[data-theme="dark"] .stream-controls label,
+body[data-theme="dark"] .screen-source-empty {
+  color: #b7cbd3;
+}
+
+body[data-theme="dark"] .id-card,
+body[data-theme="dark"] .update-card,
+body[data-theme="dark"] .peers-card,
+body[data-theme="dark"] .settings-section,
+body[data-theme="dark"] .settings-range-group,
+body[data-theme="dark"] .contact-nickname-item,
+body[data-theme="dark"] .blocked-item,
+body[data-theme="dark"] .stream-controls,
+body[data-theme="dark"] .screen-source-button,
+body[data-theme="dark"] .stream-audio-toggle {
+  border-color: rgba(111, 143, 158, 0.26);
+  background: linear-gradient(180deg, rgba(17, 34, 44, 0.92), rgba(8, 18, 27, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 5px 14px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] input,
+body[data-theme="dark"] select,
+body[data-theme="dark"] code,
+body[data-theme="dark"] .stream-controls select {
+  border-color: rgba(133, 160, 173, 0.34);
+  background: rgba(2, 8, 13, 0.92);
+  color: #f2fbff;
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+body[data-theme="dark"] input:focus,
+body[data-theme="dark"] select:focus {
+  border-color: rgba(155, 205, 222, 0.84);
+  box-shadow:
+    0 0 0 2px rgba(125, 179, 198, 0.22),
+    inset 0 2px 6px rgba(0, 0, 0, 0.32);
+}
+
+body[data-theme="dark"] .settings-check input,
+body[data-theme="dark"] .settings-choice input {
+  border-color: rgba(216, 91, 116, 0.62);
+  background:
+    radial-gradient(circle at 66% 28%, rgba(255, 240, 243, 0.78) 0 10%, transparent 19%),
+    linear-gradient(145deg, #3b0c18 0%, #7e1930 54%, #c23a5a 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 208, 216, 0.28),
+    inset 0 -2px 5px rgba(22, 0, 7, 0.58),
+    0 2px 5px rgba(0, 0, 0, 0.34);
+}
+
+body[data-theme="dark"] .settings-check input:checked,
+body[data-theme="dark"] .settings-choice input:checked {
+  border-color: rgba(99, 204, 184, 0.68);
+  background:
+    radial-gradient(circle at 64% 25%, rgba(240, 255, 250, 0.82) 0 12%, transparent 21%),
+    linear-gradient(145deg, #0a3032 0%, #117e7a 56%, #45d0b1 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(230, 255, 250, 0.34),
+    inset 0 -2px 5px rgba(0, 32, 32, 0.56),
+    0 0 8px rgba(57, 206, 180, 0.28);
+}
+
+body[data-theme="dark"] .settings-check.disabled,
+body[data-theme="dark"] .settings-choice.disabled {
+  opacity: 1;
+}
+
+body[data-theme="dark"] .settings-check.disabled span,
+body[data-theme="dark"] .settings-choice.disabled span {
+  color: #6f858d;
+}
+
+body[data-theme="dark"] .settings-check.disabled input,
+body[data-theme="dark"] .settings-choice.disabled input {
+  filter: grayscale(0.45) brightness(0.75);
+}
+
+body[data-theme="dark"] .theme-switcher span,
+body[data-theme="dark"] .contact-name,
+body[data-theme="dark"] .contact-edit,
+body[data-theme="dark"] .peer-chip,
+body[data-theme="dark"] .request-item,
+body[data-theme="dark"] .screen-source-button {
+  border-color: rgba(116, 147, 162, 0.3);
+  background: linear-gradient(180deg, rgba(15, 31, 41, 0.96), rgba(7, 16, 24, 0.98));
+  color: #edf7fa;
+}
+
+body[data-theme="dark"] .theme-switcher input:checked + span,
+body[data-theme="dark"] .peer-chip.active,
+body[data-theme="dark"] .peer-chip:hover,
+body[data-theme="dark"] .contact-name:hover {
+  border-color: rgba(139, 184, 202, 0.72);
+  background: linear-gradient(180deg, rgba(38, 72, 86, 0.96), rgba(17, 40, 52, 0.98));
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 2px rgba(125, 179, 198, 0.16);
+}
+
+body[data-theme="dark"] .icon-button,
+body[data-theme="dark"] .ghost-button,
+body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] #connect-button,
+body[data-theme="dark"] #send-button,
+body[data-theme="dark"] #update-button,
+body[data-theme="dark"] #save-nickname,
+body[data-theme="dark"] .contact-nickname-editor button,
+body[data-theme="dark"] .blocked-item button,
+body[data-theme="dark"] .request-actions button,
+body[data-theme="dark"] .call-action,
+body[data-theme="dark"] .stream-source-tab.active,
+body[data-theme="dark"] .stream-start-button {
+  border-color: rgba(135, 172, 188, 0.36);
+  background: linear-gradient(#304653, #1d303c 48%, #0c1c27);
+  color: #f2fbff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 6px 14px rgba(0, 0, 0, 0.26);
+}
+
+body[data-theme="dark"] .ghost-button.danger,
+body[data-theme="dark"] .call-action.decline,
+body[data-theme="dark"] .call-action.hangup,
+body[data-theme="dark"] .contact-remove,
+body[data-theme="dark"] .stream-close-button {
+  border-color: rgba(214, 91, 116, 0.4);
+  background: linear-gradient(#55212c, #38121c 48%, #210912);
+  color: #ffe3ea;
+}
+
+body[data-theme="dark"] .chat-header,
+body[data-theme="dark"] .call-stage,
+body[data-theme="dark"] .message-form,
+body[data-theme="dark"] .typing-indicator,
+body[data-theme="dark"] .call-banner {
+  border-color: rgba(111, 143, 158, 0.22);
+  background: linear-gradient(90deg, rgba(14, 29, 39, 0.92), rgba(5, 12, 19, 0.96));
+}
+
+body[data-theme="dark"] .settings-grid,
+body[data-theme="dark"] #messages,
+body[data-theme="dark"] .contact-nickname-list,
+body[data-theme="dark"] .blocked-list,
+body[data-theme="dark"] .screen-source-list {
+  scrollbar-color: #6f98a8 rgba(5, 12, 19, 0.96);
+}
+
+body[data-theme="dark"] .settings-grid::-webkit-scrollbar-track,
+body[data-theme="dark"] #messages::-webkit-scrollbar-track,
+body[data-theme="dark"] .contact-nickname-list::-webkit-scrollbar-track,
+body[data-theme="dark"] .blocked-list::-webkit-scrollbar-track {
+  background: linear-gradient(#111f2a, #071018);
+  box-shadow: inset 0 0 0 1px rgba(133, 160, 173, 0.13);
+}
+
+body[data-theme="dark"] .settings-grid::-webkit-scrollbar-thumb,
+body[data-theme="dark"] #messages::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .contact-nickname-list::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .blocked-list::-webkit-scrollbar-thumb {
+  border-color: rgba(5, 12, 19, 0.96);
+  background: linear-gradient(180deg, #8eabb8, #5f8494 52%, #355463);
+}
+
 @media (max-width: 700px) {
   .stream-controls {
     grid-template-columns: 1fr;

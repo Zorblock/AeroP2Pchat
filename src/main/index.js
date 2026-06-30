@@ -5,7 +5,7 @@ const { createHash } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join } = require("node:path");
-const { spawn } = require("node:child_process");
+const { execFileSync, spawn } = require("node:child_process");
 const projectConfig = __PROJECT_CONFIG__;
 
 const windowIcon = process.platform === "win32"
@@ -35,6 +35,7 @@ let delayedQuitStarted = false;
 const notificationWindows = [];
 const notificationWindowById = new Map();
 const notificationDetailsById = new Map();
+let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
@@ -268,8 +269,89 @@ function createTray() {
   return tray;
 }
 
+function runStatusCommand(command, args) {
+  try {
+    return execFileSync(command, args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 900,
+      windowsHide: true
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+function isWindowsNotificationDisabled() {
+  const shellState = runStatusCommand("powershell.exe", [
+    "-NoProfile",
+    "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-Command",
+    "Add-Type 'using System; using System.Runtime.InteropServices; public static class AeroNotifyState { [DllImport(\"shell32.dll\")] public static extern int SHQueryUserNotificationState(out int state); }'; $state = 0; [void][AeroNotifyState]::SHQueryUserNotificationState([ref]$state); [Console]::Write($state)"
+  ]);
+  if (/^\d+$/.test(shellState)) {
+    return shellState !== "5";
+  }
+
+  const settingsOutput = runStatusCommand("reg.exe", [
+    "query",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings",
+    "/v",
+    "NOC_GLOBAL_SETTING_TOASTS_ENABLED"
+  ]);
+  if (/\bNOC_GLOBAL_SETTING_TOASTS_ENABLED\b[\s\S]*\b0x0\b/i.test(settingsOutput)) {
+    return true;
+  }
+
+  const pushOutput = runStatusCommand("reg.exe", [
+    "query",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+    "/v",
+    "ToastEnabled"
+  ]);
+  return /\bToastEnabled\b[\s\S]*\b0x0\b/i.test(pushOutput);
+}
+
+function isLinuxNotificationDisabled() {
+  const showBanners = runStatusCommand("gsettings", ["get", "org.gnome.desktop.notifications", "show-banners"]);
+  if (showBanners) {
+    return showBanners === "false";
+  }
+
+  return false;
+}
+
+function isSystemDoNotDisturbEnabled() {
+  if (process.env.AERO_CHAT_ASSUME_SYSTEM_DND === "1") {
+    return true;
+  }
+
+  const now = Date.now();
+  if (now - lastSystemDndCheck.checkedAt < 2000) {
+    return lastSystemDndCheck.enabled;
+  }
+
+  const enabled = process.platform === "win32"
+    ? isWindowsNotificationDisabled()
+    : process.platform === "linux"
+      ? isLinuxNotificationDisabled()
+      : false;
+  lastSystemDndCheck = { checkedAt: now, enabled };
+  return enabled;
+}
+
+function getNotificationState() {
+  return {
+    appFocused: Boolean(mainWindow?.isVisible() && mainWindow?.isFocused()),
+    systemDnd: isSystemDoNotDisturbEnabled()
+  };
+}
+
 function shouldSuppressNotification({ showWhenFocused = false } = {}) {
-  return Boolean(!showWhenFocused && mainWindow?.isVisible() && mainWindow?.isFocused());
+  const state = getNotificationState();
+  return Boolean(state.systemDnd || (!showWhenFocused && state.appFocused));
 }
 
 function getRendererAssetPath(fileName) {
@@ -393,6 +475,7 @@ function sendNotificationAction(action) {
 
 function createNotificationHtml(details, soundUrl, logoUrl) {
   const isCall = details.kind === "call";
+  const theme = details.theme === "dark" ? "dark" : "light";
   const title = escapeHtml(details.title || (isCall ? "Incoming call" : "New message"));
   const body = escapeHtml(details.body || "");
   const peerId = escapeAttribute(details.peerId || "");
@@ -414,7 +497,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       overflow: hidden;
       background: transparent;
       font-family: "Segoe UI", system-ui, sans-serif;
-      color: #0d2f43;
+      color: ${theme === "dark" ? "#eefbff" : "#0d2f43"};
       user-select: none;
     }
     .toast {
@@ -424,9 +507,10 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       border-radius: 8px;
       padding: 7px;
       background:
-        linear-gradient(145deg, rgba(251,255,255,.97), rgba(179,239,252,.95)),
-        radial-gradient(circle at 14% 0%, rgba(255,255,255,.86), transparent 8rem);
-      box-shadow: 0 16px 34px rgba(3, 43, 68, .28), inset 0 1px 0 rgba(255,255,255,.9);
+        ${theme === "dark"
+          ? "linear-gradient(145deg, rgba(13,22,30,.98), rgba(6,12,18,.98)), radial-gradient(circle at 14% 0%, rgba(72,158,184,.12), transparent 8rem)"
+          : "linear-gradient(145deg, rgba(251,255,255,.97), rgba(179,239,252,.95)), radial-gradient(circle at 14% 0%, rgba(255,255,255,.86), transparent 8rem)"};
+      box-shadow: ${theme === "dark" ? "0 16px 34px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.08)" : "0 16px 34px rgba(3, 43, 68, .28), inset 0 1px 0 rgba(255,255,255,.9)"};
       animation: enter 170ms cubic-bezier(.2,.82,.2,1);
     }
     header {
@@ -442,8 +526,8 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      background: linear-gradient(#ffffff, #9cf1ff 48%, #34b7e7);
-      color: #09536c;
+      background: ${theme === "dark" ? "linear-gradient(#253947, #122532 48%, #07131c)" : "linear-gradient(#ffffff, #9cf1ff 48%, #34b7e7)"};
+      color: ${theme === "dark" ? "#e7fbff" : "#09536c"};
       font-size: 10px;
       font-weight: 900;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.12);
@@ -467,7 +551,7 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
     }
     p {
       margin: 2px 0 0;
-      color: #315f72;
+      color: ${theme === "dark" ? "#a9c7d1" : "#315f72"};
       font-size: 11px;
       line-height: 1.25;
       display: -webkit-box;
@@ -481,8 +565,8 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       height: 24px;
       border: 0;
       border-radius: 5px;
-      background: rgba(255,255,255,.45);
-      color: #456b7c;
+      background: ${theme === "dark" ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.45)"};
+      color: ${theme === "dark" ? "#cfe7ee" : "#456b7c"};
       font-weight: 900;
       cursor: pointer;
     }
@@ -494,12 +578,12 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
     input {
       min-width: 0;
       height: 27px;
-      border: 1px solid rgba(68,151,181,.35);
+      border: 1px solid ${theme === "dark" ? "rgba(130,179,194,.24)" : "rgba(68,151,181,.35)"};
       border-radius: 5px;
       padding: 0 8px;
       outline: none;
-      background: rgba(255,255,255,.84);
-      color: #0c3143;
+      background: ${theme === "dark" ? "rgba(2,9,14,.82)" : "rgba(255,255,255,.84)"};
+      color: ${theme === "dark" ? "#eefbff" : "#0c3143"};
       font-size: 12px;
       box-shadow: inset 0 2px 5px rgba(18,102,133,.08);
     }
@@ -508,17 +592,17 @@ function createNotificationHtml(details, soundUrl, logoUrl) {
       border: 1px solid rgba(0,117,157,.25);
       border-radius: 5px;
       padding: 0 9px;
-      background: linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8);
-      color: #05384f;
+      background: ${theme === "dark" ? "linear-gradient(#2d4654, #183240 48%, #0b1d28)" : "linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8)"};
+      color: ${theme === "dark" ? "#f0fbff" : "#05384f"};
       font-size: 11px;
       font-weight: 800;
       cursor: pointer;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.1);
     }
-    button.accept { color: #11613d; }
+    button.accept { color: ${theme === "dark" ? "#a8f2ce" : "#11613d"}; }
     button.decline {
-      background: linear-gradient(#ffffff, #ffe7eb 48%, #ffb3c0);
-      color: #7b2534;
+      background: ${theme === "dark" ? "linear-gradient(#55212c, #36111a 48%, #200910)" : "linear-gradient(#ffffff, #ffe7eb 48%, #ffb3c0)"};
+      color: ${theme === "dark" ? "#ffdce4" : "#7b2534"};
     }
     @keyframes enter {
       from { opacity: 0; transform: translateX(18px) scale(.98); }
@@ -644,7 +728,8 @@ function showAppNotification(details = {}) {
     peerId: details.peerId || "",
     callId: details.callId || "",
     title: String(details.title || ""),
-    body: String(details.body || "")
+    body: String(details.body || ""),
+    theme: details.theme === "dark" ? "dark" : "light"
   };
   const existingWindow = notificationWindowById.get(notification.id);
   if (existingWindow && !existingWindow.isDestroyed()) {
@@ -693,7 +778,7 @@ function showAppNotification(details = {}) {
     const notificationWindow = notificationWindowById.get(id);
     return id !== notification.id && item.kind === "call" && notificationWindow && !notificationWindow.isDestroyed();
   });
-  const shouldPlaySound = !details.silent && (kind !== "call" || !hasOtherCallNotification);
+  const shouldPlaySound = !details.silent && !isSystemDoNotDisturbEnabled() && (kind !== "call" || !hasOtherCallNotification);
   const soundUrl = shouldPlaySound ? findNotificationSound(kind === "call" ? "ringtone" : "message") : "";
   const logoUrl = findNotificationLogo();
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(createNotificationHtml(notification, soundUrl, logoUrl))}`);
@@ -714,6 +799,10 @@ function closeAppNotification(id) {
     closeNotificationWindow(win);
   }
   return { ok: true };
+}
+
+function getAppNotificationState() {
+  return getNotificationState();
 }
 
 function notifyRendererShutdown(reason = "quit") {
@@ -953,6 +1042,7 @@ app.whenReady().then(async () => {
     clipboard.writeText(String(text || ""));
     return { ok: true };
   });
+  ipcMain.handle("get-notification-state", () => getAppNotificationState());
   ipcMain.handle("show-app-notification", (_event, details) => showAppNotification(details));
   ipcMain.handle("close-app-notification", (_event, id) => closeAppNotification(id));
   ipcMain.handle("notification-action", (_event, action) => {

@@ -245,6 +245,10 @@ const callLeaveAudio = new Audio("sound/call-leave.ogg");
 const connectedAudio = new Audio("sound/connected.ogg");
 const messageAudio = new Audio("sound/message.ogg");
 const ringtoneAudio = new Audio("sound/ringtone.ogg");
+let notificationState = {
+  appFocused: false,
+  systemDnd: false
+};
 callJoinAudio.preload = "auto";
 callLeaveAudio.preload = "auto";
 connectedAudio.preload = "auto";
@@ -2165,33 +2169,79 @@ function showAppNotification(details) {
     return false;
   }
 
-  if (!appConfig.notificationSettings.showWhenFocused && document.visibilityState === "visible" && document.hasFocus()) {
+  if (notificationState.systemDnd && !isAppFocused()) {
+    return false;
+  }
+
+  if (!appConfig.notificationSettings.showWhenFocused && isAppFocused()) {
     return false;
   }
 
   window.aeroChat?.showNotification?.({
     ...details,
+    theme: appConfig.appSettings.theme,
     showWhenFocused: appConfig.notificationSettings.showWhenFocused
   }).catch(() => {});
   return true;
 }
 
-function shouldPlaySound(key) {
+function isSoundEnabled(key) {
   normalizeAppSettings();
   return Boolean(appConfig.soundSettings.enabled && appConfig.soundSettings[key]);
 }
 
-function playSound(audio, key) {
-  if (!shouldPlaySound(key)) {
-    return;
+async function shouldPlaySound(key) {
+  if (!isSoundEnabled(key)) {
+    return false;
   }
 
-  audio.currentTime = 0;
-  audio.play().catch(() => {});
+  if (isAppFocused()) {
+    return true;
+  }
+
+  try {
+    const state = await window.aeroChat?.getNotificationState?.();
+    if (state && typeof state === "object") {
+      notificationState = {
+        appFocused: Boolean(state.appFocused),
+        systemDnd: Boolean(state.systemDnd)
+      };
+    }
+  } catch {}
+
+  return !notificationState.systemDnd;
+}
+
+function playSound(audio, key) {
+  shouldPlaySound(key).then((canPlay) => {
+    if (!canPlay) {
+      return;
+    }
+
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
 }
 
 function isAppFocused() {
   return document.visibilityState === "visible" && document.hasFocus();
+}
+
+function refreshNotificationState() {
+  notificationState.appFocused = isAppFocused();
+  window.aeroChat?.getNotificationState?.()
+    .then((state) => {
+      if (!state || typeof state !== "object") {
+        return;
+      }
+      notificationState = {
+        appFocused: Boolean(state.appFocused),
+        systemDnd: Boolean(state.systemDnd)
+      };
+    })
+    .catch(() => {
+      notificationState.appFocused = isAppFocused();
+    });
 }
 
 function playMessageFallbackSound() {
@@ -2246,6 +2296,7 @@ function playConnectedSound() {
 
 function notifyIncomingMessage(peerId, text) {
   normalizeAppSettings();
+  refreshNotificationState();
   if (isPresenceDnd() || isPresenceOffline()) {
     return;
   }
@@ -2261,7 +2312,7 @@ function notifyIncomingMessage(peerId, text) {
     peerId,
     title: getPeerLabel(peerId, conn),
     body: text,
-    silent: !shouldPlaySound("messages")
+    silent: !isSoundEnabled("messages")
   });
   if (!shown) {
     playMessageFallbackSound();
@@ -2270,6 +2321,7 @@ function notifyIncomingMessage(peerId, text) {
 
 function notifyIncomingCall(peerId, callId) {
   normalizeAppSettings();
+  refreshNotificationState();
   if (isPresenceDnd() || isPresenceOffline()) {
     return;
   }
@@ -2287,7 +2339,7 @@ function notifyIncomingCall(peerId, callId) {
     callId,
     title: "Incoming voice call",
     body: `${getPeerLabel(peerId, conn)} is calling`,
-    silent: !shouldPlaySound("ringtone")
+    silent: !isSoundEnabled("ringtone")
   });
 }
 
@@ -6396,14 +6448,21 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("focus", () => {
+  refreshNotificationState();
   sendReadReceiptsForActiveChat();
 });
 
+window.addEventListener("blur", refreshNotificationState);
+
 document.addEventListener("visibilitychange", () => {
+  refreshNotificationState();
   if (document.visibilityState === "visible") {
     sendReadReceiptsForActiveChat();
   }
 });
+
+refreshNotificationState();
+setInterval(refreshNotificationState, 15000);
 
 let realtimeCleanupStarted = false;
 

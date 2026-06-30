@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
   getScreenSources: () => ipcRenderer.invoke("get-screen-sources"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
+  getNotificationState: () => ipcRenderer.invoke("get-notification-state"),
   showNotification: (details) => ipcRenderer.invoke("show-app-notification", details),
   closeNotification: (id) => ipcRenderer.invoke("close-app-notification", id),
   onNotificationAction: (callback) => {
