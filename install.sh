@@ -152,12 +152,33 @@ write_terminal_command() {
 set -eu
 
 command="\${1:-help}"
+
+print_help() {
+    cat <<HELP
+${APP_NAME}
+
+Usage:
+  $CLI_COMMAND_NAME <command>
+
+Commands:
+  open        Start ${APP_NAME}
+  status      Show installed and latest version
+  update      Install the latest release
+  uninstall   Remove ${APP_NAME}
+  menu        Open the installer menu
+  help        Show this help
+HELP
+}
+
 case "\$command" in
     open|run|start)
         shift || true
         exec "$BIN_PATH" "\$@"
     ;;
-    install|update|status|uninstall|remove|menu|help|--help|-h)
+    help|--help|-h)
+        print_help
+    ;;
+    install|update|status|uninstall|remove|menu)
         if command -v curl >/dev/null 2>&1; then
             curl -fsSL "$RAW_BASE/install.sh" | sh -s -- "\$command"
         elif command -v wget >/dev/null 2>&1; then
@@ -168,13 +189,7 @@ case "\$command" in
         fi
     ;;
     *)
-        cat <<HELP
-Usage:
-  $CLI_COMMAND_NAME update      Update ${APP_NAME}
-  $CLI_COMMAND_NAME status      Show installed and latest version
-  $CLI_COMMAND_NAME uninstall   Remove ${APP_NAME}
-  $CLI_COMMAND_NAME open        Start ${APP_NAME}
-HELP
+        print_help
         exit 1
     ;;
 esac
@@ -486,22 +501,25 @@ print_help() {
     title
   cat <<EOF
 Usage:
-  sh install.sh              Show install/update and uninstall menu
-  sh install.sh install      Install or update ${APP_NAME}
-  sh install.sh update       Install or update ${APP_NAME}
-  sh install.sh status       Show installed and latest version
-  sh install.sh uninstall    Remove the AppImage, launcher, command, and icon
-  sh install.sh help         Show this help
+  sh install.sh           Open installer menu
+  sh install.sh install   Install or update ${APP_NAME}
+  sh install.sh status    Show installed and latest version
+  sh install.sh uninstall Remove app, launcher, commands, and icon
+  sh install.sh help      Show this help
 
-Installed terminal commands:
-  $APP_SLUG                 Start ${APP_NAME}
-  $CLI_COMMAND_NAME update  Check and install the latest release
-  $CLI_COMMAND_NAME status  Show installed and latest version
+After install:
+  $APP_SLUG               Start ${APP_NAME}
+  $CLI_COMMAND_NAME open  Start ${APP_NAME}
+  $CLI_COMMAND_NAME status
+  $CLI_COMMAND_NAME update
+  $CLI_COMMAND_NAME uninstall
 
-Remote one-liners:
-  curl -fsSL ${RAW_BASE}/install.sh | sh
-  curl -fsSL ${RAW_BASE}/install.sh | sh -s -- status
-  curl -fsSL ${RAW_BASE}/install.sh | sh -s -- uninstall
+Installer URL:
+  ${RAW_BASE}/install.sh
+
+Examples:
+  curl -fsSL <installer-url> | sh
+  curl -fsSL <installer-url> | sh -s -- status
 EOF
 }
 
