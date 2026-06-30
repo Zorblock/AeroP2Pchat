@@ -32,11 +32,28 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(238, 244, 247, 0.96)),
-    radial-gradient(circle at 16% 8%, rgba(52, 183, 231, 0.18), transparent 24rem),
-    radial-gradient(circle at 84% 18%, rgba(34, 167, 107, 0.12), transparent 23rem),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(238, 244, 247, 0.96)
+    ),
+    radial-gradient(
+      circle at 16% 8%,
+      rgba(52, 183, 231, 0.18),
+      transparent 24rem
+    ),
+    radial-gradient(
+      circle at 84% 18%,
+      rgba(34, 167, 107, 0.12),
+      transparent 23rem
+    ),
     var(--bg);
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 a {
@@ -644,7 +661,11 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 10px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(222, 239, 247, 0.74)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(222, 239, 247, 0.74)
+    ),
     var(--surface);
 }
 
