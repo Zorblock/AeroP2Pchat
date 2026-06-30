@@ -65,6 +65,14 @@ The release asset is named:
 Aero-P2P-Chat-Windows-Setup.exe
 ```
 
+The Windows installer also creates the `aerop2p` terminal command for new terminals:
+
+```powershell
+aerop2p update
+aerop2p status
+aerop2p open
+```
+
 ## Development
 
 Install dependencies:

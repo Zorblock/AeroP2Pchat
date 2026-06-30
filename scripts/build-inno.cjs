@@ -4,6 +4,8 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const scriptPath = path.join(root, "create-setup.iss");
+const cliTemplateDir = path.join(root, "scripts", "windows-cli");
+const cliOutputDir = path.join(root, "dist", "installer", "cli");
 const markerPath = path.join(root, "dist", "build", "latest-win-dir.txt");
 const buildRoot = path.join(root, "dist", "build");
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
@@ -49,6 +51,32 @@ if (!compiler) {
   process.exit(1);
 }
 
+function renderTemplate(value, replacements) {
+  return Object.entries(replacements).reduce(
+    (text, [key, replacement]) => text.replaceAll(`__${key}__`, replacement),
+    value
+  );
+}
+
+function writeWindowsCliTemplates() {
+  const replacements = {
+    APP_NAME: projectConfig.app.name,
+    APP_VERSION: process.env.npm_package_version || packageJson.version,
+    APP_EXE_NAME: `${projectConfig.app.name}.exe`,
+    CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
+    REPO: projectConfig.repo,
+    WINDOWS_INSTALLER_ASSET: projectConfig.release.windowsInstallerAsset
+  };
+
+  fs.mkdirSync(cliOutputDir, { recursive: true });
+  const cmdTemplate = fs.readFileSync(path.join(cliTemplateDir, "aerop2p.cmd"), "utf8");
+  const psTemplate = fs.readFileSync(path.join(cliTemplateDir, "aerop2p.ps1"), "utf8");
+  fs.writeFileSync(path.join(cliOutputDir, `${projectConfig.app.cliCommandName}.cmd`), renderTemplate(cmdTemplate, replacements), "utf8");
+  fs.writeFileSync(path.join(cliOutputDir, `${projectConfig.app.cliCommandName}.ps1`), renderTemplate(psTemplate, replacements), "utf8");
+}
+
+writeWindowsCliTemplates();
+
 const result = spawnSync(compiler, [`/DWinUnpackedDir=${unpackedDir}`, scriptPath], {
   cwd: root,
   env: {
@@ -57,6 +85,7 @@ const result = spawnSync(compiler, [`/DWinUnpackedDir=${unpackedDir}`, scriptPat
     AERO_APP_NAME: projectConfig.app.name,
     AERO_APP_AUTHOR: packageJson.author,
     AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
+    AERO_CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
     AERO_WINDOWS_SETUP_BASE_NAME: projectConfig.release.windowsSetupBaseName
   },
   stdio: "inherit",

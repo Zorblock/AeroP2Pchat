@@ -4,12 +4,12 @@
   "app": {
     "name": "Aero P2P Chat",
     "id": "de.jonasgrimm.aerop2pchat",
-    "packageName": "aero-p2p-chat"
+    "packageName": "aero-p2p-chat",
+    "cliCommandName": "aerop2p"
   },
   "linux": {
     "installDirName": "aero-p2p-chat",
     "commandName": "aero-p2p-chat",
-    "terminalCommandName": "aerop2p",
     "autostartDesktopFileName": "aero-p2p-chat.desktop"
   },
   "release": {
