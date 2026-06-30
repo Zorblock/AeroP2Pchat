@@ -3764,3 +3764,626 @@ body[data-theme="dark"] .app-dialog-actions button.danger {
     width: clamp(68px, 28%, 120px);
   }
 }
+
+/* Minimal interface pass: keep layout, remove decorative glow/gradient noise. */
+:root {
+  --ui-bg: #eef4f7;
+  --ui-frame: #f7fafc;
+  --ui-panel: #ffffff;
+  --ui-panel-muted: #f2f7fa;
+  --ui-line: #cfdee6;
+  --ui-line-strong: #b8ccd6;
+  --ui-text: #122b3a;
+  --ui-muted: #55707d;
+  --ui-primary: #167daa;
+  --ui-primary-hover: #0f668c;
+  --ui-danger: #b84a5e;
+  --ui-danger-soft: #fff0f3;
+  --ui-success: #2e9f63;
+  --ui-warning: #b7791f;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+}
+
+body *,
+body *::before,
+body *::after {
+  background-image: none !important;
+}
+
+body,
+.window-frame,
+.titlebar,
+.app-shell,
+.connection-panel,
+.chat-panel,
+.chat-header,
+.message-form,
+.typing-indicator,
+.call-banner,
+.call-stage,
+.messages,
+.id-card,
+.update-card,
+.peers-card,
+.modal-panel,
+.stream-dialog,
+.settings-section,
+.settings-range-group,
+.contact-nickname-item,
+.blocked-item,
+.stream-controls,
+.screen-source-button,
+.stream-audio-toggle,
+.context-menu,
+.app-dialog-panel,
+.participant-card,
+.participant-meta,
+.participant-card.camera-on .participant-meta,
+.peer-chip,
+.contact-name,
+.contact-edit,
+.contact-remove,
+.contact-badge,
+.request-item,
+.theme-switcher span,
+.bubble,
+.mine .bubble,
+.theirs .bubble,
+input,
+select,
+code,
+textarea,
+button {
+  backdrop-filter: none !important;
+  background-image: none !important;
+  text-shadow: none !important;
+}
+
+body {
+  background: var(--ui-bg) !important;
+}
+
+.window-frame {
+  border-color: var(--ui-line);
+  background: var(--ui-frame) !important;
+  box-shadow: 0 18px 40px rgba(18, 43, 58, 0.16);
+}
+
+.titlebar {
+  background: #e7f0f5 !important;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.titlebar::after,
+.titlebar-shine,
+.titlebar-presence::before,
+.sidebar-resizer::after,
+.card::after {
+  display: none !important;
+}
+
+.titlebar-logo {
+  background: #ffffff !important;
+  box-shadow: none;
+}
+
+.titlebar-logo:hover,
+.titlebar-avatar.voice-active .titlebar-logo,
+.titlebar-logo.update-available {
+  box-shadow: 0 0 0 2px rgba(22, 125, 170, 0.24);
+}
+
+.titlebar-presence,
+.status-dot,
+.presence-dot {
+  box-shadow: none !important;
+}
+
+@keyframes updateLogoPulse {
+  0%,
+  100%,
+  50% {
+    box-shadow: 0 0 0 2px rgba(183, 121, 31, 0.28);
+  }
+}
+
+.app-shell {
+  background: #edf4f7 !important;
+}
+
+.connection-panel,
+.chat-panel,
+.modal-panel,
+.stream-dialog,
+.context-menu,
+.app-dialog-panel {
+  border-color: var(--ui-line);
+  background: var(--ui-panel) !important;
+  box-shadow: 0 10px 24px rgba(18, 43, 58, 0.1);
+}
+
+.id-card,
+.update-card,
+.peers-card,
+.settings-section,
+.settings-range-group,
+.contact-nickname-item,
+.blocked-item,
+.stream-controls,
+.screen-source-button,
+.stream-audio-toggle {
+  border-color: var(--ui-line);
+  background: var(--ui-panel-muted) !important;
+  box-shadow: none;
+}
+
+.chat-header,
+.message-form,
+.typing-indicator,
+.call-banner {
+  border-color: var(--ui-line);
+  background: #f8fbfc !important;
+}
+
+.messages,
+.settings-grid,
+.contact-nickname-list,
+.blocked-list,
+.screen-source-list {
+  background: #ffffff !important;
+}
+
+.titlebar-brand strong,
+h1,
+h2,
+.chat-heading h2,
+.modal-header h2,
+.settings-field span,
+.settings-range-header strong,
+.settings-check,
+.settings-choice label,
+.theme-switcher span {
+  color: var(--ui-text);
+}
+
+.titlebar-brand span,
+.label,
+.chat-meta,
+.status-region,
+.empty-peer,
+.messages.empty::before,
+.typing-indicator,
+.message-row.system,
+.modal-panel p,
+.settings-range-header,
+.context-menu-label,
+.participant-menu-range strong,
+.stream-dialog-kicker,
+.stream-controls label,
+.screen-source-empty,
+.update-card p {
+  color: var(--ui-muted);
+}
+
+input,
+select,
+code,
+textarea,
+.stream-controls select {
+  border-color: var(--ui-line-strong);
+  background: #ffffff !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 2px rgba(22, 125, 170, 0.16);
+}
+
+.icon-button,
+.ghost-button,
+.header-update-button,
+#copy-update-command,
+#connect-button,
+#send-button,
+#update-button,
+#save-nickname,
+.contact-nickname-editor button,
+.blocked-item button,
+.request-actions button,
+.call-action,
+.stream-source-tab,
+.stream-source-tab.active,
+.stream-start-button,
+.stream-close-button,
+.app-dialog-actions button,
+.status-retry {
+  border-color: var(--ui-line-strong);
+  background: #ffffff !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+#connect-button,
+#send-button,
+#update-button,
+#save-nickname,
+#copy-update-command,
+.request-actions button,
+.stream-source-tab.active,
+.stream-start-button,
+.app-dialog-actions button:not(.ghost-button) {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary) !important;
+  color: #ffffff;
+}
+
+#connect-button:hover,
+#send-button:hover,
+#update-button:hover,
+#save-nickname:hover,
+#copy-update-command:hover,
+.stream-start-button:hover,
+.app-dialog-actions button:not(.ghost-button):hover {
+  background: var(--ui-primary-hover) !important;
+}
+
+.ghost-button.danger,
+.call-action.decline,
+.call-action.hangup,
+.contact-remove,
+.stream-close-button,
+.app-dialog-actions button.danger {
+  border-color: rgba(184, 74, 94, 0.34);
+  background: var(--ui-danger-soft) !important;
+  color: #8d2c3e;
+}
+
+.ghost-button.call,
+.call-action.accept,
+.call-action.toggle.enabled,
+.call-action.camera.active,
+.call-action.stream.active,
+.icon-button.copied {
+  border-color: rgba(46, 159, 99, 0.34);
+  background: #edf9f2 !important;
+  color: #17613a;
+}
+
+.call-action.toggle.active {
+  border-color: rgba(183, 121, 31, 0.38);
+  background: #fff7e8 !important;
+  color: #7a4d0f;
+}
+
+.window-controls button {
+  border-color: #bfd2dc;
+  background: #f8fbfc !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+.window-controls button:hover {
+  background: #edf4f7 !important;
+}
+
+.window-controls .window-close {
+  border-color: rgba(184, 74, 94, 0.38);
+  background: #f8e8eb !important;
+  color: #8d2c3e;
+}
+
+.window-controls .window-close:hover {
+  background: #f2d8dd !important;
+}
+
+.peer-chip,
+.contact-name,
+.contact-edit,
+.contact-remove,
+.request-item,
+.theme-switcher span,
+.screen-source-button {
+  border-color: var(--ui-line);
+  background: #ffffff !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+.peer-chip.active,
+.peer-chip:hover,
+.contact-name:hover,
+.theme-switcher input:checked + span {
+  border-color: var(--ui-primary);
+  background: #eaf5fa !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+.contact-badge {
+  border-color: var(--ui-line);
+  background: #eef4f7 !important;
+  color: var(--ui-muted);
+  box-shadow: none;
+}
+
+.contact-badge.trusted,
+.contact-badge.online {
+  background: #e8f7ef !important;
+  color: #17613a;
+}
+
+.contact-badge.pinned,
+.contact-badge.waiting {
+  background: #fff6df !important;
+  color: #7a4d0f;
+}
+
+.contact-badge.blocked {
+  background: var(--ui-danger-soft) !important;
+  color: #8d2c3e;
+}
+
+.unread-count {
+  background: var(--ui-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.bubble {
+  border-color: var(--ui-line);
+  background: #f3f7fa !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+.mine .bubble {
+  border-color: rgba(22, 125, 170, 0.34);
+  background: #e6f3f8 !important;
+}
+
+.bubble-footer {
+  color: var(--ui-muted);
+}
+
+.participant-card {
+  border-color: var(--ui-line);
+  background: #f4f8fa !important;
+  box-shadow: none;
+}
+
+.participant-card.speaking {
+  border-color: rgba(46, 159, 99, 0.55);
+  box-shadow: 0 0 0 2px rgba(46, 159, 99, 0.14);
+}
+
+.participant-card.error {
+  border-color: rgba(184, 74, 94, 0.55);
+}
+
+.participant-meta,
+.participant-card.camera-on .participant-meta,
+.participant-badge,
+.screen-source-badge {
+  border-color: var(--ui-line);
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+.settings-check input,
+.settings-choice input {
+  border-color: var(--ui-line-strong);
+  background: #ffffff !important;
+  box-shadow: none;
+}
+
+.settings-check input:checked,
+.settings-choice input:checked {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary) !important;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+input[type="range"] {
+  accent-color: var(--ui-primary);
+}
+
+.context-menu button:hover,
+.context-menu button[aria-checked="true"] {
+  background: #eef6fa !important;
+}
+
+.context-menu button.danger {
+  color: #8d2c3e;
+}
+
+.settings-grid,
+#messages,
+.contact-nickname-list,
+.blocked-list,
+.screen-source-list {
+  scrollbar-color: #9db5c1 #eef4f7;
+}
+
+.settings-grid::-webkit-scrollbar-track,
+#messages::-webkit-scrollbar-track,
+.contact-nickname-list::-webkit-scrollbar-track,
+.blocked-list::-webkit-scrollbar-track {
+  background: #eef4f7;
+  box-shadow: none;
+}
+
+.settings-grid::-webkit-scrollbar-thumb,
+#messages::-webkit-scrollbar-thumb,
+.contact-nickname-list::-webkit-scrollbar-thumb,
+.blocked-list::-webkit-scrollbar-thumb {
+  border-color: #eef4f7;
+  background: #9db5c1;
+}
+
+body[data-theme="dark"] {
+  --ui-bg: #070b10;
+  --ui-frame: #0b1118;
+  --ui-panel: #101923;
+  --ui-panel-muted: #0d151d;
+  --ui-line: #263847;
+  --ui-line-strong: #395162;
+  --ui-text: #edf4f7;
+  --ui-muted: #9db0bb;
+  --ui-primary: #5f9db9;
+  --ui-primary-hover: #76aec7;
+  --ui-danger: #d7788c;
+  --ui-danger-soft: #30141c;
+  --ui-success: #65c58e;
+  --ui-warning: #d2a85d;
+  color: var(--ui-text);
+  background: var(--ui-bg) !important;
+}
+
+body[data-theme="dark"] .window-frame,
+body[data-theme="dark"] .titlebar,
+body[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .connection-panel,
+body[data-theme="dark"] .chat-panel,
+body[data-theme="dark"] .modal-panel,
+body[data-theme="dark"] .stream-dialog,
+body[data-theme="dark"] .context-menu,
+body[data-theme="dark"] .app-dialog-panel {
+  border-color: var(--ui-line);
+  background: var(--ui-panel) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .titlebar,
+body[data-theme="dark"] .chat-header,
+body[data-theme="dark"] .message-form,
+body[data-theme="dark"] .typing-indicator,
+body[data-theme="dark"] .call-banner {
+  background: #0d151d !important;
+}
+
+body[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .messages,
+body[data-theme="dark"] .settings-grid,
+body[data-theme="dark"] .contact-nickname-list,
+body[data-theme="dark"] .blocked-list,
+body[data-theme="dark"] .screen-source-list {
+  background: var(--ui-bg) !important;
+}
+
+body[data-theme="dark"] .id-card,
+body[data-theme="dark"] .update-card,
+body[data-theme="dark"] .peers-card,
+body[data-theme="dark"] .settings-section,
+body[data-theme="dark"] .settings-range-group,
+body[data-theme="dark"] .contact-nickname-item,
+body[data-theme="dark"] .blocked-item,
+body[data-theme="dark"] .stream-controls,
+body[data-theme="dark"] .screen-source-button,
+body[data-theme="dark"] .stream-audio-toggle,
+body[data-theme="dark"] .participant-card,
+body[data-theme="dark"] .peer-chip,
+body[data-theme="dark"] .contact-name,
+body[data-theme="dark"] .contact-edit,
+body[data-theme="dark"] .request-item,
+body[data-theme="dark"] .theme-switcher span {
+  border-color: var(--ui-line);
+  background: var(--ui-panel-muted) !important;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] input,
+body[data-theme="dark"] select,
+body[data-theme="dark"] code,
+body[data-theme="dark"] textarea,
+body[data-theme="dark"] .stream-controls select {
+  border-color: var(--ui-line-strong);
+  background: #070c12 !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .icon-button,
+body[data-theme="dark"] .ghost-button,
+body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] #connect-button,
+body[data-theme="dark"] #send-button,
+body[data-theme="dark"] #update-button,
+body[data-theme="dark"] #save-nickname,
+body[data-theme="dark"] .contact-nickname-editor button,
+body[data-theme="dark"] .blocked-item button,
+body[data-theme="dark"] .request-actions button,
+body[data-theme="dark"] .call-action,
+body[data-theme="dark"] .stream-source-tab,
+body[data-theme="dark"] .stream-source-tab.active,
+body[data-theme="dark"] .stream-start-button,
+body[data-theme="dark"] .app-dialog-actions button,
+body[data-theme="dark"] .window-controls button {
+  border-color: var(--ui-line-strong);
+  background: #13202b !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+body[data-theme="dark"] #connect-button,
+body[data-theme="dark"] #send-button,
+body[data-theme="dark"] #update-button,
+body[data-theme="dark"] #save-nickname,
+body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] .stream-source-tab.active,
+body[data-theme="dark"] .stream-start-button,
+body[data-theme="dark"] .app-dialog-actions button:not(.ghost-button) {
+  border-color: var(--ui-primary);
+  background: #21465a !important;
+  color: #ffffff;
+}
+
+body[data-theme="dark"] .peer-chip.active,
+body[data-theme="dark"] .peer-chip:hover,
+body[data-theme="dark"] .contact-name:hover,
+body[data-theme="dark"] .theme-switcher input:checked + span,
+body[data-theme="dark"] .context-menu button:hover,
+body[data-theme="dark"] .context-menu button[aria-checked="true"] {
+  border-color: var(--ui-primary);
+  background: #172b37 !important;
+}
+
+body[data-theme="dark"] .bubble {
+  border-color: var(--ui-line);
+  background: #121d27 !important;
+  color: var(--ui-text);
+}
+
+body[data-theme="dark"] .mine .bubble {
+  border-color: #315c70;
+  background: #193445 !important;
+}
+
+body[data-theme="dark"] .participant-meta,
+body[data-theme="dark"] .participant-card.camera-on .participant-meta,
+body[data-theme="dark"] .participant-badge,
+body[data-theme="dark"] .screen-source-badge {
+  border-color: var(--ui-line);
+  background: rgba(13, 21, 29, 0.94) !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .settings-check input,
+body[data-theme="dark"] .settings-choice input {
+  border-color: var(--ui-line-strong);
+  background: #071018 !important;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .settings-check input:checked,
+body[data-theme="dark"] .settings-choice input:checked {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary) !important;
+  box-shadow: inset 0 0 0 3px #071018;
+}

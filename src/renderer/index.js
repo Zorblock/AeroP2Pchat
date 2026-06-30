@@ -3027,62 +3027,40 @@ function drawCallPlaceholderFrame(canvas, context) {
       .trim()
       .slice(0, 1)
       .toUpperCase() || "A";
-  const timeGlow = 0.18 + ((Date.now() / 600) % 1) * 0.06;
+  const darkMode = document.body?.dataset?.theme === "dark";
+  const background = darkMode ? "#111b24" : "#eef4f7";
+  const plateBackground = darkMode ? "#182733" : "#ffffff";
+  const plateBorder = darkMode ? "#334858" : "#cfdee6";
+  const textColor = darkMode ? "#edf4f7" : "#122b3a";
 
   context.clearRect(0, 0, width, height);
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#ecfdff");
-  gradient.addColorStop(0.48, "#a5edff");
-  gradient.addColorStop(1, "#1388bb");
-  context.fillStyle = gradient;
+  context.fillStyle = background;
   context.fillRect(0, 0, width, height);
 
-  const bubble = context.createRadialGradient(
-    width * 0.24,
-    height * 0.18,
-    0,
-    width * 0.24,
-    height * 0.18,
-    width * 0.38,
-  );
-  bubble.addColorStop(0, `rgba(255,255,255,${0.94 - timeGlow})`);
-  bubble.addColorStop(1, "rgba(255,255,255,0)");
-  context.fillStyle = bubble;
-  context.fillRect(0, 0, width, height);
-
-  context.fillStyle = "rgba(255,255,255,0.72)";
+  context.fillStyle = plateBorder;
   context.beginPath();
   context.roundRect(
-    width * 0.21,
-    height * 0.18,
-    width * 0.58,
-    height * 0.58,
-    width * 0.16,
-  );
-  context.fill();
-
-  const plate = context.createLinearGradient(
-    width * 0.2,
+    width * 0.23,
     height * 0.2,
-    width * 0.8,
-    height * 0.8,
-  );
-  plate.addColorStop(0, "#ffffff");
-  plate.addColorStop(0.55, "#8de6ff");
-  plate.addColorStop(1, "#1899cb");
-  context.fillStyle = plate;
-  context.beginPath();
-  context.roundRect(
-    width * 0.24,
-    height * 0.22,
-    width * 0.5,
-    height * 0.5,
-    width * 0.15,
+    width * 0.54,
+    height * 0.54,
+    width * 0.12,
   );
   context.fill();
 
-  context.fillStyle = "#0f5b77";
-  context.font = `900 ${Math.round(width * 0.19)}px "Segoe UI", sans-serif`;
+  context.fillStyle = plateBackground;
+  context.beginPath();
+  context.roundRect(
+    width * 0.245,
+    height * 0.225,
+    width * 0.49,
+    height * 0.49,
+    width * 0.105,
+  );
+  context.fill();
+
+  context.fillStyle = textColor;
+  context.font = `800 ${Math.round(width * 0.18)}px "Segoe UI", sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(accentText, width * 0.49, height * 0.47);
