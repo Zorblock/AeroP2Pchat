@@ -47,6 +47,7 @@ let appConfig = {};
 let forceQuit = false;
 let systemShutdownStarted = false;
 let delayedQuitStarted = false;
+let delayedQuitTimer = null;
 const notificationWindows = [];
 const notificationWindowById = new Map();
 const notificationDetailsById = new Map();
@@ -899,6 +900,15 @@ function notifyRendererShutdown(reason = "quit") {
   }
 }
 
+function finishDelayedQuit() {
+  if (delayedQuitTimer) {
+    clearTimeout(delayedQuitTimer);
+    delayedQuitTimer = null;
+  }
+
+  app.quit();
+}
+
 function assertTrustedInstallerUrl(rawUrl) {
   const url = new URL(rawUrl);
   const isTrustedHost = url.hostname === releaseHost;
@@ -1244,6 +1254,12 @@ app.whenReady().then(async () => {
     sendNotificationAction(action);
     return { ok: true };
   });
+  ipcMain.on("realtime-cleanup-complete", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win === mainWindow && delayedQuitStarted && systemShutdownStarted) {
+      finishDelayedQuit();
+    }
+  });
   ipcMain.handle("window-control", (event, action) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return { ok: false };
@@ -1277,9 +1293,7 @@ app.on("before-quit", (event) => {
   delayedQuitStarted = true;
   notifyRendererShutdown("quit");
   event.preventDefault();
-  setTimeout(() => {
-    app.quit();
-  }, 250);
+  delayedQuitTimer = setTimeout(finishDelayedQuit, 900);
 });
 
 app.on("window-all-closed", () => {

@@ -234,6 +234,8 @@ const MESSAGE_SEND_INTERVAL_MS = 180;
 const MAX_QUEUED_OUTGOING_MESSAGES = 20;
 const INCOMING_MESSAGE_WINDOW_MS = 5000;
 const MAX_INCOMING_MESSAGES_PER_WINDOW = 35;
+const CONNECTION_HEARTBEAT_INTERVAL_MS = 5000;
+const CONNECTION_HEARTBEAT_TIMEOUT_MS = 16000;
 const CONNECT_ACTION_COOLDOWN_MS = 1200;
 const CALL_ACTION_COOLDOWN_MS = 900;
 const OUTGOING_CALL_TIMEOUT_MS = 45000;
@@ -265,6 +267,7 @@ let ignoredUpdateVersion = "";
 let updateCheckInFlight = false;
 let updateMenuResetTimer = null;
 let contacts = [];
+const connectionHeartbeats = new Map();
 let contextContactId = "";
 let contextMessage = null;
 let contextParticipantTarget = null;
@@ -5772,8 +5775,68 @@ function broadcastReceiptSettings() {
   }
 }
 
+function stopConnectionHeartbeat(peerId) {
+  const heartbeat = connectionHeartbeats.get(peerId);
+  if (!heartbeat) {
+    return;
+  }
+
+  clearInterval(heartbeat.timer);
+  connectionHeartbeats.delete(peerId);
+}
+
+function handleConnectionHeartbeatTimeout(peerId, conn) {
+  if (connections.get(peerId) !== conn) {
+    stopConnectionHeartbeat(peerId);
+    return;
+  }
+
+  const label = getPeerLabel(peerId, conn);
+  stopConnectionHeartbeat(peerId);
+  conn.close();
+  removePeer(peerId);
+  setStatus(
+    connections.size > 0 ? "online" : "pending",
+    connections.size > 0 ? "Peer connected" : "Ready to connect",
+  );
+  addSystemMessage(`${label} is offline. Connection closed.`);
+  refreshPeers();
+}
+
+function startConnectionHeartbeat(peerId, conn) {
+  stopConnectionHeartbeat(peerId);
+
+  const heartbeat = {
+    lastSeenAt: Date.now(),
+    timer: setInterval(() => {
+      if (connections.get(peerId) !== conn || !conn.open) {
+        stopConnectionHeartbeat(peerId);
+        return;
+      }
+
+      if (Date.now() - heartbeat.lastSeenAt > CONNECTION_HEARTBEAT_TIMEOUT_MS) {
+        handleConnectionHeartbeatTimeout(peerId, conn);
+        return;
+      }
+
+      sendProtocolMessage(conn, "connection-ping");
+    }, CONNECTION_HEARTBEAT_INTERVAL_MS),
+  };
+
+  connectionHeartbeats.set(peerId, heartbeat);
+  sendProtocolMessage(conn, "connection-ping");
+}
+
+function markConnectionHeartbeat(peerId) {
+  const heartbeat = connectionHeartbeats.get(peerId);
+  if (heartbeat) {
+    heartbeat.lastSeenAt = Date.now();
+  }
+}
+
 function removePeer(peerId, { silent = false } = {}) {
   clearConnectTimeout(peerId);
+  stopConnectionHeartbeat(peerId);
   clearOutgoingMessageQueue(peerId);
   incomingMessageWindows.delete(peerId);
   typingStates.delete(peerId);
@@ -6035,6 +6098,7 @@ function acceptConnection(peerId) {
   if (entry.conn.open) {
     sendReceiptSettings(entry.conn);
     sendProtocolMessage(entry.conn, "connection-accepted");
+    startConnectionHeartbeat(peerId, entry.conn);
     pinContact(
       getPeerIdentityId(peerId, entry.conn),
       getPeerLabel(peerId, entry.conn),
@@ -6088,6 +6152,7 @@ function promoteOutgoingConnection(peerId) {
   activePeerId = peerId;
   pinContact(getPeerIdentityId(peerId, entry.conn), peerLabel);
   sendReceiptSettings(entry.conn);
+  startConnectionHeartbeat(peerId, entry.conn);
   setStatus("online", `Connected to ${peerLabel}`);
   renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
@@ -6117,6 +6182,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
       activePeerId = peerId;
       sendReceiptSettings(conn);
       sendProtocolMessage(conn, "connection-accepted");
+      startConnectionHeartbeat(peerId, conn);
       pinContact(getPeerIdentityId(peerId, conn), peerLabel());
       setStatus("online", `Connected to ${peerLabel()}`);
       renderChatHistory();
@@ -6129,6 +6195,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
     if (connections.has(peerId)) {
       hideConnectRetry();
+      startConnectionHeartbeat(peerId, conn);
       setStatus("online", `Connected to ${peerLabel()}`);
       refreshPeers();
     }
@@ -6141,6 +6208,16 @@ function attachConnectionHandlers(conn, peerId, direction) {
     }
 
     rememberConnectionIdentity(peerId, data);
+    markConnectionHeartbeat(peerId);
+
+    if (data?.type === "connection-ping") {
+      sendProtocolMessage(conn, "connection-pong");
+      return;
+    }
+
+    if (data?.type === "connection-pong") {
+      return;
+    }
 
     if (data?.type === "connection-request") {
       refreshPeers();
@@ -7511,6 +7588,9 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
   }
 
   const closeAll = () => {
+    for (const peerId of connectionHeartbeats.keys()) {
+      stopConnectionHeartbeat(peerId);
+    }
     for (const conn of connections.values()) {
       conn.close();
     }
@@ -7520,10 +7600,13 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
     connections.clear();
     pendingConnections.clear();
     peer?.destroy();
+    if (deferClose) {
+      window.aeroChat?.realtimeCleanupComplete?.();
+    }
   };
 
   if (deferClose && openConnections.length > 0) {
-    setTimeout(closeAll, 120);
+    setTimeout(closeAll, 350);
   } else {
     closeAll();
   }

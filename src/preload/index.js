@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
       ipcRenderer.removeListener("system-shutdown", listener);
     };
   },
+  realtimeCleanupComplete: () => ipcRenderer.send("realtime-cleanup-complete"),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
 });
 
