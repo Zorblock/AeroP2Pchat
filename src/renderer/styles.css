@@ -4483,15 +4483,15 @@ body[data-theme="dark"] .participant-card {
 
 body[data-theme="dark"] .participant-card.speaking {
   border-color: rgba(101, 226, 151, 0.92);
-  background: #102018 !important;
+  background: #0d151d !important;
   box-shadow:
-    0 0 0 2px rgba(101, 226, 151, 0.32),
-    0 0 24px rgba(70, 210, 128, 0.24);
+    0 0 0 2px rgba(101, 226, 151, 0.28),
+    0 0 18px rgba(70, 210, 128, 0.18);
 }
 
 body[data-theme="dark"] .participant-card.speaking .participant-meta {
-  border-color: rgba(101, 226, 151, 0.38);
-  background: rgba(13, 34, 24, 0.96) !important;
+  border-color: var(--ui-line);
+  background: rgba(13, 21, 29, 0.94) !important;
 }
 
 body[data-theme="dark"] .participant-badge {
