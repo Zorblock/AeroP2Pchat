@@ -46,7 +46,6 @@
 
       <nav aria-label="Main navigation">
         <a href="#download">Download</a>
-        <a href="#linux">Linux</a>
         <a href="https://github.com/Zorblock/AeroP2Pchat" rel="noopener">
           GitHub
         </a>
@@ -59,18 +58,13 @@
           <p class="eyebrow">Desktop peer-to-peer chat</p>
           <h1 id="hero-title">Aero P2P Chat</h1>
           <p class="lead">
-            A focused desktop chat app for direct conversations between two
-            devices. Built for Windows and Linux.
+            A simple desktop chat app for direct conversations between two
+            devices. Share an ID, connect, and talk without turning it into a
+            whole project.
           </p>
 
-          <div class="actions" id="download">
-            <a
-              class="button primary"
-              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
-            >
-              Download for Windows
-            </a>
-            <a class="button secondary" href="#linux">Install on Linux</a>
+          <div class="actions">
+            <a class="button primary" href="#download">Download</a>
           </div>
 
           <dl class="facts" aria-label="App details">
@@ -101,7 +95,10 @@
       <section class="section">
         <div class="section-heading">
           <h2>What it does</h2>
-          <p>Direct messaging, calls, and updates in one small desktop app.</p>
+          <p>
+            The important pieces are close at hand: messages, calls, and
+            updates in one small desktop app.
+          </p>
         </div>
 
         <div class="feature-grid">
@@ -120,27 +117,64 @@
         </div>
       </section>
 
-      <section class="section install-section" id="linux">
+      <section class="section download-section" id="download">
         <div class="section-heading">
-          <h2>Linux install</h2>
-          <p>Run the installer from GitHub Pages. It installs the AppImage and
-            the `aerop2p` terminal command.</p>
+          <h2>Download</h2>
+          <p>
+            Choose the version for your desktop. Windows uses the setup
+            installer, Linux can use the AppImage directly or the installer
+            script for menu and terminal integration.
+          </p>
         </div>
 
-        <div class="command-box">
-          <code id="install-command"
-            >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
-            sh</code
-          >
-          <button id="copy-install" type="button">Copy</button>
+        <div class="download-grid">
+          <article class="download-card">
+            <div>
+              <p class="platform">Windows</p>
+              <h3>Setup installer</h3>
+              <p>
+                Download the latest Windows installer and follow the setup
+                steps.
+              </p>
+            </div>
+            <a
+              class="button primary"
+              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
+            >
+              Download
+            </a>
+          </article>
+
+          <article class="download-card">
+            <div>
+              <p class="platform">Linux</p>
+              <h3>AppImage or installer</h3>
+              <p>
+                Run the installer script for the AppImage, app menu entry, and
+                the <code class="inline-code">aerop2p</code> terminal command.
+              </p>
+            </div>
+            <a
+              class="button primary"
+              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux.AppImage"
+            >
+              Download AppImage
+            </a>
+          </article>
+        </div>
+
+        <div class="installer-block">
+          <p class="platform">Linux installer command (Recommended)</p>
+          <div class="command-box">
+            <code id="install-command"
+              >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
+              sh</code
+            >
+            <button id="copy-install" type="button">Copy</button>
+          </div>
         </div>
 
         <div class="link-row">
-          <a
-            href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux.AppImage"
-          >
-            Download AppImage
-          </a>
           <a href="https://github.com/Zorblock/AeroP2Pchat/releases">
             View releases
           </a>
