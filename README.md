@@ -125,9 +125,9 @@ Releases are built by GitHub Actions. Run:
 npm run release
 ```
 
-The script bumps the patch version, runs the checks, commits the release, pushes
-the branch so `build.yml` runs, then pushes the `v*` tag so `cd.yml` creates the
-GitHub release.
+The script bumps the patch version, runs the lightweight checks, commits the
+release, pushes the branch so `build.yml` runs, then pushes the `v*` tag so
+`cd.yml` builds the packages and creates the GitHub release.
 
 Useful variants:
 

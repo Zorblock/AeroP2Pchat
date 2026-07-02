@@ -160,7 +160,6 @@ function main() {
   setPackageVersion(nextVersion);
 
   run("npm", ["run", "test"]);
-  run("node", ["scripts/run-electron-vite.cjs", "build"]);
 
   run("git", ["add", "-A"]);
   if (hasStagedChanges()) {
@@ -175,7 +174,7 @@ function main() {
 
   console.log("");
   console.log(`Release ${tag} started on GitHub Actions.`);
-  console.log("build.yml runs from the branch push; cd.yml runs from the tag push.");
+  console.log("build.yml and cd.yml build the release packages on GitHub Actions.");
 }
 
 try {
