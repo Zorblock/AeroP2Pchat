@@ -119,13 +119,21 @@ https://github.com/Zorblock/AeroP2Pchat
 
 ## Release Workflow
 
-Releases are built by GitHub Actions. Push a tag named `v*` to run the CD
-workflow:
+Releases are built by GitHub Actions. Run:
 
 ```sh
-git tag v26.14.1
-git push origin v26.14.1
+npm run release
 ```
 
-The workflow creates `latest.yml` for the in-app updater and Linux installer,
-then uploads Windows, Linux, and macOS assets to the GitHub release.
+The script bumps the patch version, runs the checks, commits the release, pushes
+the branch so `build.yml` runs, then pushes the `v*` tag so `cd.yml` creates the
+GitHub release.
+
+Useful variants:
+
+```sh
+npm run release -- --minor
+npm run release -- --major
+npm run release -- --version=26.15.0
+npm run release -- --no-bump
+```
