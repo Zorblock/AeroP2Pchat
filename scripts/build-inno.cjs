@@ -14,6 +14,10 @@ const packageJson = JSON.parse(
 const projectConfig = JSON.parse(
   fs.readFileSync(path.join(root, "config.json"), "utf8"),
 );
+const packageAuthor =
+  packageJson.author && typeof packageJson.author === "object"
+    ? packageJson.author.name
+    : packageJson.author;
 const markerValue = fs.existsSync(markerPath)
   ? fs.readFileSync(markerPath, "utf8").trim()
   : "";
@@ -119,7 +123,7 @@ const result = spawnSync(
       npm_package_version:
         process.env.npm_package_version || packageJson.version,
       AERO_APP_NAME: projectConfig.app.name,
-      AERO_APP_AUTHOR: packageJson.author,
+      AERO_APP_AUTHOR: packageAuthor || projectConfig.app.name,
       AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
       AERO_CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
       AERO_WINDOWS_SETUP_BASE_NAME: projectConfig.release.windowsSetupBaseName,

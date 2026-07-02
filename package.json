@@ -2,7 +2,11 @@
   "name": "aero-p2p-chat",
   "version": "26.14.1",
   "description": "A clean Electron peer-to-peer chat client for Windows, Linux, and macOS.",
-  "author": "Jonas Grimm",
+  "author": {
+    "name": "Jonas Grimm",
+    "email": "jonasgrimmde@users.noreply.github.com",
+    "url": "https://jonasgrimm.de"
+  },
   "main": "out/main/index.js",
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
