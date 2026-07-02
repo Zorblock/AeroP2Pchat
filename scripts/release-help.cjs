@@ -6,19 +6,17 @@ const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
 
-function commandForSpawn(command) {
-  if (process.platform !== "win32") return command;
-  if (command === "npm") return "npm.cmd";
-  return command;
-}
-
 function run(command, args, options = {}) {
   console.log(`> ${command} ${args.join(" ")}`);
-  const result = spawnSync(commandForSpawn(command), args, {
+  const isWindowsNpm = process.platform === "win32" && command === "npm";
+  const executable = isWindowsNpm ? process.env.ComSpec || "cmd.exe" : command;
+  const finalArgs = isWindowsNpm
+    ? ["/d", "/s", "/c", "npm.cmd", ...args]
+    : args;
+  const result = spawnSync(executable, finalArgs, {
     cwd: root,
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
     encoding: options.capture ? "utf8" : undefined,
-    shell: process.platform === "win32" && command === "npm",
   });
 
   if (result.status !== 0) {
