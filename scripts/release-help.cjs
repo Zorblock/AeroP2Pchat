@@ -42,8 +42,8 @@ function writeJson(filePath, data) {
 function parseArgs() {
   const options = {
     bump: "patch",
-    dryRun: false,
-    local: true,
+    dryRun: process.env.npm_config_dry_run === "true",
+    local: process.env.npm_config_workflow === "true" ? false : true,
   };
 
   for (const arg of process.argv.slice(2)) {
@@ -127,8 +127,13 @@ function ensureTagDoesNotExist(tag) {
 
   const remote = spawnSync("git", ["ls-remote", "--exit-code", "--tags", "origin", tag], {
     cwd: root,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
     stdio: "ignore",
+    timeout: 30000,
   });
+  if (remote.error) {
+    throw new Error(`Could not check remote tag ${tag}: ${remote.error.message}`);
+  }
   if (remote.status === 0) {
     throw new Error(`Tag ${tag} already exists on origin.`);
   }
@@ -178,6 +183,10 @@ function uploadLocalRelease(tag, releaseFiles) {
     "--notes",
     `Aero P2P Chat ${tag}`,
   ]);
+}
+
+function startWorkflowRelease(tag) {
+  run("gh", ["workflow", "run", "cd.yml", "--ref", tag]);
 }
 
 function hasStagedChanges() {
@@ -233,6 +242,8 @@ function main() {
 
   if (options.local) {
     uploadLocalRelease(tag, releaseFiles);
+  } else {
+    startWorkflowRelease(tag);
   }
 
   console.log("");
