@@ -493,8 +493,7 @@ const linuxTerminalCommandName =
   "aerop2p";
 const githubRepoUrl = `https://github.com/${githubRepo}`;
 const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
-const denoReleaseBaseUrl = `${projectConfig.pagesBaseUrl}/releases`;
-const latestManifestUrl = `${denoReleaseBaseUrl}/latest.json`;
+const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const platform = window.aeroChat?.platform ?? "browser";
 
@@ -2380,13 +2379,6 @@ function renderChatHistory() {
 }
 
 function parseManifest(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === "object") {
-      return parsed;
-    }
-  } catch {}
-
   const manifest = {};
   for (const line of text.split(/\r?\n/)) {
     const match = /^([a-zA-Z0-9_-]+):\s*(.*)$/.exec(line.trim());
@@ -2452,7 +2444,8 @@ function syncAvailableUpdateUi() {
   const isIgnored = ignoredUpdateVersion === availableUpdate.version;
   updateTitle.textContent = "Update available";
   updateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
-  updateButton.textContent = platform === "win32" ? "Open release" : "Restart later";
+  updateButton.textContent =
+    platform === "win32" ? "Install update" : "Show command";
   updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
   updateIgnoreButton.disabled = isIgnored;
   headerUpdateButton.classList.add("hidden");
@@ -2462,12 +2455,13 @@ function syncAvailableUpdateUi() {
     : `Update ${availableUpdate.version} available`;
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
-  appMenuUpdate.querySelector("i").className = "fa-solid fa-rotate-right";
+  appMenuUpdate.querySelector("i").className =
+    platform === "win32" ? "fa-solid fa-download" : "fa-solid fa-terminal";
   appMenuUpdateIgnore.classList.remove("hidden");
   appMenuUpdate.querySelector("span").textContent =
     platform === "win32"
-      ? `Open ${availableUpdate.version} release`
-      : `Update ${availableUpdate.version} staged`;
+      ? `Install ${availableUpdate.version}`
+      : `Update ${availableUpdate.version}`;
   appMenuUpdateIgnore.querySelector("span").textContent = isIgnored
     ? `Ignored ${availableUpdate.version}`
     : `Ignore update hint`;
@@ -2562,6 +2556,32 @@ async function checkForUpdates({ manual = false } = {}) {
       manifest.windows_sha512 ||
       manifest.sha512 ||
       "";
+    if (platform === "win32" && !windowsUrl) {
+      clearUpdateAvailableUi();
+      if (manual) {
+        setUpdateMenuStatus("No installer found");
+        setStatus("offline", "Update manifest has no Windows installer.");
+      }
+      return;
+    }
+    if (platform === "win32" && (!windowsSha256 || !windowsSha512)) {
+      clearUpdateAvailableUi();
+      if (manual) {
+        setUpdateMenuStatus("Invalid update");
+        setStatus("offline", "Update manifest is missing checksums.");
+      }
+      return;
+    }
+    const macosUrl = manifest.macosUniversalDmgUrl || "";
+    if (platform === "darwin" && !macosUrl) {
+      clearUpdateAvailableUi();
+      if (manual) {
+        setUpdateMenuStatus("No macOS build found");
+        setStatus("offline", "Update manifest has no macOS installer.");
+      }
+      return;
+    }
+
     availableUpdate = {
       version: latestVersion,
       windowsUrl,
@@ -2570,6 +2590,7 @@ async function checkForUpdates({ manual = false } = {}) {
       linuxUrl: manifest.linuxUrl || manifest.linuxX64AppImageUrl || "",
       linuxSha256:
         manifest.linuxSha256 || manifest.linuxX64AppImageSha256 || "",
+      macosUrl,
     };
 
     syncAvailableUpdateUi();
@@ -2961,26 +2982,6 @@ function getScreenStreamConstraints(
     audio = false,
   } = {},
 ) {
-  if (sourceId === "browser-display-media") {
-    const profile = SCREEN_STREAM_PROFILES[normalizeScreenQuality(quality)];
-    const normalizedFps = normalizeScreenFps(fps);
-    const video = {
-      frameRate: { ideal: normalizedFps, max: normalizedFps },
-    };
-
-    if (profile.height > 0) {
-      video.height = { ideal: profile.height, max: profile.height };
-      video.width = {
-        ideal: Math.round((profile.height * 16) / 9),
-      };
-    }
-
-    return {
-      audio: Boolean(audio),
-      video,
-    };
-  }
-
   const profile = SCREEN_STREAM_PROFILES[normalizeScreenQuality(quality)];
   const normalizedFps = normalizeScreenFps(fps);
   const mandatory = {
@@ -5023,19 +5024,6 @@ function startScreenQualityMonitor() {
 
 async function getScreenCaptureStream(sourceId, options) {
   const constraints = getScreenStreamConstraints(sourceId, options);
-  if (sourceId === "browser-display-media") {
-    try {
-      return await navigator.mediaDevices.getDisplayMedia(constraints);
-    } catch (error) {
-      if (options?.audio) {
-        return navigator.mediaDevices.getDisplayMedia(
-          getScreenStreamConstraints(sourceId, { ...options, audio: false }),
-        );
-      }
-      throw error;
-    }
-  }
-
   try {
     return await navigator.mediaDevices.getUserMedia(constraints);
   } catch (error) {
@@ -5859,9 +5847,6 @@ function openStreamMenu(event, target) {
 }
 
 function getStreamSourceType(source) {
-  if (source?.browserPicker) {
-    return "screens";
-  }
   return String(source?.id || "").startsWith("screen:") ? "screens" : "windows";
 }
 
@@ -7624,18 +7609,38 @@ async function installAvailableUpdate() {
   }
 
   if (platform === "win32") {
-    setStatus(
-      "pending",
-      "Deno Desktop auto-update is not applied on Windows yet. Open the latest release.",
-    );
-    window.open(latestReleaseUrl, "_blank", "noopener");
+    updateButton.disabled = true;
+    headerUpdateButton.disabled = true;
+    startUpdateProgressListener();
+    setUpdateButtonText("Downloading 0%");
+    setStatus("pending", "Downloading update installer...");
+
+    try {
+      await window.aeroChat.installUpdate({
+        url: availableUpdate.windowsUrl,
+        version: availableUpdate.version,
+        sha256: availableUpdate.windowsSha256,
+        sha512: availableUpdate.windowsSha512,
+      });
+      setUpdateButtonText("Setup started");
+      setStatus("pending", "Setup started. The app will restart.");
+    } catch (error) {
+      stopUpdateProgressListener();
+      updateButton.disabled = false;
+      headerUpdateButton.disabled = false;
+      updateButton.textContent = "Install update";
+      headerUpdateButton.textContent = "Update";
+      setStatus("offline", error.message || "Update failed.");
+    }
     return;
   }
 
-  setStatus(
-    "pending",
-    `Update ${availableUpdate.version} is staged and will apply on next launch.`,
-  );
+  if (platform === "darwin") {
+    window.open(availableUpdate.macosUrl || latestReleaseUrl, "_blank", "noopener");
+    return;
+  }
+
+  openLinuxUpdateModal();
 }
 
 headerUpdateButton.addEventListener("click", installAvailableUpdate);
