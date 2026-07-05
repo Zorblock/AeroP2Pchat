@@ -14,7 +14,7 @@ PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
 APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
 DEB_URL="${RELEASE_BASE}/${DEB_RELEASE_NAME}"
-MANIFEST_URL="${RELEASE_BASE}/latest.yml"
+MANIFEST_URL="${PAGES_BASE}/releases/latest.json"
 INSTALLER_URL="${PAGES_BASE}/install.sh"
 ICON_URL="${PAGES_BASE}/logo.png"
 
@@ -115,7 +115,11 @@ download() {
 read_manifest_value() {
     key="$1"
     file="$2"
-    sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -n 1 | sed 's/^"//; s/"$//'
+    value="$(sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -n 1 | sed 's/^"//; s/"$//')"
+    if [ -z "$value" ]; then
+        value="$(sed -n "s/^[[:space:]]*\"${key}\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" "$file" | head -n 1)"
+    fi
+    printf '%s' "$value"
 }
 
 get_manifest_appimage_url() {
@@ -160,7 +164,7 @@ verify_sha256() {
     expected="$(printf '%s' "$expected" | tr '[:upper:]' '[:lower:]')"
     actual="$(printf '%s' "$actual" | tr '[:upper:]' '[:lower:]')"
     if [ "$actual" != "$expected" ]; then
-        fail "Downloaded ${label} SHA256 does not match latest.yml."
+        fail "Downloaded ${label} SHA256 does not match latest manifest."
     fi
 }
 
@@ -168,7 +172,7 @@ get_latest_version() {
     manifest="$1"
     version="$(read_manifest_value "version" "$manifest")"
     if [ -z "$version" ]; then
-        fail "Could not read latest version from latest.yml."
+        fail "Could not read latest version from latest manifest."
     fi
     printf '%s' "$version"
 }

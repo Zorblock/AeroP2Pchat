@@ -230,8 +230,8 @@
             <span class="feature-icon">UP</span>
             <h3>Updates and CLI</h3>
             <p>
-              Windows uses the setup installer, Linux uses AppImage support,
-              and macOS builds are produced by the release workflow.
+              Windows, Linux AppImage, and Linux Debian packages are built
+              locally with Deno Desktop tasks.
             </p>
           </article>
         </div>
@@ -294,7 +294,7 @@
             <article>
               <h3>Light and dark themes</h3>
               <p>
-                The app stores settings in Electron userData and keeps the
+                The app stores settings in the user app data directory and keeps the
                 interface consistent across Windows, Linux, and macOS.
               </p>
             </article>
@@ -381,10 +381,9 @@
           <article class="download-card reveal">
             <div>
               <p class="platform">macOS</p>
-              <h3>DMG and portable app</h3>
+              <h3>macOS app bundle</h3>
               <p>
-                Universal macOS builds are created on GitHub Actions for Intel
-                and Apple Silicon Macs.
+                macOS bundles are built with Deno Desktop on a macOS host.
               </p>
             </div>
             <div class="download-actions">

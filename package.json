@@ -1,21 +1,25 @@
 {
   "name": "aero-p2p-chat",
   "version": "26.14.2",
-  "description": "A clean Electron peer-to-peer chat client for Windows, Linux, and macOS.",
+  "description": "A clean Deno Desktop peer-to-peer chat client for Windows, Linux, and macOS.",
   "author": {
     "name": "Jonas Grimm",
     "email": "jonasgrimmde@users.noreply.github.com",
     "url": "https://jonasgrimm.de"
   },
-  "main": "out/main/index.js",
   "scripts": {
-    "dev": "node scripts/run-electron-vite.cjs dev",
-    "dev:2": "node scripts/dev-two.cjs",
-    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
-    "build": "node scripts/build-win.cjs",
-    "setup": "npm run build && node scripts/build-inno.cjs",
-    "release": "node scripts/release-help.cjs",
-    "patch": "node scripts/release-help.cjs",
+    "dev": "deno task dev",
+    "test": "deno task test",
+    "build": "deno task build:all",
+    "build:renderer": "vite build",
+    "build:windows": "deno task build:windows",
+    "build:windows:msi": "deno task build:windows:msi",
+    "build:windows:portable": "deno task build:windows:portable",
+    "build:linux": "deno task build:linux:appimage",
+    "build:linux:all": "deno task build:linux",
+    "build:linux:deb": "deno task build:linux:deb",
+    "build:linux:rpm": "deno task build:linux:rpm",
+    "build:macos": "deno task build:macos",
     "pages": "node scripts/deploy-pages.cjs"
   },
   "dependencies": {
@@ -23,16 +27,12 @@
     "peerjs": "^1.5.5"
   },
   "devDependencies": {
-    "electron": "^42.4.1",
-    "electron-builder": "^26.15.3",
-    "electron-vite": "^5.0.0",
     "vite": "^7.3.5"
   },
   "overrides": {
     "esbuild": "0.28.1"
   },
   "allowScripts": {
-    "electron-winstaller@5.4.0": true,
     "esbuild@0.28.1": true
   }
 }

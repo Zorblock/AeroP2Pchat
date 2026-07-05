@@ -1,0 +1,51 @@
+{
+  "name": "aero-p2p-chat",
+  "version": "26.14.2",
+  "exports": "./src/deno/main.ts",
+  "tasks": {
+    "dev": "npm run build:renderer && deno desktop --hmr --allow-read --allow-write --allow-env --allow-run --allow-net src/deno/main.ts",
+    "check": "deno check src/deno/main.ts",
+    "test": "deno task check && npm run build:renderer",
+    "build:renderer": "npm exec vite -- build",
+    "build:windows": "deno task build:windows:msi && deno task build:windows:portable",
+    "build:windows:msi": "deno task build:renderer && deno desktop --target x86_64-pc-windows-msvc --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/app.ico --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-Windows-x64.msi src/deno/main.ts",
+    "build:windows:portable": "deno task build:renderer && deno desktop --target x86_64-pc-windows-msvc --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/app.ico --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-Windows-x64-Portable src/deno/main.ts",
+    "clean:desktop-staging": "deno run --allow-read --allow-write scripts/clean-desktop-staging.ts",
+    "build:linux": "deno task build:linux:appimage && deno task clean:desktop-staging ./dist/desktop/Aero-P2P-Chat-Linux-x64 && deno task build:linux:deb && deno task clean:desktop-staging ./dist/desktop/Aero-P2P-Chat-Linux-x64 && deno task build:linux:rpm && deno task clean:desktop-staging ./dist/desktop/Aero-P2P-Chat-Linux-x64",
+    "build:linux:appimage": "deno task build:renderer && deno desktop --target x86_64-unknown-linux-gnu --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/linux-icons/512x512.png --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-Linux-x64.AppImage src/deno/main.ts",
+    "build:linux:deb": "deno task build:renderer && deno desktop --target x86_64-unknown-linux-gnu --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/linux-icons/512x512.png --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-Linux-x64.deb src/deno/main.ts",
+    "build:linux:rpm": "deno task build:renderer && deno desktop --target x86_64-unknown-linux-gnu --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/linux-icons/512x512.png --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-Linux-x64.rpm src/deno/main.ts",
+    "build:macos": "deno task build:renderer && deno desktop --target x86_64-apple-darwin --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/linux-icons/512x512.png --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules --output ./dist/desktop/Aero-P2P-Chat-macOS.app src/deno/main.ts",
+    "build:all-targets": "deno task build:renderer && deno desktop --all-targets --allow-read --allow-write --allow-env --allow-run --allow-net --backend webview --compress=xz --icon ./assets/linux-icons/512x512.png --include dist/renderer --include public --include assets --include config.json --include package.json --exclude node_modules src/deno/main.ts",
+    "build:all": "deno task build:windows && deno task build:linux"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom", "dom.iterable"]
+  },
+  "desktop": {
+    "app": {
+      "name": "Aero P2P Chat",
+      "identifier": "de.jonasgrimm.aerop2pchat",
+      "icons": {
+        "windows": "./assets/app.ico",
+        "linux": "./assets/linux-icons/512x512.png",
+        "macos": [
+          { "path": "./assets/linux-icons/16x16.png", "size": 16 },
+          { "path": "./assets/linux-icons/32x32.png", "size": 32 },
+          { "path": "./assets/linux-icons/128x128.png", "size": 128 },
+          { "path": "./assets/linux-icons/256x256.png", "size": 256 },
+          { "path": "./assets/linux-icons/512x512.png", "size": 512 }
+        ]
+      }
+    },
+    "backend": "webview",
+    "output": {
+      "windows": "./dist/desktop/Aero-P2P-Chat-Windows-x64.msi",
+      "linux": "./dist/desktop/Aero-P2P-Chat-Linux-x64.AppImage",
+      "macos": "./dist/desktop/Aero-P2P-Chat-macOS.app"
+    },
+    "release": {
+      "baseUrl": "https://zorblock.github.io/AeroP2Pchat/releases"
+    }
+  }
+}
