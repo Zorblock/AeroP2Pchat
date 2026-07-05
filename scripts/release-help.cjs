@@ -42,8 +42,7 @@ function writeJson(filePath, data) {
 function parseArgs() {
   const options = {
     bump: "patch",
-    dryRun: process.env.npm_config_dry_run === "true",
-    local: process.env.npm_config_workflow === "true" ? false : true,
+    dryRun: false,
   };
 
   for (const arg of process.argv.slice(2)) {
@@ -52,8 +51,6 @@ function parseArgs() {
     else if (arg === "--major") options.bump = "major";
     else if (arg === "--no-bump") options.bump = "none";
     else if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "--workflow") options.local = false;
-    else if (arg === "--local") options.local = true;
     else if (arg.startsWith("--version=")) {
       options.version = arg.slice("--version=".length).replace(/^v/, "");
       options.bump = "none";
@@ -127,66 +124,11 @@ function ensureTagDoesNotExist(tag) {
 
   const remote = spawnSync("git", ["ls-remote", "--exit-code", "--tags", "origin", tag], {
     cwd: root,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
     stdio: "ignore",
-    timeout: 30000,
   });
-  if (remote.error) {
-    throw new Error(`Could not check remote tag ${tag}: ${remote.error.message}`);
-  }
   if (remote.status === 0) {
     throw new Error(`Tag ${tag} already exists on origin.`);
   }
-}
-
-function currentBuildPlatform() {
-  if (process.platform === "win32") return "windows";
-  if (process.platform === "linux") return "linux";
-  if (process.platform === "darwin") return "macos";
-  throw new Error(`Unsupported release platform: ${process.platform}`);
-}
-
-function ensureLocalReleaseTools(platform) {
-  run("gh", ["--version"], { capture: true });
-}
-
-function buildLocalRelease(version, platform) {
-  ensureLocalReleaseTools(platform);
-
-  run("node", [
-    "scripts/ci-build-release.cjs",
-    `--platform=${platform}`,
-    `--version=${version}`,
-  ]);
-  run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
-
-  const releaseFiles = fs
-    .readdirSync(path.join(root, "dist", "release"))
-    .filter((name) => fs.statSync(path.join(root, "dist", "release", name)).isFile())
-    .map((name) => path.join("dist", "release", name));
-
-  if (releaseFiles.length === 0) {
-    throw new Error("No local release files were created in dist/release.");
-  }
-
-  return releaseFiles;
-}
-
-function uploadLocalRelease(tag, releaseFiles) {
-  run("gh", [
-    "release",
-    "create",
-    tag,
-    ...releaseFiles,
-    "--title",
-    tag,
-    "--notes",
-    `Aero P2P Chat ${tag}`,
-  ]);
-}
-
-function startWorkflowRelease(tag) {
-  run("gh", ["workflow", "run", "cd.yml", "--ref", tag]);
 }
 
 function hasStagedChanges() {
@@ -203,18 +145,12 @@ function main() {
   const pkgBefore = readJson(packagePath);
   const nextVersion = options.version || bumpVersion(pkgBefore.version, options.bump);
   const tag = `v${nextVersion}`;
-  const platform = currentBuildPlatform();
 
   ensureTagDoesNotExist(tag);
 
   console.log(`Release: ${pkgBefore.version} -> ${nextVersion}`);
   console.log(`Branch:  ${branch}`);
   console.log(`Tag:     ${tag}`);
-  console.log(
-    options.local
-      ? `Mode:    local ${platform} build + GitHub release upload`
-      : "Mode:    GitHub Actions workflow build",
-  );
 
   if (options.dryRun) {
     console.log("Dry run only. No files, commits, or tags were changed.");
@@ -227,32 +163,18 @@ function main() {
 
   run("git", ["add", "-A"]);
   if (hasStagedChanges()) {
-    run("git", ["commit", "-m", `chore: release ${tag} [skip ci]`]);
+    run("git", ["commit", "-m", `chore: release ${tag}`]);
   } else {
     console.log("No file changes to commit.");
-  }
-
-  if (options.local) {
-    var releaseFiles = buildLocalRelease(nextVersion, platform);
   }
 
   run("git", ["push", "-u", "origin", branch]);
   run("git", ["tag", tag]);
   run("git", ["push", "origin", tag]);
 
-  if (options.local) {
-    uploadLocalRelease(tag, releaseFiles);
-  } else {
-    startWorkflowRelease(tag);
-  }
-
   console.log("");
-  if (options.local) {
-    console.log(`Release ${tag} was built locally and uploaded to GitHub.`);
-  } else {
-    console.log(`Release ${tag} started on GitHub Actions.`);
-    console.log("build.yml and cd.yml build the release packages on GitHub Actions.");
-  }
+  console.log(`Release ${tag} started on GitHub Actions.`);
+  console.log("build.yml and cd.yml build the release packages on GitHub Actions.");
 }
 
 try {

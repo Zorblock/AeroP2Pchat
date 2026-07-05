@@ -68,28 +68,9 @@ function setPackageVersion(version) {
   return version;
 }
 
-function sleep(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function removeDirWithRetry(dir) {
-  for (let attempt = 1; attempt <= 5; attempt += 1) {
-    try {
-      fs.rmSync(dir, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      if (attempt === 5) throw error;
-      console.warn(
-        `Could not remove ${path.relative(root, dir)} yet, retrying... (${error.code || error.message})`,
-      );
-      sleep(1000 * attempt);
-    }
-  }
-}
-
 function clean() {
-  removeDirWithRetry(path.join(root, "out"));
-  removeDirWithRetry(distDir);
+  fs.rmSync(path.join(root, "out"), { recursive: true, force: true });
+  fs.rmSync(distDir, { recursive: true, force: true });
   fs.mkdirSync(releaseDir, { recursive: true });
 }
 
