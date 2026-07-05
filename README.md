@@ -24,7 +24,7 @@ iwr https://deno.land/install.ps1 -useb | iex
 deno upgrade
 ```
 
-On Linux/macOS:
+On Linux:
 
 ```sh
 curl -fsSL https://deno.land/install.sh | sh
@@ -53,15 +53,13 @@ Individual targets:
 ```sh
 deno task build:windows
 deno task build:windows:msi
-deno task build:windows:portable
 deno task build:linux
 deno task build:linux:appimage
 deno task build:linux:deb
 deno task build:linux:rpm
-deno task build:macos
 ```
 
-Outputs are written to `dist/desktop`. Builds use `--backend webview`, so Chromium/CEF is not bundled. On Windows with Deno 2.9.1, the validated release set is Windows `.msi`, Windows portable directory, Linux `.AppImage`, Linux `.deb`, and Linux `.rpm`. macOS `.dmg` requires a macOS host because Deno uses `hdiutil`; the `.app` task is kept as `deno task build:macos`, but this Windows host is not used for macOS release artifacts.
+Outputs are written to `dist/desktop`. Builds use `--backend webview`, so Chromium/CEF is not bundled. On Windows with Deno 2.9.1, the validated release set is Windows `.msi`, Linux `.AppImage`, Linux `.deb`, and Linux `.rpm`.
 
 ## Auto Update
 
@@ -77,7 +75,7 @@ Deno Desktop expects:
 https://zorblock.github.io/AeroP2Pchat/releases/latest.json
 ```
 
-The manifest must follow Deno's `latest.json` format with a `version` and per-version `patches`. Deno Desktop applies staged updates on macOS and Linux. As of Deno 2.9, Windows auto-update patches can be downloaded/staged but are not applied by the launcher yet, so Windows users need a newly built MSI.
+The manifest must follow Deno's `latest.json` format with a `version` and per-version `patches`. Deno Desktop applies staged updates on Linux. As of Deno 2.9, Windows auto-update patches can be downloaded/staged but are not applied by the launcher yet, so Windows users need a newly built MSI.
 
 ## How It Works
 

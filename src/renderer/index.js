@@ -2562,8 +2562,6 @@ async function checkForUpdates({ manual = false } = {}) {
       manifest.windows_sha512 ||
       manifest.sha512 ||
       "";
-    const macosUrl = manifest.macosUniversalDmgUrl || "";
-
     availableUpdate = {
       version: latestVersion,
       windowsUrl,
@@ -2572,7 +2570,6 @@ async function checkForUpdates({ manual = false } = {}) {
       linuxUrl: manifest.linuxUrl || manifest.linuxX64AppImageUrl || "",
       linuxSha256:
         manifest.linuxSha256 || manifest.linuxX64AppImageSha256 || "",
-      macosUrl,
     };
 
     syncAvailableUpdateUi();

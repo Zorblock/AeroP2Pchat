@@ -1,7 +1,7 @@
 {
   "name": "aero-p2p-chat",
   "version": "26.14.2",
-  "description": "A clean Deno Desktop peer-to-peer chat client for Windows, Linux, and macOS.",
+  "description": "A clean Deno Desktop peer-to-peer chat client for Windows and Linux.",
   "author": {
     "name": "Jonas Grimm",
     "email": "jonasgrimmde@users.noreply.github.com",
@@ -14,12 +14,11 @@
     "build:renderer": "vite build",
     "build:windows": "deno task build:windows",
     "build:windows:msi": "deno task build:windows:msi",
-    "build:windows:portable": "deno task build:windows:portable",
-    "build:linux": "deno task build:linux:appimage",
+    "build:linux": "deno task build:linux",
     "build:linux:all": "deno task build:linux",
+    "build:linux:appimage": "deno task build:linux:appimage",
     "build:linux:deb": "deno task build:linux:deb",
     "build:linux:rpm": "deno task build:linux:rpm",
-    "build:macos": "deno task build:macos",
     "pages": "node scripts/deploy-pages.cjs"
   },
   "dependencies": {
