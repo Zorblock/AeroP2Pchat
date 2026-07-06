@@ -44,7 +44,7 @@ function writeJson(filePath, data) {
 function parseArgs() {
   const options = {
     bump: "patch",
-    dryRun: false,
+    dryRun: process.env.npm_config_dry_run === "true",
   };
 
   for (const arg of process.argv.slice(2)) {

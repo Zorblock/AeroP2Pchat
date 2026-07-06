@@ -11,6 +11,7 @@
     "tauri:build": "tauri build",
     "test": "npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && cargo check --manifest-path src-tauri/Cargo.toml",
     "release": "node scripts/release-help.cjs",
+    "release:dry": "node scripts/release-help.cjs --dry-run",
     "patch": "node scripts/release-help.cjs",
     "pages": "node scripts/deploy-pages.cjs"
   },
