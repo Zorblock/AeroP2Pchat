@@ -1,14 +1,19 @@
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Duration;
 
+use base64::Engine;
 use serde::Serialize;
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256, Sha512};
 use tauri::{AppHandle, Emitter, Manager, Window};
 
 const CONFIG_FILE_NAME: &str = "config.json";
 const UPDATE_MANIFEST_URL: &str =
     "https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/latest.yml";
+const RELEASE_DOWNLOAD_PREFIX: &str = "https://github.com/Zorblock/AeroP2Pchat/releases/download/";
 
 #[derive(Serialize)]
 struct CommandOk {
@@ -114,9 +119,124 @@ fn fetch_update_manifest(url: String) -> Result<Value, String> {
     Ok(json!({ "ok": true, "text": text }))
 }
 
+fn parse_update_detail(details: &Value, key: &str) -> String {
+    details
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn verify_update_url(url: &str) -> Result<(), String> {
+    if !url.starts_with(RELEASE_DOWNLOAD_PREFIX) || !url.ends_with(".exe") {
+        return Err("Refused untrusted update URL.".into());
+    }
+    Ok(())
+}
+
+fn hex_digest(bytes: &[u8], algorithm: &str) -> String {
+    match algorithm {
+        "sha256" => format!("{:x}", Sha256::digest(bytes)),
+        "sha512" => format!("{:x}", Sha512::digest(bytes)),
+        _ => String::new(),
+    }
+}
+
+fn sha512_base64(bytes: &[u8]) -> String {
+    let digest = Sha512::digest(bytes);
+    base64::engine::general_purpose::STANDARD.encode(digest)
+}
+
 #[tauri::command]
-fn install_update(_details: Value) -> Result<CommandOk, String> {
-    Err("Automatic installer updates are not wired for the Tauri build yet.".into())
+fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = details;
+        let _ = app;
+        return Err("Automatic installer updates are only available on Windows.".into());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let url = parse_update_detail(&details, "url");
+        let version = parse_update_detail(&details, "version");
+        let expected_sha256 = parse_update_detail(&details, "sha256").to_lowercase();
+        let expected_sha512 = parse_update_detail(&details, "sha512");
+        verify_update_url(&url)?;
+        if expected_sha256.is_empty() || expected_sha512.is_empty() {
+            return Err("Update manifest is missing installer checksums.".into());
+        }
+
+        app.emit(
+            "update-progress",
+            json!({
+                "phase": "download",
+                "percent": 0,
+                "receivedBytes": 0,
+                "totalBytes": null
+            }),
+        )
+        .ok();
+
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(120))
+            .user_agent("AeroP2P-Tauri")
+            .build()
+            .map_err(|error| error.to_string())?;
+        let bytes = client
+            .get(&url)
+            .send()
+            .map_err(|error| error.to_string())?
+            .error_for_status()
+            .map_err(|error| error.to_string())?
+            .bytes()
+            .map_err(|error| error.to_string())?;
+
+        app.emit(
+            "update-progress",
+            json!({
+                "phase": "download",
+                "percent": 100,
+                "receivedBytes": bytes.len(),
+                "totalBytes": bytes.len()
+            }),
+        )
+        .ok();
+        app.emit("update-progress", json!({ "phase": "verify", "percent": 100 }))
+            .ok();
+
+        let actual_sha256 = hex_digest(&bytes, "sha256");
+        if actual_sha256 != expected_sha256 {
+            return Err("Update download SHA256 did not match latest.yml.".into());
+        }
+        let actual_sha512_hex = hex_digest(&bytes, "sha512");
+        let actual_sha512_base64 = sha512_base64(&bytes);
+        if expected_sha512 != actual_sha512_hex && expected_sha512 != actual_sha512_base64 {
+            return Err("Update download SHA512 did not match latest.yml.".into());
+        }
+
+        let setup_path = std::env::temp_dir().join(format!(
+            "Aero-P2P-Chat-Setup-{}.exe",
+            if version.is_empty() { "latest" } else { &version }
+        ));
+        let mut file = fs::File::create(&setup_path).map_err(|error| error.to_string())?;
+        file.write_all(&bytes).map_err(|error| error.to_string())?;
+
+        app.emit("update-progress", json!({ "phase": "install", "percent": 100 }))
+            .ok();
+        Command::new(&setup_path)
+            .args([
+                "/SILENT",
+                "/SUPPRESSMSGBOXES",
+                "/NORESTART",
+                "/FORCECLOSEAPPLICATIONS",
+                "/RESTARTAPPLICATIONS",
+            ])
+            .spawn()
+            .map_err(|error| error.to_string())?;
+        app.exit(0);
+        Ok(CommandOk { ok: true })
+    }
 }
 
 #[tauri::command]

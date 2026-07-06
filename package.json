@@ -1,14 +1,18 @@
 {
   "name": "aerop2p",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "test": "npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && cargo check --manifest-path src-tauri/Cargo.toml",
+    "release": "node scripts/release-help.cjs",
+    "patch": "node scripts/release-help.cjs",
+    "pages": "node scripts/deploy-pages.cjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",

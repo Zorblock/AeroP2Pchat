@@ -1,0 +1,61 @@
+name: build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - os_name: Linux-x64
+            os: ubuntu-22.04
+            build_platform: linux
+          - os_name: Windows-x64
+            os: windows-latest
+            build_platform: windows
+          - os_name: macOS-Universal
+            os: macos-latest
+            build_platform: macos
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Linux Tauri dependencies
+        if: matrix.platform.build_platform == 'linux'
+        run: sudo apt-get update --yes && sudo apt-get install --yes libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Test
+        run: npm run test
+
+      - name: Build packages
+        run: node scripts/ci-build-release.cjs --platform=${{ matrix.platform.build_platform }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.platform.os_name }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 7
