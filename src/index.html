@@ -2,38 +2,1228 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
+    <title>App</title>
+    <link rel="preload" href="boot-logo.png" as="image" />
+    <script>
+      (() => {
+        const theme =
+          new URLSearchParams(window.location.search).get("theme") === "dark"
+            ? "dark"
+            : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <style>
+      :root {
+        --boot-bg: #eef4f7;
+        --boot-panel: #ffffff;
+        --boot-line: #cfdee6;
+        --boot-text: #0d2f43;
+        --boot-muted: #55707d;
+        --boot-track: #dbe8ee;
+        --boot-fill: #167daa;
+        background: var(--boot-bg);
+        color: var(--boot-text);
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+
+      html[data-theme="dark"] {
+        --boot-bg: #070b10;
+        --boot-panel: #101923;
+        --boot-line: #263847;
+        --boot-text: #edf4f7;
+        --boot-muted: #9db0bb;
+        --boot-track: #172531;
+        --boot-fill: #5f9db9;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--boot-bg);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      body.app-loading:not(.app-boot-finish) .window-frame {
+        visibility: hidden;
+      }
+
+      body.app-boot-finish .window-frame {
+        visibility: visible;
+      }
+
+      .boot-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: var(--boot-bg);
+      }
+
+      .boot-panel {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        min-width: 210px;
+        padding: 22px 24px;
+      }
+
+      .boot-logo {
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        object-fit: contain;
+        background: var(--boot-panel);
+        border: 1px solid var(--boot-line);
+        padding: 5px;
+        box-shadow: none;
+      }
+
+      .boot-title {
+        margin: 0;
+        color: var(--boot-text);
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .boot-status {
+        color: var(--boot-muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .boot-progress {
+        width: 178px;
+        height: 6px;
+        overflow: hidden;
+        border: 1px solid rgba(41, 139, 171, 0.18);
+        border-radius: 999px;
+        background: var(--boot-track);
+        box-shadow: none;
+      }
+
+      .boot-progress-fill {
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--boot-fill);
+        box-shadow: none;
+        transition: width 360ms cubic-bezier(0.22, 0.8, 0.2, 1);
+      }
+
+      .boot-percent {
+        min-height: 12px;
+        color: var(--boot-muted);
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .boot-dots {
+        display: flex;
+        gap: 5px;
+      }
+
+      .boot-dots span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--boot-fill);
+        opacity: 0.42;
+      }
+
+      body:not(.app-loading) .boot-screen {
+        display: none;
+      }
+
+      body.app-boot-finish .boot-screen {
+        pointer-events: none;
+        animation: bootFadeOut 260ms ease forwards;
+      }
+
+      body.app-boot-finish .boot-title,
+      body.app-boot-finish .boot-status,
+      body.app-boot-finish .boot-progress,
+      body.app-boot-finish .boot-percent,
+      body.app-boot-finish .boot-dots {
+        opacity: 0;
+        transition: opacity 160ms ease;
+      }
+
+      body.app-boot-finish .window-frame {
+        animation: appFadeIn 220ms ease both;
+      }
+
+      @keyframes appFadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes bootFadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+    </style>
+    <script type="module" src="/main.js"></script>
   </head>
+  <body class="app-loading">
+    <div
+      id="boot-screen"
+      class="boot-screen"
+      aria-label="Loading app"
+      data-app-aria-template="Loading {name}"
+    >
+      <section class="boot-panel">
+        <img class="boot-logo" src="boot-logo.png" alt="" aria-hidden="true" />
+        <h1 class="boot-title" data-app-name>App</h1>
+        <span id="boot-status" class="boot-status">Loading interface</span>
+        <div class="boot-progress" aria-hidden="true">
+          <div id="boot-progress-fill" class="boot-progress-fill"></div>
+        </div>
+        <span id="boot-percent" class="boot-percent">0%</span>
+        <div class="boot-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </section>
+    </div>
+    <div class="window-frame">
+      <header class="titlebar">
+        <div class="titlebar-brand">
+          <div class="titlebar-avatar" aria-hidden="true">
+            <img
+              id="titlebar-logo"
+              class="titlebar-logo"
+              alt=""
+              aria-hidden="true"
+            />
+            <span
+              id="titlebar-presence"
+              class="titlebar-presence online"
+            ></span>
+          </div>
+          <div>
+            <strong data-app-name>App</strong>
+            <span id="titlebar-subtitle">Ready</span>
+          </div>
+        </div>
+        <div class="window-controls">
+          <button
+            id="header-update-button"
+            class="header-update-button hidden"
+            type="button"
+          >
+            Update
+          </button>
+          <button
+            id="window-minimize"
+            type="button"
+            title="Minimize"
+            aria-label="Minimize"
+          >
+            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+          </button>
+          <button
+            id="window-maximize"
+            type="button"
+            title="Maximize"
+            aria-label="Maximize"
+          >
+            <i class="fa-regular fa-square" aria-hidden="true"></i>
+          </button>
+          <button
+            id="window-close"
+            class="window-close"
+            type="button"
+            title="Close"
+            aria-label="Close"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+      <main class="app-shell">
+        <section class="connection-panel" aria-label="Connection">
+          <div class="id-card">
+            <span class="label">My Aero ID</span>
+            <div class="id-row">
+              <code
+                id="own-id"
+                class="auto-fit-text"
+                data-fit-min="7"
+                data-fit-max="11"
+                >creating...</code
+              >
+              <button
+                id="copy-id"
+                class="icon-button"
+                type="button"
+                title="Copy peer ID"
+                aria-label="Copy peer ID"
+              >
+                <i class="fa-regular fa-copy" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+          <form id="connect-form" class="connect-form">
+            <label for="remote-id">Friend Aero ID</label>
+            <div class="connect-row">
+              <input
+                id="remote-id"
+                name="remote-id"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="aero-..."
+              />
+              <button
+                id="connect-button"
+                class="icon-only-button"
+                type="submit"
+                disabled
+                title="Connect"
+                aria-label="Connect"
+              >
+                <i class="fa-solid fa-link" aria-hidden="true"></i>
+                <span>Connect</span>
+              </button>
+            </div>
+          </form>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
+          <div class="status-region" aria-live="polite">
+            <span
+              id="status-dot"
+              class="status-dot pending"
+              aria-hidden="true"
+            ></span>
+            <span id="status-text">Initializing peer...</span>
+            <button
+              id="retry-connect"
+              class="status-retry hidden"
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+
+          <div id="update-card" class="update-card hidden">
+            <span class="label">Update</span>
+            <strong id="update-title">Update available</strong>
+            <p id="update-text"></p>
+            <div class="update-actions">
+              <button id="update-button" type="button">Update</button>
+              <button
+                id="update-ignore-button"
+                class="ghost-button"
+                type="button"
+              >
+                Ignore
+              </button>
+            </div>
+          </div>
+
+          <div class="peers-card">
+            <span class="label">Contacts</span>
+            <input
+              id="contact-search"
+              class="contact-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Search contacts"
+            />
+            <div id="peer-list" class="peer-list">
+              <span class="empty-peer">No contacts yet</span>
+            </div>
+          </div>
+        </section>
+
+        <div
+          id="sidebar-resizer"
+          class="sidebar-resizer"
+          role="separator"
+          aria-label="Resize sidebar"
+          aria-orientation="vertical"
+          aria-valuemin="190"
+          aria-valuemax="360"
+          tabindex="0"
+        ></div>
+
+        <section class="chat-panel" aria-label="Chat">
+          <header class="chat-header">
+            <div class="chat-heading">
+              <span id="chat-meta" class="chat-meta">Idle</span>
+              <h2
+                id="chat-title"
+                class="auto-fit-text"
+                data-fit-min="10"
+                data-fit-max="16"
+              >
+                No active chat
+              </h2>
+            </div>
+            <div class="chat-actions">
+              <button
+                id="call-chat"
+                class="ghost-button call icon-only-button"
+                type="button"
+                disabled
+                title="Start voice call"
+                aria-label="Start voice call"
+              >
+                <i class="fa-solid fa-phone" aria-hidden="true"></i>
+                <span>Call</span>
+              </button>
+              <button
+                id="disconnect-chat"
+                class="ghost-button danger icon-only-button"
+                type="button"
+                disabled
+                title="Disconnect"
+                aria-label="Disconnect"
+              >
+                <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
+                <span>Disconnect</span>
+              </button>
+              <button
+                id="clear-chat"
+                class="ghost-button icon-only-button"
+                type="button"
+                title="Clear chat"
+                aria-label="Clear chat"
+              >
+                <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </header>
+
+          <div id="call-banner" class="call-banner hidden" aria-live="polite">
+            <span id="call-text" class="call-state">Voice</span>
+            <span id="call-peer-name" class="call-peer-name">Peer</span>
+            <span id="call-peer-status" class="call-peer-status hidden"></span>
+            <span
+              id="call-health"
+              class="call-health hidden"
+              title="Call health"
+              aria-label="Call health"
+              role="img"
+            >
+              <i class="fa-solid fa-signal" aria-hidden="true"></i>
+            </span>
+            <div class="call-banner-actions">
+              <button
+                id="call-accept"
+                type="button"
+                class="call-action accept icon-only-button hidden"
+                title="Accept call"
+                aria-label="Accept call"
+              >
+                <i class="fa-solid fa-phone" aria-hidden="true"></i>
+                <span>Accept</span>
+              </button>
+              <button
+                id="call-decline"
+                type="button"
+                class="call-action decline icon-only-button hidden"
+                title="Decline call"
+                aria-label="Decline call"
+              >
+                <i class="fa-solid fa-phone-slash" aria-hidden="true"></i>
+                <span>Decline</span>
+              </button>
+              <button
+                id="call-mute"
+                type="button"
+                class="call-action toggle icon-only-button hidden"
+                title="Mute microphone"
+                aria-label="Mute microphone"
+              >
+                <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+                <span>Mute</span>
+              </button>
+              <button
+                id="call-deafen"
+                type="button"
+                class="call-action toggle icon-only-button hidden"
+                title="Deafen"
+                aria-label="Deafen"
+              >
+                <i class="fa-solid fa-headphones" aria-hidden="true"></i>
+                <span>Deafen</span>
+              </button>
+              <button
+                id="call-camera"
+                type="button"
+                class="call-action toggle icon-only-button hidden"
+                title="Show camera"
+                aria-label="Show camera"
+              >
+                <i class="fa-solid fa-video" aria-hidden="true"></i>
+                <span>Show Cam</span>
+              </button>
+              <button
+                id="call-stream"
+                type="button"
+                class="call-action stream icon-only-button hidden"
+                title="Share screen"
+                aria-label="Share screen"
+              >
+                <i class="fa-solid fa-display" aria-hidden="true"></i>
+                <span>Stream</span>
+              </button>
+              <button
+                id="call-hangup"
+                type="button"
+                class="call-action hangup icon-only-button hidden"
+                title="Hang up"
+                aria-label="Hang up"
+              >
+                <i class="fa-solid fa-phone-slash" aria-hidden="true"></i>
+                <span>Hang up</span>
+              </button>
+            </div>
+          </div>
+
+          <section
+            id="call-stage"
+            class="call-stage hidden"
+            aria-label="Call stage"
+          >
+            <article id="local-participant-card" class="participant-card local">
+              <video
+                id="local-video"
+                class="participant-video hidden"
+                autoplay
+                muted
+                playsinline
+              ></video>
+              <video
+                id="local-pip-video"
+                class="participant-pip-video hidden"
+                autoplay
+                muted
+                playsinline
+              ></video>
+              <button
+                id="local-stream-fullscreen"
+                class="stream-fullscreen-button icon-only-button hidden"
+                type="button"
+                title="Expand stream"
+                aria-label="Expand stream"
+              >
+                <i class="fa-solid fa-expand" aria-hidden="true"></i>
+              </button>
+              <div
+                id="local-participant-badges"
+                class="participant-badges"
+                aria-live="polite"
+              ></div>
+              <div class="participant-meta">
+                <strong
+                  id="local-participant-name"
+                  class="auto-fit-text"
+                  data-fit-min="9"
+                  data-fit-max="17"
+                  >You</strong
+                >
+                <span
+                  id="local-participant-status"
+                  class="auto-fit-text"
+                  data-fit-min="7"
+                  data-fit-max="9"
+                  >You</span
+                >
+              </div>
+            </article>
+            <article
+              id="remote-participant-card"
+              class="participant-card remote"
+            >
+              <video
+                id="remote-video"
+                class="participant-video hidden"
+                autoplay
+                playsinline
+              ></video>
+              <video
+                id="remote-pip-video"
+                class="participant-pip-video hidden"
+                autoplay
+                playsinline
+              ></video>
+              <button
+                id="remote-stream-fullscreen"
+                class="stream-fullscreen-button icon-only-button hidden"
+                type="button"
+                title="Expand stream"
+                aria-label="Expand stream"
+              >
+                <i class="fa-solid fa-expand" aria-hidden="true"></i>
+              </button>
+              <div
+                id="remote-participant-badges"
+                class="participant-badges"
+                aria-live="polite"
+              ></div>
+              <div class="participant-meta">
+                <strong
+                  id="remote-participant-name"
+                  class="auto-fit-text"
+                  data-fit-min="9"
+                  data-fit-max="17"
+                  >Contact</strong
+                >
+                <span
+                  id="remote-participant-status"
+                  class="auto-fit-text"
+                  data-fit-min="7"
+                  data-fit-max="9"
+                  >Contact</span
+                >
+              </div>
+            </article>
+          </section>
+
+          <div
+            id="messages"
+            class="messages empty"
+            aria-live="polite"
+            data-empty="Share your Aero ID or connect to a contact."
+          ></div>
+
+          <div
+            id="typing-indicator"
+            class="typing-indicator hidden"
+            aria-live="polite"
+          ></div>
+
+          <form id="message-form" class="message-form">
+            <input
+              id="message-input"
+              name="message"
+              autocomplete="off"
+              placeholder="Write a message..."
+              disabled
+            />
+            <button
+              id="send-button"
+              class="icon-only-button"
+              type="submit"
+              disabled
+              title="Send message"
+              aria-label="Send message"
+            >
+              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+              <span>Send</span>
+            </button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <div
+      id="update-modal"
+      class="modal-layer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <section class="modal-panel">
+        <header class="modal-header">
+          <h2 id="modal-title">Linux update</h2>
+          <button id="modal-close" class="ghost-button" type="button">
+            Close
+          </button>
+        </header>
+        <p id="modal-text"></p>
+        <code id="linux-command" class="command-box"></code>
+        <button id="copy-update-command" type="button">Copy command</button>
+      </section>
+    </div>
+
+    <div
+      id="app-dialog"
+      class="modal-layer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-dialog-title"
+      aria-describedby="app-dialog-message"
+    >
+      <section class="modal-panel app-dialog-panel">
+        <header class="modal-header">
+          <h2 id="app-dialog-title">Confirm</h2>
+          <button
+            id="app-dialog-close"
+            class="ghost-button icon-only-button"
+            type="button"
+            title="Close"
+            aria-label="Close"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </header>
+        <p id="app-dialog-message"></p>
+        <div class="app-dialog-actions">
+          <button id="app-dialog-cancel" class="ghost-button" type="button">
+            Cancel
+          </button>
+          <button id="app-dialog-confirm" type="button">OK</button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      id="settings-modal"
+      class="modal-layer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <section class="modal-panel">
+        <header class="modal-header">
+          <h2 id="settings-title">Settings</h2>
+          <button id="settings-close" class="ghost-button" type="button">
+            Close
+          </button>
+        </header>
+        <div class="settings-grid">
+          <section class="settings-section">
+            <h3>Profile</h3>
+            <div class="settings-field">
+              <span class="label">My nickname</span>
+              <div class="settings-row">
+                <input
+                  id="nickname-input"
+                  type="text"
+                  maxlength="32"
+                  placeholder="Nickname"
+                />
+                <button id="save-nickname" type="button">Save</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Appearance</h3>
+            <div class="theme-switcher" role="radiogroup" aria-label="Theme">
+              <label>
+                <input
+                  id="theme-light"
+                  type="radio"
+                  name="theme"
+                  value="light"
+                />
+                <span>
+                  <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                  Light
+                </span>
+              </label>
+              <label>
+                <input id="theme-dark" type="radio" name="theme" value="dark" />
+                <span>
+                  <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                  Dark
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Startup & tray</h3>
+            <div class="settings-options">
+              <label class="settings-check">
+                <input id="autostart-toggle" type="checkbox" />
+                <span data-app-template="Start {name} when I sign in"
+                  >Start app when I sign in</span
+                >
+              </label>
+              <div class="settings-choice" id="autostart-mode-group">
+                <label>
+                  <input
+                    id="autostart-open"
+                    type="radio"
+                    name="autostart-mode"
+                    value="open"
+                  />
+                  <span>Start opened</span>
+                </label>
+                <label>
+                  <input
+                    id="autostart-hidden"
+                    type="radio"
+                    name="autostart-mode"
+                    value="hidden"
+                  />
+                  <span>Start minimized to tray</span>
+                </label>
+              </div>
+              <label class="settings-check">
+                <input id="close-to-tray-toggle" type="checkbox" />
+                <span>Close button sends Aero to tray</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Voice</h3>
+            <div class="device-settings">
+              <label for="microphone-select">Microphone</label>
+              <select id="microphone-select"></select>
+              <label for="camera-select">Camera</label>
+              <select id="camera-select"></select>
+              <label for="speaker-select">Output</label>
+              <select id="speaker-select"></select>
+              <label for="mic-profile-select">Voice profile</label>
+              <select id="mic-profile-select">
+                <option value="voice-isolation">Voice isolation</option>
+                <option value="studio">Studio</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div id="voice-custom-controls">
+              <label class="settings-range" for="mic-mode-select">
+                <div class="settings-range-header">
+                  <span>Sensitivity mode</span>
+                  <strong id="mic-mode-label">Auto</strong>
+                </div>
+                <div class="settings-range-body">
+                  <select id="mic-mode-select">
+                    <option value="auto">Auto</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+              </label>
+              <label class="settings-range" for="mic-sensitivity-slider">
+                <div class="settings-range-header">
+                  <span>Mic sensitivity</span>
+                  <strong id="mic-sensitivity-label">55%</strong>
+                </div>
+                <div class="settings-range-body">
+                  <input
+                    id="mic-sensitivity-slider"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                </div>
+              </label>
+              <label class="settings-range" for="mic-noise-reduction-slider">
+                <div class="settings-range-header">
+                  <span>Background noise reduction</span>
+                  <strong id="mic-noise-reduction-label">55%</strong>
+                </div>
+                <div class="settings-range-body">
+                  <input
+                    id="mic-noise-reduction-slider"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                </div>
+              </label>
+            </div>
+            <label class="settings-range" for="mic-boost-slider">
+              <div class="settings-range-header">
+                <span>Mic boost</span>
+                <strong id="mic-boost-label">100%</strong>
+              </div>
+              <div class="settings-range-body">
+                <input
+                  id="mic-boost-slider"
+                  type="range"
+                  min="0"
+                  max="200"
+                  step="1"
+                />
+              </div>
+            </label>
+            <div class="settings-range-group">
+              <div class="settings-range-header">
+                <span>3-band EQ</span>
+                <strong id="mic-eq-label">Flat</strong>
+              </div>
+              <label class="settings-range" for="mic-eq-low-slider">
+                <div class="settings-range-header">
+                  <span>Low</span>
+                  <strong id="mic-eq-low-label">0 dB</strong>
+                </div>
+                <div class="settings-range-body">
+                  <input
+                    id="mic-eq-low-slider"
+                    type="range"
+                    min="-12"
+                    max="12"
+                    step="1"
+                  />
+                </div>
+              </label>
+              <label class="settings-range" for="mic-eq-mid-slider">
+                <div class="settings-range-header">
+                  <span>Mid</span>
+                  <strong id="mic-eq-mid-label">0 dB</strong>
+                </div>
+                <div class="settings-range-body">
+                  <input
+                    id="mic-eq-mid-slider"
+                    type="range"
+                    min="-12"
+                    max="12"
+                    step="1"
+                  />
+                </div>
+              </label>
+              <label class="settings-range" for="mic-eq-high-slider">
+                <div class="settings-range-header">
+                  <span>High</span>
+                  <strong id="mic-eq-high-label">0 dB</strong>
+                </div>
+                <div class="settings-range-body">
+                  <input
+                    id="mic-eq-high-slider"
+                    type="range"
+                    min="-12"
+                    max="12"
+                    step="1"
+                  />
+                </div>
+              </label>
+            </div>
+            <label class="settings-range" for="remote-volume-slider">
+              <div class="settings-range-header">
+                <span>Call volume</span>
+                <strong id="remote-volume-label">100%</strong>
+              </div>
+              <div class="settings-range-body">
+                <input
+                  id="remote-volume-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                />
+              </div>
+            </label>
+          </section>
+
+          <section class="settings-section">
+            <h3>Notifications</h3>
+            <div class="settings-options">
+              <label class="settings-check">
+                <input id="notifications-toggle" type="checkbox" />
+                <span>Show desktop notifications</span>
+              </label>
+              <label class="settings-check">
+                <input id="message-notifications-toggle" type="checkbox" />
+                <span>Notify for new messages</span>
+              </label>
+              <label class="settings-check">
+                <input id="call-notifications-toggle" type="checkbox" />
+                <span>Notify for incoming calls</span>
+              </label>
+              <label class="settings-check">
+                <input id="focused-notifications-toggle" type="checkbox" />
+                <span>Show notifications while Aero is focused</span>
+              </label>
+              <label class="settings-check">
+                <input id="read-receipts-toggle" type="checkbox" />
+                <span>Send and show read receipts</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Sounds</h3>
+            <div class="settings-options two-column">
+              <label class="settings-check">
+                <input id="sounds-toggle" type="checkbox" />
+                <span>Enable sounds</span>
+              </label>
+              <label class="settings-check">
+                <input id="message-sound-toggle" type="checkbox" />
+                <span>Message sound</span>
+              </label>
+              <label class="settings-check">
+                <input id="ringtone-sound-toggle" type="checkbox" />
+                <span>Incoming call ringtone</span>
+              </label>
+              <label class="settings-check">
+                <input id="call-event-sound-toggle" type="checkbox" />
+                <span>Call join/leave sounds</span>
+              </label>
+              <label class="settings-check">
+                <input id="connected-sound-toggle" type="checkbox" />
+                <span>Connected sound</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Contacts</h3>
+            <span class="label">Contact nicknames</span>
+            <div id="contact-nickname-list" class="contact-nickname-list"></div>
+            <span class="label">Blocked users</span>
+            <div id="blocked-list" class="blocked-list"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div id="app-menu" class="context-menu hidden" role="menu">
+      <div class="context-menu-group" aria-label="Presence status">
+        <span class="context-menu-label">Status</span>
+        <button
+          id="app-menu-online"
+          class="presence-option"
+          type="button"
+          role="menuitemradio"
+          aria-checked="false"
         >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
+          <span class="presence-dot online"></span>
+          <span>Online</span>
+        </button>
+        <button
+          id="app-menu-dnd"
+          class="presence-option"
+          type="button"
+          role="menuitemradio"
+          aria-checked="false"
+        >
+          <span class="presence-dot dnd"></span>
+          <span>DND</span>
+        </button>
+        <button
+          id="app-menu-offline"
+          class="presence-option"
+          type="button"
+          role="menuitemradio"
+          aria-checked="false"
+        >
+          <span class="presence-dot offline"></span>
+          <span>Offline</span>
+        </button>
       </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+      <button id="app-menu-update" type="button" role="menuitem">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        <span>Check for updates</span>
+      </button>
+      <button
+        id="app-menu-update-ignore"
+        class="hidden"
+        type="button"
+        role="menuitem"
+      >
+        <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>
+        <span>Ignore update hint</span>
+      </button>
+      <button id="app-menu-settings" type="button" role="menuitem">
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        <span>Settings</span>
+      </button>
+    </div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+    <div id="contact-menu" class="context-menu hidden" role="menu">
+      <button id="menu-trust" type="button" role="menuitem">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+        <span>Trust</span>
+      </button>
+      <button id="menu-pin" type="button" role="menuitem">
+        <i class="fa-solid fa-thumbtack" aria-hidden="true"></i>
+        <span>Pin</span>
+      </button>
+      <button id="menu-nickname" type="button" role="menuitem">
+        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+        <span>Add nickname</span>
+      </button>
+      <button id="menu-block" type="button" role="menuitem">
+        <i class="fa-solid fa-ban" aria-hidden="true"></i>
+        <span>Block</span>
+      </button>
+    </div>
+
+    <div id="message-menu" class="context-menu hidden" role="menu">
+      <button id="menu-copy" type="button" role="menuitem">
+        <i class="fa-solid fa-copy" aria-hidden="true"></i>
+        <span>Copy</span>
+      </button>
+      <button id="menu-delete" type="button" role="menuitem" class="danger">
+        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+        <span>Delete</span>
+      </button>
+    </div>
+
+    <div
+      id="participant-menu"
+      class="context-menu participant-menu hidden"
+      role="menu"
+    >
+      <div class="context-menu-group">
+        <span class="context-menu-label">Volume</span>
+        <label class="participant-menu-range" for="participant-volume-slider">
+          <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+          <input
+            id="participant-volume-slider"
+            type="range"
+            min="0"
+            max="150"
+            step="5"
+          />
+          <strong id="participant-volume-value">100%</strong>
+        </label>
+      </div>
+      <button
+        id="participant-toggle-name"
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked="true"
+      >
+        <i class="fa-solid fa-id-badge" aria-hidden="true"></i>
+        <span>Show Name</span>
+      </button>
+    </div>
+
+    <div id="stream-menu" class="context-menu stream-menu hidden" role="menu">
+      <button id="stream-menu-quality" type="button" role="menuitem">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        <span>Quality</span>
+      </button>
+      <button id="stream-menu-source" type="button" role="menuitem">
+        <i class="fa-solid fa-display" aria-hidden="true"></i>
+        <span>Switch screen</span>
+      </button>
+      <button
+        id="stream-menu-audio"
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked="false"
+      >
+        <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+        <span>Screen audio</span>
+      </button>
+      <button id="stream-menu-watch" type="button" role="menuitem">
+        <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
+        <span>Close Stream</span>
+      </button>
+      <button id="stream-menu-fullscreen" type="button" role="menuitem">
+        <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        <span>Expand stream</span>
+      </button>
+      <button
+        id="stream-menu-stop"
+        type="button"
+        role="menuitem"
+        class="danger"
+      >
+        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+        <span>Stop stream</span>
+      </button>
+    </div>
+
+    <div
+      id="stream-modal"
+      class="modal-layer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stream-modal-title"
+    >
+      <div class="stream-dialog">
+        <div class="stream-dialog-header">
+          <div>
+            <span class="stream-dialog-kicker">Screen Share</span>
+            <h3 id="stream-modal-title">Start stream</h3>
+          </div>
+          <button
+            id="stream-modal-close"
+            class="stream-close-button icon-only-button"
+            type="button"
+            title="Close stream setup"
+            aria-label="Close stream setup"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="stream-controls">
+          <label>
+            <span>Quality</span>
+            <select id="stream-quality-select">
+              <option value="480p">480p</option>
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p</option>
+              <option value="native">Native</option>
+            </select>
+          </label>
+          <label>
+            <span>FPS</span>
+            <select id="stream-fps-select">
+              <option value="15">15</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+            </select>
+          </label>
+          <label class="stream-audio-toggle">
+            <input id="stream-audio-toggle" type="checkbox" />
+            <span>Share screen audio</span>
+          </label>
+        </div>
+        <div
+          class="stream-source-tabs"
+          role="tablist"
+          aria-label="Stream source type"
+        >
+          <button
+            id="stream-tab-screens"
+            class="stream-source-tab active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+          >
+            <i class="fa-solid fa-display" aria-hidden="true"></i>
+            <span>Screens</span>
+          </button>
+          <button
+            id="stream-tab-windows"
+            class="stream-source-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            <i class="fa-solid fa-window-maximize" aria-hidden="true"></i>
+            <span>Applications</span>
+          </button>
+        </div>
+        <div id="screen-source-list" class="screen-source-list"></div>
+        <div class="stream-dialog-actions">
+          <button
+            id="stream-start-button"
+            class="stream-start-button"
+            type="button"
+            disabled
+          >
+            <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+            <span>Start stream</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

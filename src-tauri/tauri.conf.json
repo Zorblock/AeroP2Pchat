@@ -4,15 +4,22 @@
   "version": "0.1.0",
   "identifier": "de.jonasgrimm.aerop2p",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "aerop2p",
+        "title": "Aero P2P Chat",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "minWidth": 620,
+        "minHeight": 440,
+        "decorations": false,
+        "transparent": false
       }
     ],
     "security": {
