@@ -28,7 +28,7 @@ function parseArgs() {
 
 function commandForSpawn(command) {
   if (process.platform !== "win32") return command;
-  if (command === "npm" || command === "npx" || command === "cargo") return `${command}.cmd`;
+  if (command === "npm" || command === "npx") return `${command}.cmd`;
   return command;
 }
 
@@ -38,7 +38,7 @@ function run(command, args, options = {}) {
     stdio: "inherit",
     shell:
       process.platform === "win32" &&
-      (command === "npm" || command === "npx" || command === "cargo"),
+      (command === "npm" || command === "npx"),
     env: { ...process.env, ...(options.env || {}) },
   });
   if (result.status !== 0) {
@@ -132,7 +132,8 @@ function writePlatformManifest(platform, version, assets) {
 }
 
 function buildWindows(version) {
-  run("npm", ["run", "tauri", "--", "build", "--bundles", "none"]);
+  run("npm", ["run", "build"]);
+  run("cargo", ["build", "--release", "--manifest-path", "src-tauri/Cargo.toml"]);
 
   const unpackedDir = path.join(buildRoot, "tauri-win-unpacked");
   fs.rmSync(unpackedDir, { recursive: true, force: true });

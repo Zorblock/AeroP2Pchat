@@ -18,9 +18,9 @@ function findManifests(dir) {
   });
 }
 
-function findAsset(manifests, platform, predicate) {
+function findAsset(manifests, platform, name) {
   const manifest = manifests.find((entry) => entry.platform === platform);
-  return manifest ? manifest.assets.find(predicate) : null;
+  return manifest ? manifest.assets.find((asset) => asset.name === name) : null;
 }
 
 function releaseUrl(tag, assetName) {
@@ -35,52 +35,10 @@ function main() {
   if (!version) throw new Error("No release manifests found.");
 
   const tag = `v${version}`;
-  const windows = findAsset(
-    manifests,
-    "windows",
-    (asset) => asset.name === config.release.windowsInstallerAsset,
-  );
-  const windowsSetup = findAsset(
-    manifests,
-    "windows",
-    (asset) => asset.name === config.release.windowsX64SetupAsset,
-  );
-  const windowsPortable = findAsset(
-    manifests,
-    "windows",
-    (asset) => asset.name === config.release.windowsX64PortableAsset,
-  );
-  const linux = findAsset(
-    manifests,
-    "linux",
-    (asset) => asset.name === config.release.linuxAppImageAsset,
-  );
-  const linuxAppImage = findAsset(
-    manifests,
-    "linux",
-    (asset) => asset.name === config.release.linuxX64AppImageAsset,
-  );
-  const linuxDeb = findAsset(
-    manifests,
-    "linux",
-    (asset) => asset.name === config.release.linuxX64DebAsset,
-  );
-  const linuxPortable = findAsset(
-    manifests,
-    "linux",
-    (asset) => asset.name === config.release.linuxX64PortableAsset,
-  );
-  const macosDmg = findAsset(
-    manifests,
-    "macos",
-    (asset) => asset.name === config.release.macosUniversalDmgAsset,
-  );
-  const macosPortable = findAsset(
-    manifests,
-    "macos",
-    (asset) => asset.name === config.release.macosUniversalPortableAsset,
-  );
+  const windows = findAsset(manifests, "windows", config.release.windowsInstallerAsset);
+  const linux = findAsset(manifests, "linux", config.release.linuxAppImageAsset);
   if (!windows) throw new Error("Windows setup asset info missing.");
+  if (!linux) throw new Error("Linux AppImage asset info missing.");
 
   const lines = [
     `version: ${yamlQuote(version)}`,
@@ -96,89 +54,15 @@ function main() {
     `windowsSha256: ${yamlQuote(windows.sha256)}`,
     `windowsSha512: ${yamlQuote(windows.sha512)}`,
     `windowsSize: ${windows.size}`,
+    `linuxPath: ${yamlQuote(linux.name)}`,
+    `linuxUrl: ${yamlQuote(releaseUrl(tag, linux.name))}`,
+    `linuxSha256: ${yamlQuote(linux.sha256)}`,
+    `linuxSha512: ${yamlQuote(linux.sha512)}`,
+    `linuxSize: ${linux.size}`,
+    `productName: ${yamlQuote(config.app.name)}`,
+    "",
   ];
 
-  if (windowsSetup) {
-    lines.push(
-      `windowsX64SetupPath: ${yamlQuote(windowsSetup.name)}`,
-      `windowsX64SetupUrl: ${yamlQuote(releaseUrl(tag, windowsSetup.name))}`,
-      `windowsX64SetupSha256: ${yamlQuote(windowsSetup.sha256)}`,
-      `windowsX64SetupSha512: ${yamlQuote(windowsSetup.sha512)}`,
-      `windowsX64SetupSize: ${windowsSetup.size}`,
-    );
-  }
-
-  if (windowsPortable) {
-    lines.push(
-      `windowsX64PortablePath: ${yamlQuote(windowsPortable.name)}`,
-      `windowsX64PortableUrl: ${yamlQuote(releaseUrl(tag, windowsPortable.name))}`,
-      `windowsX64PortableSha256: ${yamlQuote(windowsPortable.sha256)}`,
-      `windowsX64PortableSha512: ${yamlQuote(windowsPortable.sha512)}`,
-      `windowsX64PortableSize: ${windowsPortable.size}`,
-    );
-  }
-
-  if (linux) {
-    lines.push(
-      `linuxPath: ${yamlQuote(linux.name)}`,
-      `linuxUrl: ${yamlQuote(releaseUrl(tag, linux.name))}`,
-      `linuxSha256: ${yamlQuote(linux.sha256)}`,
-      `linuxSha512: ${yamlQuote(linux.sha512)}`,
-      `linuxSize: ${linux.size}`,
-    );
-  }
-
-  if (linuxAppImage) {
-    lines.push(
-      `linuxX64AppImagePath: ${yamlQuote(linuxAppImage.name)}`,
-      `linuxX64AppImageUrl: ${yamlQuote(releaseUrl(tag, linuxAppImage.name))}`,
-      `linuxX64AppImageSha256: ${yamlQuote(linuxAppImage.sha256)}`,
-      `linuxX64AppImageSha512: ${yamlQuote(linuxAppImage.sha512)}`,
-      `linuxX64AppImageSize: ${linuxAppImage.size}`,
-    );
-  }
-
-  if (linuxDeb) {
-    lines.push(
-      `linuxX64DebPath: ${yamlQuote(linuxDeb.name)}`,
-      `linuxX64DebUrl: ${yamlQuote(releaseUrl(tag, linuxDeb.name))}`,
-      `linuxX64DebSha256: ${yamlQuote(linuxDeb.sha256)}`,
-      `linuxX64DebSha512: ${yamlQuote(linuxDeb.sha512)}`,
-      `linuxX64DebSize: ${linuxDeb.size}`,
-    );
-  }
-
-  if (linuxPortable) {
-    lines.push(
-      `linuxX64PortablePath: ${yamlQuote(linuxPortable.name)}`,
-      `linuxX64PortableUrl: ${yamlQuote(releaseUrl(tag, linuxPortable.name))}`,
-      `linuxX64PortableSha256: ${yamlQuote(linuxPortable.sha256)}`,
-      `linuxX64PortableSha512: ${yamlQuote(linuxPortable.sha512)}`,
-      `linuxX64PortableSize: ${linuxPortable.size}`,
-    );
-  }
-
-  if (macosDmg) {
-    lines.push(
-      `macosUniversalDmgPath: ${yamlQuote(macosDmg.name)}`,
-      `macosUniversalDmgUrl: ${yamlQuote(releaseUrl(tag, macosDmg.name))}`,
-      `macosUniversalDmgSha256: ${yamlQuote(macosDmg.sha256)}`,
-      `macosUniversalDmgSha512: ${yamlQuote(macosDmg.sha512)}`,
-      `macosUniversalDmgSize: ${macosDmg.size}`,
-    );
-  }
-
-  if (macosPortable) {
-    lines.push(
-      `macosUniversalPortablePath: ${yamlQuote(macosPortable.name)}`,
-      `macosUniversalPortableUrl: ${yamlQuote(releaseUrl(tag, macosPortable.name))}`,
-      `macosUniversalPortableSha256: ${yamlQuote(macosPortable.sha256)}`,
-      `macosUniversalPortableSha512: ${yamlQuote(macosPortable.sha512)}`,
-      `macosUniversalPortableSize: ${macosPortable.size}`,
-    );
-  }
-
-  lines.push(`productName: ${yamlQuote(config.app.name)}`, "");
   fs.writeFileSync(path.join(artifactsDir, "latest.yml"), lines.join("\n"), "utf8");
 }
 
