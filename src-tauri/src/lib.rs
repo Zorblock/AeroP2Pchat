@@ -12,9 +12,14 @@ use serde::Serialize;
 use serde_json::{json, Value};
 #[cfg(target_os = "windows")]
 use sha2::{Digest, Sha256, Sha512};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Window};
 
 const CONFIG_FILE_NAME: &str = "config.json";
+const TRAY_MENU_OPEN: &str = "tray-open";
+const TRAY_MENU_HIDE: &str = "tray-hide";
+const TRAY_MENU_QUIT: &str = "tray-quit";
 const UPDATE_MANIFEST_URL: &str =
     "https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/latest.yml";
 #[cfg(target_os = "windows")]
@@ -38,7 +43,7 @@ fn default_config() -> Value {
         "appSettings": {
             "autostart": false,
             "startHidden": false,
-            "closeToTray": false,
+            "closeToTray": true,
             "readReceipts": true,
             "sidebarWidth": 230,
             "theme": "light",
@@ -87,6 +92,68 @@ fn save_config(app: AppHandle, config: Value) -> Result<CommandOk, String> {
 #[tauri::command]
 fn get_config_path(app: AppHandle) -> Result<String, String> {
     Ok(config_path(&app)?.to_string_lossy().into_owned())
+}
+
+fn app_config(app: &AppHandle) -> Value {
+    let Ok(path) = config_path(app) else {
+        return default_config();
+    };
+    if !path.exists() {
+        return default_config();
+    }
+
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_else(default_config)
+}
+
+fn should_close_to_tray(app: &AppHandle) -> bool {
+    app_config(app)
+        .get("appSettings")
+        .and_then(|settings| settings.get("closeToTray"))
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn hide_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+}
+
+fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
+    let open = MenuItem::with_id(
+        app,
+        TRAY_MENU_OPEN,
+        "Open Aero P2P Chat",
+        true,
+        None::<&str>,
+    )?;
+    let hide = MenuItem::with_id(app, TRAY_MENU_HIDE, "Hide to tray", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, TRAY_MENU_QUIT, "Quit", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let menu = Menu::with_items(app, &[&open, &hide, &separator, &quit])?;
+
+    let mut tray = TrayIconBuilder::with_id("main-tray")
+        .menu(&menu)
+        .tooltip("Aero P2P Chat")
+        .show_menu_on_left_click(true);
+
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone());
+    }
+
+    tray.build(app)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -211,8 +278,11 @@ fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
             }),
         )
         .ok();
-        app.emit("update-progress", json!({ "phase": "verify", "percent": 100 }))
-            .ok();
+        app.emit(
+            "update-progress",
+            json!({ "phase": "verify", "percent": 100 }),
+        )
+        .ok();
 
         let actual_sha256 = hex_digest(&bytes, "sha256");
         if actual_sha256 != expected_sha256 {
@@ -226,13 +296,20 @@ fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
 
         let setup_path = std::env::temp_dir().join(format!(
             "Aero-P2P-Chat-Setup-{}.exe",
-            if version.is_empty() { "latest" } else { &version }
+            if version.is_empty() {
+                "latest"
+            } else {
+                &version
+            }
         ));
         let mut file = fs::File::create(&setup_path).map_err(|error| error.to_string())?;
         file.write_all(&bytes).map_err(|error| error.to_string())?;
 
-        app.emit("update-progress", json!({ "phase": "install", "percent": 100 }))
-            .ok();
+        app.emit(
+            "update-progress",
+            json!({ "phase": "install", "percent": 100 }),
+        )
+        .ok();
         Command::new(&setup_path)
             .args([
                 "/SILENT",
@@ -278,6 +355,22 @@ fn window_control(window: Window, action: String) -> Result<Value, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            TRAY_MENU_OPEN => show_main_window(app),
+            TRAY_MENU_HIDE => hide_main_window(app),
+            TRAY_MENU_QUIT => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             load_config,
             save_config,
@@ -289,10 +382,16 @@ pub fn run() {
             window_control
         ])
         .setup(|app| {
+            setup_tray(app.handle())?;
             if let Some(window) = app.get_webview_window("main") {
                 let handle = app.handle().clone();
                 window.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        if should_close_to_tray(&handle) {
+                            api.prevent_close();
+                            hide_main_window(&handle);
+                            return;
+                        }
                         let _ = handle.emit("system-shutdown", json!({ "reason": "quit" }));
                     }
                 });
