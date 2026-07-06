@@ -1,7 +1,7 @@
 {
   "name": "aerop2p",
   "private": true,
-  "version": "26.15.0",
+  "version": "26.16.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
