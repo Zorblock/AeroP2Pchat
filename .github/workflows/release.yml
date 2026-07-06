@@ -1,0 +1,55 @@
+name: release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  linux-appimage:
+    runs-on: ubuntu-22.04
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Tauri Linux dependencies
+        run: sudo apt-get update --yes && sudo apt-get install --yes libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Test
+        run: npm run test
+
+      - name: Build AppImage
+        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
+
+      - name: Create latest.yml
+        run: |
+          mkdir -p artifacts
+          cp dist/release/* artifacts/
+          node scripts/ci-create-latest.cjs artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/latest.yml
+            artifacts/Aero-P2P-Chat-Linux.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
