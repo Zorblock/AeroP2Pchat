@@ -4,9 +4,12 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without v prefix"
+        required: true
+        type: string
 
 jobs:
   linux-appimage:
@@ -36,7 +39,7 @@ jobs:
         run: npm run test
 
       - name: Build AppImage
-        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
+        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ inputs.version }}
 
       - name: Create latest.yml
         run: |
@@ -47,6 +50,8 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
           fail_on_unmatched_files: true
           files: |
             artifacts/latest.yml

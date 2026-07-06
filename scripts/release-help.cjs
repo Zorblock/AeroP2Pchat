@@ -153,12 +153,20 @@ function ensureTagDoesNotExist(tag) {
   }
 }
 
-function hasStagedChanges() {
-  const result = spawnSync("git", ["diff", "--cached", "--quiet"], {
-    cwd: root,
-    stdio: "ignore",
-  });
-  return result.status !== 0;
+function ensureGitHubCli() {
+  run("gh", ["--version"], { capture: true });
+}
+
+function triggerReleaseWorkflow(version, branch) {
+  run("gh", [
+    "workflow",
+    "run",
+    "release.yml",
+    "--ref",
+    branch,
+    "--field",
+    `version=${version}`,
+  ]);
 }
 
 function main() {
@@ -175,28 +183,18 @@ function main() {
   console.log(`Tag:     ${tag}`);
 
   if (options.dryRun) {
-    console.log("Dry run only. No files, commits, or tags were changed.");
+    console.log("Dry run only. No files were changed and no workflow was triggered.");
     return;
   }
 
+  ensureGitHubCli();
   setPackageVersion(nextVersion);
-
   run("npm", ["run", "test"]);
-
-  run("git", ["add", "-A"]);
-  if (hasStagedChanges()) {
-    run("git", ["commit", "-m", `chore: release ${tag}`]);
-  } else {
-    console.log("No file changes to commit.");
-  }
-
-  run("git", ["push", "-u", "origin", branch]);
-  run("git", ["tag", tag]);
-  run("git", ["push", "origin", tag]);
+  triggerReleaseWorkflow(nextVersion, branch);
 
   console.log("");
-  console.log(`Release ${tag} started on GitHub Actions.`);
-  console.log("build.yml and cd.yml build the release packages on GitHub Actions.");
+  console.log(`Release ${tag} workflow_dispatch started on GitHub Actions.`);
+  console.log("No commit, push, or tag was created locally by this script.");
 }
 
 try {
