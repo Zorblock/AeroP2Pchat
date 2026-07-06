@@ -1,18 +1,23 @@
 use std::fs;
+#[cfg(target_os = "windows")]
 use std::io::Write;
 use std::path::PathBuf;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 use std::time::Duration;
 
+#[cfg(target_os = "windows")]
 use base64::Engine;
 use serde::Serialize;
 use serde_json::{json, Value};
+#[cfg(target_os = "windows")]
 use sha2::{Digest, Sha256, Sha512};
 use tauri::{AppHandle, Emitter, Manager, Window};
 
 const CONFIG_FILE_NAME: &str = "config.json";
 const UPDATE_MANIFEST_URL: &str =
     "https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/latest.yml";
+#[cfg(target_os = "windows")]
 const RELEASE_DOWNLOAD_PREFIX: &str = "https://github.com/Zorblock/AeroP2Pchat/releases/download/";
 
 #[derive(Serialize)]
@@ -119,6 +124,7 @@ fn fetch_update_manifest(url: String) -> Result<Value, String> {
     Ok(json!({ "ok": true, "text": text }))
 }
 
+#[cfg(target_os = "windows")]
 fn parse_update_detail(details: &Value, key: &str) -> String {
     details
         .get(key)
@@ -127,6 +133,7 @@ fn parse_update_detail(details: &Value, key: &str) -> String {
         .to_string()
 }
 
+#[cfg(target_os = "windows")]
 fn verify_update_url(url: &str) -> Result<(), String> {
     if !url.starts_with(RELEASE_DOWNLOAD_PREFIX) || !url.ends_with(".exe") {
         return Err("Refused untrusted update URL.".into());
@@ -134,6 +141,7 @@ fn verify_update_url(url: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn hex_digest(bytes: &[u8], algorithm: &str) -> String {
     match algorithm {
         "sha256" => format!("{:x}", Sha256::digest(bytes)),
@@ -142,6 +150,7 @@ fn hex_digest(bytes: &[u8], algorithm: &str) -> String {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn sha512_base64(bytes: &[u8]) -> String {
     let digest = Sha512::digest(bytes);
     base64::engine::general_purpose::STANDARD.encode(digest)

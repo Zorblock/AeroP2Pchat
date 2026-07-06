@@ -29,14 +29,28 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
+      - name: Cache Tauri bundler
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tauri
+          key: ${{ runner.os }}-tauri-bundler-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-bundler-
+
       - name: Install dependencies
         run: npm ci
 
       - name: Install Tauri Linux dependencies
-        run: sudo apt-get update --yes && sudo apt-get install --yes libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        run: sudo apt-get update --yes && sudo apt-get install --yes libwebkit2gtk-4.1-dev build-essential libxdo-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
-      - name: Test
-        run: npm run test
+      - name: Check frontend and scripts
+        run: npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs
 
       - name: Build AppImage
         run: node scripts/ci-build-release.cjs --platform=linux --version=${{ inputs.version }}
