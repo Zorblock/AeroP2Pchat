@@ -14,7 +14,7 @@ on:
 jobs:
   linux-appimage:
     runs-on: ubuntu-22.04
-    environment: production
+    environment: release
 
     steps:
       - name: Checkout
