@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linux, X11, Wayland - Aero P2P Chat Wiki</title>
+    <meta
+      name="description"
+      content="Linux AppImage, X11, Wayland, WebKitGTK, and black screen notes for Aero P2P Chat."
+    />
+    <link rel="icon" type="image/png" href="../logo.png" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="../" aria-label="Aero P2P Chat home">
+        <img src="../logo.png" alt="" />
+        <span>Aero P2P Chat</span>
+      </a>
+      <nav aria-label="Wiki navigation">
+        <a href="./">Wiki</a>
+        <a href="release.html">Release</a>
+        <a href="troubleshooting.html">Troubleshooting</a>
+      </nav>
+    </header>
+
+    <main>
+      <article class="section docs-page">
+        <p class="eyebrow">Linux</p>
+        <h1>Linux, X11, and Wayland.</h1>
+        <p class="lead">
+          Aero P2P Chat is shipped as an AppImage on Linux. The app uses Tauri
+          with WebKitGTK, so the installed system WebKitGTK stack matters more
+          than it does on Windows.
+        </p>
+
+        <h2>Install</h2>
+        <p>Recommended installer command:</p>
+        <div class="command-box docs-command">
+          <code>curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh</code>
+        </div>
+        <p>After install, these commands are available when `~/.local/bin` is in PATH:</p>
+        <div class="command-box docs-command">
+          <code>aerop2p open
+aerop2p status
+aerop2p update
+aerop2p uninstall</code>
+        </div>
+
+        <h2>Check X11 or Wayland</h2>
+        <p>Run this before starting the app:</p>
+        <div class="command-box docs-command">
+          <code>echo $XDG_SESSION_TYPE</code>
+        </div>
+        <p>
+          `x11` and `wayland` are both expected to work. If one session has
+          compositor or driver issues, test the other session from your login
+          screen.
+        </p>
+
+        <h2>Black or empty window</h2>
+        <p>
+          A black window usually means WebKitGTK could not render the frontend,
+          or the AppImage could not resolve bundled frontend assets. Current
+          releases build the frontend with relative assets and a conservative
+          WebKit-compatible target.
+        </p>
+        <p>Useful test command:</p>
+        <div class="command-box docs-command">
+          <code>WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Aero-P2P-Chat-Linux.AppImage</code>
+        </div>
+        <p>
+          If that works, the issue is usually GPU/compositor related. Keep the
+          environment variable in your launcher while debugging the distro
+          graphics stack.
+        </p>
+
+        <h2>Direct AppImage start</h2>
+        <div class="command-box docs-command">
+          <code>chmod +x Aero-P2P-Chat-Linux.AppImage
+./Aero-P2P-Chat-Linux.AppImage</code>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      <a href="./">Back to wiki</a>
+      <a href="../">Home</a>
+    </footer>
+  </body>
+</html>
