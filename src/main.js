@@ -7,6 +7,7 @@ import "./styles.css";
 
 const projectConfig = __PROJECT_CONFIG__;
 
+async function main() {
 const titlebarLogo = document.querySelector("#titlebar-logo");
 const titlebarAvatar = document.querySelector(".titlebar-avatar");
 const titlebarPresence = document.querySelector("#titlebar-presence");
@@ -2958,7 +2959,9 @@ function getCallVideoQualityProfile(profile = callState.videoQualityProfile) {
 }
 
 function normalizeScreenQuality(value) {
-  return Object.hasOwn(SCREEN_STREAM_PROFILES, value) ? value : "720p";
+  return Object.prototype.hasOwnProperty.call(SCREEN_STREAM_PROFILES, value)
+    ? value
+    : "720p";
 }
 
 function normalizeScreenFps(value) {
@@ -7997,3 +8000,15 @@ async function finishBootScreen() {
 }
 
 finishBootScreen();
+}
+
+main().catch((error) => {
+  console.error(error);
+  const bootStatusNode = document.querySelector("#boot-status");
+  const bootPercentNode = document.querySelector("#boot-percent");
+  const bootProgressNode = document.querySelector("#boot-progress-fill");
+  if (bootStatusNode) bootStatusNode.textContent = "Startup failed";
+  if (bootPercentNode) bootPercentNode.textContent = "100%";
+  if (bootProgressNode) bootProgressNode.style.width = "100%";
+  document.body.classList.remove("app-loading", "app-boot-finish");
+});
