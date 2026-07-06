@@ -19,8 +19,8 @@ function parseArgs() {
     if (arg.startsWith("--platform=")) options.platform = arg.slice(11);
     if (arg.startsWith("--version=")) options.version = arg.slice(10).replace(/^v/, "");
   }
-  if (options.platform !== "linux") {
-    throw new Error("Only --platform=linux is supported for release builds.");
+  if (!["linux", "windows"].includes(options.platform)) {
+    throw new Error("Missing --platform=linux|windows.");
   }
   return options;
 }
@@ -117,10 +117,25 @@ function copyAsset(source, name, assets) {
 
 function writeManifest(version, assets) {
   fs.writeFileSync(
-    path.join(releaseDir, "update_manifest_linux.json"),
-    `${JSON.stringify({ version, platform: "linux", assets }, null, 2)}\n`,
+    path.join(releaseDir, `update_manifest_${assets.platform}.json`),
+    `${JSON.stringify({ version, platform: assets.platform, assets: assets.items }, null, 2)}\n`,
     "utf8",
   );
+}
+
+function buildWindows(version) {
+  fs.rmSync(releaseDir, { recursive: true, force: true });
+  fs.mkdirSync(releaseDir, { recursive: true });
+
+  run("npm", ["run", "tauri", "--", "build", "--bundles", "nsis"]);
+
+  const items = [];
+  const setup = findNewestFile(
+    path.join(tauriTargetDir, "bundle"),
+    (name) => name.endsWith("-setup.exe"),
+  );
+  copyAsset(setup, config.release.windowsInstallerAsset, items);
+  writeManifest(version, { platform: "windows", items });
 }
 
 function buildLinux(version) {
@@ -129,19 +144,20 @@ function buildLinux(version) {
 
   run("npm", ["run", "tauri", "--", "build", "--bundles", "appimage"]);
 
-  const assets = [];
+  const items = [];
   const appImage = findNewestFile(
     path.join(tauriTargetDir, "bundle"),
     (name) => name.endsWith(".AppImage"),
   );
-  copyAsset(appImage, config.release.linuxAppImageAsset, assets);
-  writeManifest(version, assets);
+  copyAsset(appImage, config.release.linuxAppImageAsset, items);
+  writeManifest(version, { platform: "linux", items });
 }
 
 function main() {
   const options = parseArgs();
   const version = setVersion(options.version);
-  buildLinux(version);
+  if (options.platform === "windows") buildWindows(version);
+  if (options.platform === "linux") buildLinux(version);
 }
 
 main();

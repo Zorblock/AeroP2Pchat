@@ -15,6 +15,7 @@
   },
   "release": {
     "artifactName": "Aero-P2P-Chat-${version}-${os}-${arch}.${ext}",
+    "windowsInstallerAsset": "Aero-P2P-Chat-Windows-Setup.exe",
     "linuxAppImageAsset": "Aero-P2P-Chat-Linux.AppImage"
   }
 }

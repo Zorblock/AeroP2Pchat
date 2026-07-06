@@ -235,6 +235,45 @@ function ensureGitHubCli() {
   run("gh", ["auth", "status"], { capture: true });
 }
 
+function ensureWindowsReleaseHost() {
+  if (process.platform !== "win32") {
+    throw new Error("npm run release must run on Windows because it builds and uploads the Windows setup locally.");
+  }
+}
+
+function buildWindowsRelease(version) {
+  info("Building Windows setup locally with Tauri NSIS...");
+  run("node", ["scripts/ci-build-release.cjs", "--platform=windows", `--version=${version}`]);
+  ok("Windows setup built.");
+}
+
+function createReleaseWithWindowsAssets(version, branch) {
+  const tag = `v${version}`;
+  const setupPath = path.join("dist", "release", "Aero-P2P-Chat-Windows-Setup.exe");
+  const manifestPath = path.join("dist", "release", "update_manifest_windows.json");
+  if (!fs.existsSync(path.join(root, setupPath))) {
+    throw new Error(`Missing Windows setup: ${setupPath}`);
+  }
+  if (!fs.existsSync(path.join(root, manifestPath))) {
+    throw new Error(`Missing Windows manifest: ${manifestPath}`);
+  }
+
+  run("gh", [
+    "release",
+    "create",
+    tag,
+    setupPath,
+    manifestPath,
+    "--target",
+    branch,
+    "--title",
+    tag,
+    "--notes",
+    `Aero P2P Chat ${tag}`,
+  ]);
+  ok(`Created GitHub release ${tag} with Windows setup.`);
+}
+
 function commitAndPushVersionFiles(version, branch) {
   run("git", ["add", ...versionFiles]);
   const staged = spawnSync("git", ["diff", "--cached", "--quiet", "--", ...versionFiles], {
@@ -289,6 +328,7 @@ function main() {
   ensureNoPreexistingVersionFileChanges();
   warnAboutOtherLocalChanges();
   ensureGitHubCli();
+  ensureWindowsReleaseHost();
 
   setVersion(nextVersion);
   ok("Updated package, Cargo, and Tauri versions.");
@@ -297,6 +337,8 @@ function main() {
   ok("Local checks passed.");
 
   commitAndPushVersionFiles(nextVersion, branch);
+  buildWindowsRelease(nextVersion);
+  createReleaseWithWindowsAssets(nextVersion, branch);
   triggerReleaseWorkflow(nextVersion, branch);
 
   ok(`Release ${tag} workflow_dispatch started.`);

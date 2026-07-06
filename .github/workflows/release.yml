@@ -42,9 +42,12 @@ jobs:
         run: node scripts/ci-build-release.cjs --platform=linux --version=${{ inputs.version }}
 
       - name: Create latest.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p artifacts
           cp dist/release/* artifacts/
+          gh release download "v${{ inputs.version }}" --pattern update_manifest_windows.json --dir artifacts || true
           node scripts/ci-create-latest.cjs artifacts
 
       - name: Create release
