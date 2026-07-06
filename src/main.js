@@ -2545,8 +2545,7 @@ async function checkForUpdates({ manual = false } = {}) {
       return;
     }
 
-    const windowsUrl =
-      manifest.windowsUrl || manifest.windows_url || manifest.url || "";
+    const windowsUrl = manifest.windowsUrl || manifest.windows_url || "";
     const windowsSha256 =
       manifest.windowsSha256 ||
       manifest.windows_sha256 ||
@@ -2588,7 +2587,11 @@ async function checkForUpdates({ manual = false } = {}) {
       windowsUrl,
       windowsSha256,
       windowsSha512,
-      linuxUrl: manifest.linuxUrl || manifest.linuxX64AppImageUrl || "",
+      linuxUrl:
+        manifest.linuxUrl ||
+        manifest.linuxX64AppImageUrl ||
+        manifest.url ||
+        "",
       linuxSha256:
         manifest.linuxSha256 || manifest.linuxX64AppImageSha256 || "",
       macosUrl,
