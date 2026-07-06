@@ -84,7 +84,7 @@ function writeWindowsCliTemplates() {
   const replacements = {
     APP_NAME: projectConfig.app.name,
     APP_VERSION: process.env.npm_package_version || packageJson.version,
-    APP_EXE_NAME: `${projectConfig.app.name}.exe`,
+    APP_EXE_NAME: "Aero P2P Chat.exe",
     CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
     REPO: projectConfig.repo,
     WINDOWS_INSTALLER_ASSET: projectConfig.release.windowsInstallerAsset,
@@ -124,7 +124,7 @@ const result = spawnSync(
         process.env.npm_package_version || packageJson.version,
       AERO_APP_NAME: projectConfig.app.name,
       AERO_APP_AUTHOR: packageAuthor || projectConfig.app.name,
-      AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
+      AERO_APP_EXE_NAME: "Aero P2P Chat.exe",
       AERO_CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
       AERO_WINDOWS_SETUP_BASE_NAME: projectConfig.release.windowsSetupBaseName,
     },

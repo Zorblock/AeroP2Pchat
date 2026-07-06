@@ -43,12 +43,12 @@ function writeJson(filePath, data) {
 
 function parseArgs() {
   const options = {
-    bump: "patch",
+    bump: process.env.npm_config_patch === "true" ? "patch" : "minor",
     dryRun: process.env.npm_config_dry_run === "true",
   };
 
   for (const arg of process.argv.slice(2)) {
-    if (arg === "--patch") options.bump = "patch";
+    if (arg === "--patch" || arg === "-patch") options.bump = "patch";
     else if (arg === "--minor") options.bump = "minor";
     else if (arg === "--major") options.bump = "major";
     else if (arg === "--no-bump") options.bump = "none";
@@ -82,8 +82,10 @@ function bumpVersion(version, bump) {
   } else if (bump === "minor") {
     minor += 1;
     patch = 0;
-  } else {
+  } else if (bump === "patch") {
     patch += 1;
+  } else {
+    throw new Error(`Unknown version bump: ${bump}`);
   }
 
   return `${major}.${minor}.${patch}`;

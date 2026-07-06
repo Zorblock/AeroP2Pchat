@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const distDir = path.join(root, "dist");
 const releaseDir = path.join(distDir, "release");
+const buildRoot = path.join(distDir, "build");
 const tauriTargetDir = path.join(root, "src-tauri", "target", "release");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
@@ -19,8 +20,8 @@ function parseArgs() {
     if (arg.startsWith("--platform=")) options.platform = arg.slice(11);
     if (arg.startsWith("--version=")) options.version = arg.slice(10).replace(/^v/, "");
   }
-  if (!["linux", "windows", "macos"].includes(options.platform)) {
-    throw new Error("Missing --platform=linux|windows|macos");
+  if (!["linux", "windows"].includes(options.platform)) {
+    throw new Error("Missing --platform=linux|windows");
   }
   return options;
 }
@@ -130,62 +131,33 @@ function writePlatformManifest(platform, version, assets) {
   );
 }
 
-function buildTauri() {
-  run("npm", ["run", "tauri", "--", "build"]);
-}
-
 function buildWindows(version) {
-  buildTauri();
-  const assets = [];
-  const setup = findNewestFile(
-    path.join(tauriTargetDir, "bundle"),
-    (name, fullPath) => name.endsWith("-setup.exe") && fullPath.includes(`${path.sep}nsis${path.sep}`),
-  );
-  const msi = findNewestFile(
-    path.join(tauriTargetDir, "bundle"),
-    (name) => name.endsWith(".msi"),
-  );
-  const exe = path.join(tauriTargetDir, "aerop2p.exe");
+  run("npm", ["run", "tauri", "--", "build", "--bundles", "none"]);
 
-  copyAsset(setup, config.release.windowsX64SetupAsset, assets);
-  copyAsset(path.join(releaseDir, config.release.windowsX64SetupAsset), config.release.windowsInstallerAsset, assets);
-  copyAsset(exe, config.release.windowsX64PortableAsset, assets);
-  if (msi) {
-    copyAsset(msi, `Aero-P2P-Chat-Windows-x64-${version}.msi`, assets);
-  }
+  const unpackedDir = path.join(buildRoot, "tauri-win-unpacked");
+  fs.rmSync(unpackedDir, { recursive: true, force: true });
+  fs.mkdirSync(unpackedDir, { recursive: true });
+  fs.copyFileSync(path.join(tauriTargetDir, "aerop2p.exe"), path.join(unpackedDir, "Aero P2P Chat.exe"));
+  fs.writeFileSync(path.join(buildRoot, "latest-win-dir.txt"), path.relative(root, unpackedDir), "utf8");
+
+  run("node", ["scripts/build-inno.cjs"]);
+
+  const assets = [];
+  const setup = path.join(distDir, "installer", `${config.release.windowsSetupBaseName}-${version}.exe`);
+  copyAsset(setup, config.release.windowsInstallerAsset, assets);
   writePlatformManifest("windows", version, assets);
 }
 
 function buildLinux(version) {
-  buildTauri();
-  const assets = [];
-  const bundleDir = path.join(tauriTargetDir, "bundle");
-  const appImage = findNewestFile(bundleDir, (name) => name.endsWith(".AppImage"));
-  const deb = findNewestFile(bundleDir, (name) => name.endsWith(".deb"));
-  const rpm = findNewestFile(bundleDir, (name) => name.endsWith(".rpm"));
+  run("npm", ["run", "tauri", "--", "build", "--bundles", "appimage"]);
 
-  copyAsset(appImage, config.release.linuxX64AppImageAsset, assets);
-  copyAsset(path.join(releaseDir, config.release.linuxX64AppImageAsset), config.release.linuxAppImageAsset, assets);
-  if (deb) {
-    copyAsset(deb, `Aero-P2P-Chat-Linux-x64-${version}-amd64.deb`, assets);
-    copyAsset(deb, config.release.linuxX64DebAsset, assets);
-  }
-  if (rpm) {
-    copyAsset(rpm, `Aero-P2P-Chat-Linux-x64-${version}.rpm`, assets);
-  }
+  const assets = [];
+  const appImage = findNewestFile(
+    path.join(tauriTargetDir, "bundle"),
+    (name) => name.endsWith(".AppImage"),
+  );
+  copyAsset(appImage, config.release.linuxAppImageAsset, assets);
   writePlatformManifest("linux", version, assets);
-}
-
-function buildMacos(version) {
-  buildTauri();
-  const assets = [];
-  const bundleDir = path.join(tauriTargetDir, "bundle");
-  copyAsset(findNewestFile(bundleDir, (name) => name.endsWith(".dmg")), config.release.macosUniversalDmgAsset, assets);
-  const app = findNewestFile(bundleDir, (name) => name.endsWith(".app.tar.gz"));
-  if (app) {
-    copyAsset(app, config.release.macosUniversalPortableAsset, assets);
-  }
-  writePlatformManifest("macos", version, assets);
 }
 
 function main() {
@@ -195,7 +167,6 @@ function main() {
 
   if (options.platform === "windows") buildWindows(version);
   if (options.platform === "linux") buildLinux(version);
-  if (options.platform === "macos") buildMacos(version);
 }
 
 main();

@@ -7,13 +7,11 @@ APP_SLUG="aero-p2p-chat"
 CLI_COMMAND_NAME="aerop2p"
 APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
 APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
-DEB_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.deb"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
 PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
 APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
-DEB_URL="${RELEASE_BASE}/${DEB_RELEASE_NAME}"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
 INSTALLER_URL="${PAGES_BASE}/install.sh"
 ICON_URL="${PAGES_BASE}/logo.png"
@@ -131,12 +129,7 @@ get_manifest_appimage_url() {
 }
 
 get_manifest_deb_url() {
-    manifest="$1"
-    url="$(read_manifest_value "linuxX64DebUrl" "$manifest")"
-    if [ -z "$url" ]; then
-        url="$DEB_URL"
-    fi
-    printf '%s' "$url"
+    printf ''
 }
 
 verify_sha256() {
@@ -522,12 +515,10 @@ install_app() {
     fetch_manifest "$tmp_manifest"
     latest_version="$(get_latest_version "$tmp_manifest")"
     appimage_url="$(get_manifest_appimage_url "$tmp_manifest")"
-    deb_url="$(get_manifest_deb_url "$tmp_manifest")"
     appimage_sha256="$(read_manifest_value "linuxSha256" "$tmp_manifest")"
     if [ -z "$appimage_sha256" ]; then
         appimage_sha256="$(read_manifest_value "linuxX64AppImageSha256" "$tmp_manifest")"
     fi
-    deb_sha256="$(read_manifest_value "linuxX64DebSha256" "$tmp_manifest")"
     installed_version="$(get_installed_version)"
     
     if is_installed; then
@@ -545,31 +536,6 @@ install_app() {
         info "Installing ${latest_version}..."
     fi
 
-    if is_deb_capable && [ -n "$deb_url" ]; then
-        tmp_deb="$(mktemp --suffix=.deb 2>/dev/null || mktemp)"
-        trap 'rm -f "$tmp_manifest" "$tmp_appimage" "$tmp_deb"' EXIT
-
-        info "Debian package support detected. Installing .deb package..."
-        if download "$deb_url" "$tmp_deb"; then
-            verify_sha256 "$tmp_deb" "$deb_sha256" "Debian package"
-            if install_deb_package "$tmp_deb"; then
-                rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
-                rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
-                write_launcher
-                write_terminal_command
-                ok "${APP_NAME} ${latest_version} installed from Debian package."
-                print_paths
-                if ! printf '%s' ":$PATH:" | grep -q ":$BIN_DIR:"; then
-                    warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: $CLI_COMMAND_NAME update"
-                fi
-                return
-            fi
-            warn "Debian package install failed or was cancelled. Falling back to AppImage."
-        else
-            warn "Debian package download failed. Falling back to AppImage."
-        fi
-    fi
-    
     download "$appimage_url" "$tmp_appimage"
     verify_sha256 "$tmp_appimage" "$appimage_sha256" "AppImage"
     chmod +x "$tmp_appimage"
