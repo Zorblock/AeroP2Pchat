@@ -23,18 +23,18 @@ function App() {
         if (data && data.tag_name) {
           const latest = data.tag_name;
           setLatestVersion(latest);
-          
+
           const parts = latest.split('.');
           if (parts.length === 3) {
             const patch = parseInt(parts[2], 10);
             if (!isNaN(patch) && patch > 0) {
               parts[2] = (patch - 1).toString();
             } else {
-               const minor = parseInt(parts[1], 10);
-               if (!isNaN(minor) && minor > 0) {
-                 parts[1] = (minor - 1).toString();
-                 parts[2] = '0';
-               }
+              const minor = parseInt(parts[1], 10);
+              if (!isNaN(minor) && minor > 0) {
+                parts[1] = (minor - 1).toString();
+                parts[2] = '0';
+              }
             }
             setInstalledVersion(parts.join('.'));
           }
@@ -75,13 +75,13 @@ function App() {
   return (
     <>
       {/* Static Overlays as requested */}
-      <img 
+      <img
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '800px', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
         alt=""
       />
-      
-      <img 
+
+      <img
         src={`${import.meta.env.BASE_URL}img/flares_6.png`}
         style={{ position: 'absolute', top: '-5%', left: '50%', transform: 'translateX(-50%)', width: '800px', zIndex: 20, opacity: 0.9, mixBlendMode: 'screen', pointerEvents: 'none' }}
         alt=""
@@ -93,51 +93,51 @@ function App() {
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {/* Decorative scattered clouds across the entire scrollable height */}
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '10%', left: '-10%', width: '500px', zIndex: -1, opacity: 0.7, pointerEvents: 'none', transform: 'rotate(-5deg)' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '30%', right: '-5%', width: '400px', zIndex: -1, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(10deg)' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '55%', left: '2%', width: '300px', zIndex: -1, opacity: 0.6, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-15deg)' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '80%', right: '10%', width: '600px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(5deg)' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '95%', left: '-15%', width: '700px', zIndex: -1, opacity: 0.4, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-8deg)' }}
           alt=""
         />
 
         {/* Decorative background bubbles */}
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/bubbles_37.png`}
           style={{ position: 'absolute', top: '45%', right: '-5%', width: '500px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(-15deg)' }}
           alt=""
         />
 
         {/* Foreground overlapping clouds for 3D depth effect */}
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '25%', left: '-15%', width: '450px', zIndex: 50, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '65%', right: '-10%', width: '550px', zIndex: 50, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
           alt=""
         />
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '85%', left: '-10%', width: '400px', zIndex: 50, opacity: 0.85, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
           alt=""
@@ -199,13 +199,13 @@ function App() {
 
           <div style={{ marginTop: '2rem', width: '100%' }}>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
-              <button 
+              <button
                 onClick={() => setInstallOs('windows')}
                 style={{ background: installOs === 'windows' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', color: installOs === 'windows' ? '#0f172a' : '#475569', border: '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.2rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: installOs === 'windows' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none' }}
               >
                 Windows
               </button>
-              <button 
+              <button
                 onClick={() => setInstallOs('linux')}
                 style={{ background: installOs === 'linux' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', color: installOs === 'linux' ? '#0f172a' : '#475569', border: '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.2rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: installOs === 'linux' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none' }}
               >
@@ -274,10 +274,10 @@ function App() {
           style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative', overflow: 'hidden' }}
         >
           {/* Inner overlay flare */}
-          <img 
-            src={`${import.meta.env.BASE_URL}img/flares_12.png`} 
-            style={{ position: 'absolute', top: '-50%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 0.4, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 0 }} 
-            alt="" 
+          <img
+            src={`${import.meta.env.BASE_URL}img/flares_12.png`}
+            style={{ position: 'absolute', top: '-50%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 0.4, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 0 }}
+            alt=""
           />
 
           <div style={{ position: 'relative', zIndex: 1 }}>
@@ -287,7 +287,7 @@ function App() {
                 Aero P2P Chat cuts out the middleman. By utilizing WebRTC, data streams directly between you and your friend.
               </p>
             </div>
-            
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
                 <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>1</div>
@@ -316,8 +316,14 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center' }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative' }}
         >
+          {/* Sealife next to the command prompt */}
+          <img
+            src={`${import.meta.env.BASE_URL}img/sealife_14.png`}
+            style={{ position: 'absolute', top: '-45%', right: '-15%', width: '400px', zIndex: 9999, pointerEvents: 'none', transform: 'rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+            alt=""
+          />
           <div className="aero-glass" style={{ padding: '2rem', borderRadius: '24px' }}>
             <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem' }}>Powerful CLI Integration</h2>
             <p style={{ color: '#334155', fontSize: '1.15rem', marginBottom: '1.5rem', lineHeight: 1.6, fontWeight: 500 }}>
@@ -330,7 +336,7 @@ function App() {
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ color: '#0ea5e9', fontWeight: 'bold' }}>✓</span> Fast application launching</li>
             </ul>
           </div>
-          
+
           <div className="aero-glass" style={{ overflow: 'hidden', padding: 0 }}>
             <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.6)' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', textShadow: '0 1px 1px #fff' }}>Administrator: Command Prompt</div>
@@ -358,12 +364,12 @@ function App() {
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
           className="aero-glass"
-          style={{ 
-            marginTop: '10rem', 
-            padding: '2rem 3rem', 
-            width: '100%', 
+          style={{
+            marginTop: '10rem',
+            padding: '2rem 3rem',
+            width: '100%',
             maxWidth: '1000px',
-            borderRadius: '24px', 
+            borderRadius: '24px',
             marginBottom: '1.5rem',
             display: 'flex',
             justifyContent: 'space-between',
@@ -383,7 +389,7 @@ function App() {
               <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>Zorblock</a>. All rights reserved.</p>
             </div>
           </div>
-          
+
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
               <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Powered by</p>
@@ -397,7 +403,7 @@ function App() {
         </motion.footer>
 
         {/* Decorative floating globe at the bottom */}
-        <motion.img 
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/globe.gif`}
           alt="Globe"
           initial={{ opacity: 0, y: 50 }}
@@ -406,22 +412,15 @@ function App() {
           transition={{ duration: 1 }}
           style={{ position: 'absolute', bottom: '150px', right: '5%', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
         />
-        
-        {/* Sealife behind the water, peeking out */}
-        <img 
-          src={`${import.meta.env.BASE_URL}img/sealife_14.png`}
-          style={{ position: 'absolute', bottom: '0', right: '5%', width: '600px', zIndex: -2, pointerEvents: 'none', transform: 'rotate(-5deg)' }}
-          alt=""
-        />
 
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: -1, pointerEvents: 'none', objectFit: 'cover' }}
           alt=""
         />
 
         {/* Decorative bubbles overlay at the bottom left */}
-        <img 
+        <img
           src={`${import.meta.env.BASE_URL}img/bubbles_39.png`}
           style={{ position: 'absolute', bottom: '-5%', left: '-5%', width: '450px', zIndex: 5, opacity: 0.8, pointerEvents: 'none', mixBlendMode: 'screen', transform: 'rotate(10deg)' }}
           alt=""
