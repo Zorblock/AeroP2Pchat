@@ -301,7 +301,13 @@ export const Terminal: React.FC<TerminalProps> = ({ latestVersion, dragControls 
     }
   }, [termLines, termInput]);
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     if (termState !== 'installing') {
       inputRef.current?.focus({ preventScroll: true });
     }
