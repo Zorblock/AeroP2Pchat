@@ -5,11 +5,11 @@ import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles';
-import { Download, MonitorPlay, Shield, Zap, Terminal } from 'lucide-react';
+import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay } from 'lucide-react';
+import { Terminal } from './Terminal';
 import './reset.css';
 import './index.css';
 import '7.css/dist/7.scoped.css';
-import { CMD } from './CMD';
 
 const AeroBadge = ({ label, value, color }: { label: string, value: string, color: string }) => (
   <div style={{ display: 'flex', overflow: 'hidden', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'sans-serif' }}>
@@ -85,7 +85,7 @@ function App() {
     { icon: <MonitorPlay size={24} />, title: 'Screen Sharing', desc: 'Share your screen in high quality with zero latency.' },
     { icon: <Shield size={24} />, title: 'Direct P2P', desc: 'No servers in the middle. Your connection is direct and secure.' },
     { icon: <Zap size={24} />, title: 'Lightning Fast', desc: 'Built on WebRTC and Electron for native desktop performance.' },
-    { icon: <Terminal size={24} />, title: 'CLI Tools', desc: 'Launch directly from your terminal using aerop2p commands.' },
+    { icon: <TerminalIcon size={24} />, title: 'CLI Tools', desc: 'Launch directly from your terminal using aerop2p commands.' },
   ];
 
   const domain = useFallbackDomain ? 'zorblock.github.io' : 'zorblock.de';
@@ -428,7 +428,7 @@ function App() {
             </ul>
           </div>
 
-          <CMD latestVersion={latestVersion} dragControls={dragControls} />
+          <Terminal latestVersion={latestVersion} dragControls={dragControls} />
         </motion.div>
 
         <motion.footer

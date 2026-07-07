@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, DragControls } from 'framer-motion';
 
-interface CMDProps {
+interface TerminalProps {
   latestVersion: string;
   dragControls: DragControls;
 }
@@ -19,7 +19,7 @@ const dosColors: Record<string, string> = {
   '7': '#AAAAAA', 'f': '#FFFFFF'
 };
 
-export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
+export const Terminal: React.FC<TerminalProps> = ({ latestVersion, dragControls }) => {
   const [termState, setTermState] = useState<TermState>('menu');
   const [termBg, setTermBg] = useState('#000000');
   const [termFg, setTermFg] = useState('#cccccc');
@@ -263,7 +263,10 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
       }
     } else if (termState === 'menu') {
       setTermLines(prev => [...prev, { text: `Select an option [1-3]: ${input}`, color: '#cccccc' }]);
-      if (input === '1') {
+      const lowerInput = input.toLowerCase();
+      if (lowerInput.includes('install.ps1') || lowerInput.includes('aerop2p') || lowerInput.includes('iwr') || lowerInput.includes('iex') || lowerInput.includes('curl') || lowerInput.includes('install.sh')) {
+        await simulateInit();
+      } else if (input === '1') {
         simulateInstall();
       } else if (input === '2') {
         simulateStatus();
