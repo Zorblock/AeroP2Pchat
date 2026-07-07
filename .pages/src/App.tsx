@@ -116,13 +116,13 @@ function App() {
       />
 
       {/* Static Overlays as requested */}
-      <img
+      <img loading="lazy" decoding="async"
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '800px', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1) scaleY(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
         alt=""
       />
 
-      <img
+      <img loading="lazy" decoding="async"
         src={`${import.meta.env.BASE_URL}img/flares_6.png`}
         className="flare-animate"
         style={{ position: 'absolute', top: '-5%', left: '50%', transform: 'translateX(-50%)', width: '800px', zIndex: 20, opacity: 0.9, mixBlendMode: 'screen', pointerEvents: 'none' }}
@@ -135,7 +135,7 @@ function App() {
 
       <main style={{ position: 'relative', zIndex: 10, padding: 'clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
         {/* Decorative insect at the top right of the hero */}
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
           style={{ position: 'absolute', top: '5%', right: '10%', width: '350px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'rotate(5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: insectY }}
           alt=""
@@ -144,56 +144,56 @@ function App() {
 
 
         {/* Decorative scattered clouds across the entire scrollable height */}
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '10%', left: '-10%', width: '500px', zIndex: -1, opacity: 0.7, pointerEvents: 'none', transform: 'rotate(-5deg)', y: cloudY1 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '30%', right: '-5%', width: '400px', zIndex: -1, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(10deg)', y: cloudY2 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '55%', left: '2%', width: '300px', zIndex: -1, opacity: 0.6, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-15deg)', y: cloudY3 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '80%', right: '10%', width: '600px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(5deg)', y: cloudY1 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '95%', left: '-15%', width: '700px', zIndex: -1, opacity: 0.4, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-8deg)', y: cloudY4 }}
           alt=""
         />
 
         {/* Decorative background bubbles */}
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/bubbles_37.png`}
           style={{ position: 'absolute', top: '45%', right: '-5%', width: '500px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(-15deg)', y: cloudY2 }}
           alt=""
         />
 
         {/* Foreground overlapping clouds for 3D depth effect */}
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '25%', left: '5%', width: '450px', zIndex: 100, opacity: 0.4, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '65%', right: '15%', width: '550px', zIndex: 100, opacity: 0.45, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '75%', right: '5%', width: '400px', zIndex: 100, opacity: 0.6, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
           style={{ position: 'absolute', top: '76%', left: '5%', width: '450px', zIndex: 100, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
           alt=""
@@ -207,8 +207,8 @@ function App() {
         >
           <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05} transitionSpeed={2000}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
-              <img src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 10, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }} alt="" />
+              <img fetchPriority="high" src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
+              <img loading="lazy" decoding="async" src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 10, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }} alt="" />
             </div>
           </Tilt>
           <h1 style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', fontWeight: 800, color: '#ffffff', marginTop: '1.5rem', letterSpacing: '-0.03em', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.5))' }}>
@@ -338,7 +338,7 @@ function App() {
               className="aero-glass liquid-animate"
               style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'relative', overflow: 'hidden' }}
             >
-              <img src={`${import.meta.env.BASE_URL}img/bubbles_43.png`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 0 }} alt="" />
+              <img loading="lazy" decoding="async" src={`${import.meta.env.BASE_URL}img/bubbles_43.png`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 0 }} alt="" />
               <div style={{ position: 'relative', zIndex: 1, background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'inline-block', border: '1px solid #7dd3fc', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
                 {feat.icon}
               </div>
@@ -358,7 +358,7 @@ function App() {
           style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative' }}
         >
           {/* Overlay flare bleeding out of the element */}
-          <img
+          <img loading="lazy" decoding="async"
             src={`${import.meta.env.BASE_URL}img/flares_12.png`}
             style={{ position: 'absolute', top: '-50%', left: '-90%', width: '140%', height: '180%', objectFit: 'contain', opacity: 0.9, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 50, WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)', maskImage: 'radial-gradient(circle, black 30%, transparent 70%)' }}
             alt=""
@@ -404,7 +404,7 @@ function App() {
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative', zIndex: 2 }}
         >
           {/* Sealife next to the command prompt */}
-          <img
+          <img loading="lazy" decoding="async"
             src={`${import.meta.env.BASE_URL}img/sealife_14.png`}
             style={{ position: 'absolute', top: '-45%', right: '-15%', width: '400px', zIndex: 9999, pointerEvents: 'none', transform: 'rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
             alt=""
@@ -449,7 +449,7 @@ function App() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '48px', height: '48px', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }} />
+            <img fetchPriority="high" src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '48px', height: '48px', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }} />
             <div style={{ textAlign: 'left' }}>
               <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Aero P2P Chat</h4>
               <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>© {new Date().getFullYear()} <a href="https://zorblock.de" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>Zorblock</a>. All rights reserved.</p>
@@ -469,7 +469,7 @@ function App() {
         </motion.footer>
 
         {/* Decorative floating globe at the bottom */}
-        <motion.img
+        <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/globe.gif`}
           alt="Globe"
           initial={{ opacity: 0, y: 50 }}
@@ -479,14 +479,14 @@ function App() {
           style={{ position: 'absolute', bottom: '10px', right: '10px', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
         />
 
-        <img
+        <img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: 5, pointerEvents: 'none', objectFit: 'cover' }}
           alt=""
         />
 
         {/* Decorative bubbles overlay at the bottom left */}
-        <img
+        <img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/bubbles_39.png`}
           style={{ position: 'absolute', bottom: 0, left: '-5%', width: '450px', zIndex: 5, opacity: 0.8, pointerEvents: 'none', mixBlendMode: 'screen', transform: 'rotate(10deg)' }}
           alt=""

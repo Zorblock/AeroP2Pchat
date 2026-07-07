@@ -303,7 +303,7 @@ export const Terminal: React.FC<TerminalProps> = ({ latestVersion, dragControls 
 
   useEffect(() => {
     if (termState !== 'installing') {
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }, [termState]);
 
