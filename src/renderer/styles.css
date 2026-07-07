@@ -351,6 +351,7 @@ body.app-boot-finish .window-frame {
   --sidebar-width: 230px;
   --sidebar-min-width: 190px;
   --chat-min-width: 320px;
+  position: relative;
   display: grid;
   grid-template-columns: var(--sidebar-width) 12px minmax(0, 1fr);
   gap: 0;
@@ -4620,7 +4621,7 @@ body[data-theme="dark"] .settings-choice input:checked {
 ::-webkit-scrollbar-thumb:hover { background: rgba(2, 132, 199, 0.8); }
 /* Incoming Call Screen */
 .incoming-call-screen {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
