@@ -916,8 +916,7 @@ function assertTrustedInstallerUrl(rawUrl) {
   const isTrustedHost = url.hostname === releaseHost;
   const isTrustedPath = url.pathname.startsWith(releasePathPrefix);
   const trustedInstallerNames = new Set([
-    projectConfig.release.windowsInstallerAsset,
-    projectConfig.release.windowsX64SetupAsset,
+    projectConfig.release.windowsSetupAsset,
   ]);
   const isInstaller = trustedInstallerNames.has(basename(url.pathname));
 

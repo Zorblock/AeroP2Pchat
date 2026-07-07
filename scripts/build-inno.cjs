@@ -87,7 +87,7 @@ function writeWindowsCliTemplates() {
     APP_EXE_NAME: `${projectConfig.app.name}.exe`,
     CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
     REPO: projectConfig.repo,
-    WINDOWS_INSTALLER_ASSET: projectConfig.release.windowsInstallerAsset,
+    WINDOWS_INSTALLER_ASSET: projectConfig.release.windowsSetupAsset,
   };
 
   fs.mkdirSync(cliOutputDir, { recursive: true });
