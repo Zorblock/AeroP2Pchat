@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useDragControls } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ const AeroBadge = ({ label, value, color }: { label: string, value: string, colo
 );
 
 function App() {
+  const dragControls = useDragControls();
   const { scrollYProgress } = useScroll();
   const cloudY1 = useTransform(scrollYProgress, [0, 1], [0, -300]);
   const cloudY2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
@@ -136,10 +137,10 @@ function App() {
       <DustParticles />
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* Decorative insect at the top left */}
+        {/* Decorative insect at the top right of the hero */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
-          style={{ position: 'absolute', top: '35%', left: '2%', width: '450px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: insectY }}
+          style={{ position: 'absolute', top: '5%', right: '10%', width: '350px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'rotate(5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: insectY }}
           alt=""
         />
 
@@ -413,8 +414,21 @@ function App() {
             </ul>
           </div>
 
-          <div className="aero-glass liquid-animate" style={{ overflow: 'hidden', padding: 0 }}>
-            <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.6)' }}>
+          <motion.div 
+            className="aero-glass" 
+            style={{ overflow: 'hidden', padding: 0 }}
+            drag
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: -50, left: -50, right: 50, bottom: 50 }}
+            dragSnapToOrigin={true}
+            dragElastic={0.5}
+          >
+            <div 
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.6)', cursor: 'grab' }}
+              onPointerDown={(e) => dragControls.start(e)}
+              title="Drag me!"
+            >
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', textShadow: '0 1px 1px #fff' }}>Administrator: Command Prompt</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <div style={{ width: '24px', height: '14px', borderRadius: '4px', background: 'linear-gradient(180deg, #fca5a5, #ef4444)', border: '1px solid #b91c1c', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.5)' }}></div>
@@ -432,7 +446,7 @@ function App() {
               <div style={{ marginBottom: '1rem', color: '#64748b' }}>4 - Exit</div>
               <div><span style={{ color: '#e2e8f0' }}>Choose an option [1-4]:</span> 1</div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
 
         <motion.footer
