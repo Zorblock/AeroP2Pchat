@@ -8,6 +8,7 @@ import { DustParticles } from './DustParticles';
 import { Download, MonitorPlay, Shield, Zap, Terminal } from 'lucide-react';
 import './reset.css';
 import './index.css';
+import '7.css/dist/7.scoped.css';
 
 const AeroBadge = ({ label, value, color }: { label: string, value: string, color: string }) => (
   <div style={{ display: 'flex', overflow: 'hidden', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'sans-serif' }}>
