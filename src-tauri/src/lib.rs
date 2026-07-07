@@ -313,12 +313,16 @@ async fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, Str
         }
 
         let setup_path = std::env::temp_dir().join(format!(
-            "Aero-P2P-Chat-Setup-{}.exe",
+            "Aero-P2P-Chat-Setup-{}-{}.exe",
             if version.is_empty() {
-                "latest"
+                "latest".to_string()
             } else {
-                &version
-            }
+                version.clone()
+            },
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
         ));
         let mut file = fs::File::create(&setup_path).map_err(|error| error.to_string())?;
         file.write_all(&bytes).map_err(|error| error.to_string())?;

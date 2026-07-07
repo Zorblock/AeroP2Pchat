@@ -6,7 +6,7 @@
     <title>Linux, X11, Wayland - Aero P2P Chat Wiki</title>
     <meta
       name="description"
-      content="Linux AppImage, X11, Wayland, WebKitGTK, and black screen notes for Aero P2P Chat."
+      content="Linux Linux Executable, X11, Wayland, WebKitGTK, and black screen notes for Aero P2P Chat."
     />
     <link rel="icon" type="image/png" href="../logo.png" />
     <link rel="stylesheet" href="../style.css" />
@@ -29,7 +29,7 @@
         <p class="eyebrow">Linux</p>
         <h1>Linux, X11, and Wayland.</h1>
         <p class="lead">
-          Aero P2P Chat is shipped as an AppImage on Linux. The app uses Tauri
+          Aero P2P Chat is shipped as a native Executable on Linux. The app uses Tauri
           with WebKitGTK, so the installed system WebKitGTK stack matters more
           than it does on Windows.
         </p>
@@ -61,13 +61,13 @@ aerop2p uninstall</code>
         <h2>Black or empty window</h2>
         <p>
           A black window usually means WebKitGTK could not render the frontend,
-          or the AppImage could not resolve bundled frontend assets. Current
+          or the Linux Executable could not resolve bundled frontend assets. Current
           releases build the frontend with relative assets and a conservative
           WebKit-compatible target.
         </p>
         <p>Useful test command:</p>
         <div class="command-box docs-command">
-          <code>WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Aero-P2P-Chat-Linux.AppImage</code>
+          <code>WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Aero-P2P-Chat-Linux.x86_64</code>
         </div>
         <p>
           If that works, the issue is usually GPU/compositor related. Keep the
@@ -75,10 +75,10 @@ aerop2p uninstall</code>
           graphics stack.
         </p>
 
-        <h2>Direct AppImage start</h2>
+        <h2>Direct Linux Executable start</h2>
         <div class="command-box docs-command">
-          <code>chmod +x Aero-P2P-Chat-Linux.AppImage
-./Aero-P2P-Chat-Linux.AppImage</code>
+          <code>chmod +x Aero-P2P-Chat-Linux.x86_64
+./Aero-P2P-Chat-Linux.x86_64</code>
         </div>
       </article>
     </main>
