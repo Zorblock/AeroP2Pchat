@@ -1,15 +1,15 @@
 :root {
-  color-scheme: dark;
-  --bg-canvas: #050508;
-  --text: #ffffff;
-  --muted: #a1a1aa;
-  --faint: #52525b;
-  --panel: rgba(255, 255, 255, 0.03);
-  --panel-hover: rgba(255, 255, 255, 0.08);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.2);
+  color-scheme: light;
+  --bg-canvas: #e0f2fe;
+  --text: #0f172a;
+  --muted: #475569;
+  --faint: #94a3b8;
+  --panel: rgba(255, 255, 255, 0.3);
+  --panel-hover: rgba(255, 255, 255, 0.5);
+  --border: rgba(255, 255, 255, 0.6);
+  --border-strong: rgba(255, 255, 255, 1);
   --glass-blur: blur(24px);
-  --accent-1: #6d28d9;
+  --accent-1: #0284c7;
   --accent-2: #38bdf8;
 }
 
@@ -21,7 +21,8 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--bg-canvas);
+  background: url('/AeroP2Pchat/img/skyboxes_4.png') center/cover no-repeat fixed;
+  background-color: #0f172a;
   color: var(--text);
   font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
@@ -31,25 +32,24 @@ body {
 }
 
 ::selection {
-  background-color: rgba(56, 189, 248, 0.4);
-  color: #fff;
+  background-color: rgba(56, 189, 248, 0.5);
+  color: #0f172a;
 }
 
 /* Hide native scrollbar */
 ::-webkit-scrollbar { display: none; }
 
-/* Animated dynamic background */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 15% 50%, rgba(109, 40, 217, 0.12), transparent 40%),
-    radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.12), transparent 40%),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,255,255,0.04) 0%, transparent 70%);
-  animation: bgPulse 20s ease-in-out infinite alternate;
+/* Aero Glass Utility Classes */
+.aero-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.9), 
+    inset 0 -1px 2px rgba(0,0,0,0.05),
+    0 8px 32px rgba(0,0,0,0.1);
+  border-radius: 16px;
 }
 
 @keyframes bgPulse {
