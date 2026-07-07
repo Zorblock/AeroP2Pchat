@@ -223,18 +223,20 @@ function App() {
               </button>
             </div>
             <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <code style={{ color: '#a3e635', fontFamily: 'monospace', flex: 1, fontSize: '0.9rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+              <code style={{ color: '#a3e635', fontFamily: 'monospace', flex: 1, fontSize: '0.9rem', overflowX: 'auto', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text' }}>
                 {installCommands[installOs]}
               </code>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(56,189,248,0.2)', color: '#38bdf8' }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   navigator.clipboard.writeText(installCommands[installOs]);
                   toast.success("Command copied to clipboard!");
                 }}
-                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0, transition: 'background-color 0.2s, color 0.2s' }}
               >
                 Copy
-              </button>
+              </motion.button>
             </div>
           </div>
 
