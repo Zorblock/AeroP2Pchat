@@ -1,6 +1,6 @@
 {
   "name": "aero-p2p-chat",
-  "version": "26.24.0",
+  "version": "26.25.0",
   "description": "A clean Electron peer-to-peer chat client for Windows and Linux.",
   "author": {
     "name": "Jonas Grimm",
