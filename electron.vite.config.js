@@ -35,6 +35,13 @@ module.exports = defineConfig({
         input: {
           index: resolve(__dirname, "src/renderer/index.html"),
         },
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              return 'vendor';
+            }
+          }
+        }
       },
     },
   },
