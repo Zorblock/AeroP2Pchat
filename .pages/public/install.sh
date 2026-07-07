@@ -410,18 +410,36 @@ show_menu() {
     
     install_label="Install"
     if is_installed && [ "$latest_version" != "unknown" ] && [ "$installed_version" != "$latest_version" ]; then
-        install_label="Update"
-        elif is_installed && [ "$latest_version" != "unknown" ] && [ "$installed_version" = "$latest_version" ]; then
-        install_label="Reinstall"
+        install_label="Update to v${latest_version}"
+    elif is_installed && [ "$latest_version" != "unknown" ] && [ "$installed_version" = "$latest_version" ]; then
+        install_label="Reinstall v${latest_version}"
     fi
     
-    printf '1 - %s\n' "$install_label"
-    printf '2 - Uninstall\n'
+    opt_index=1
+    printf '%s\n' "$(color bold "$opt_index - $install_label")"
+    opt_install=$opt_index
+    opt_index=$((opt_index + 1))
+    
+    opt_uninstall=0
+    if is_installed; then
+        printf '%s\n' "$(color red "$opt_index - Uninstall")"
+        opt_uninstall=$opt_index
+        opt_index=$((opt_index + 1))
+    fi
+    
+    printf '%s\n' "$(color cyan "$opt_index - Check status details")"
+    opt_status=$opt_index
+    opt_index=$((opt_index + 1))
+    
+    printf '%s\n' "$(color dim "$opt_index - Exit")"
+    opt_exit=$opt_index
+    
     printf '\n'
-    choice="$(prompt_input "Choose an option: ")"
+    choice="$(prompt_input "Choose an option [1-${opt_index}]: ")"
+    printf '\n'
     
     case "$choice" in
-        1)
+        $opt_install)
             if confirm_action "Run ${install_label}?"; then
                 rm -f "$tmp_manifest"
                 trap - EXIT
@@ -430,16 +448,33 @@ show_menu() {
                 warn "Cancelled."
             fi
         ;;
-        2)
-            if confirm_action "Run Uninstall?"; then
-                rm -f "$tmp_manifest"
-                trap - EXIT
-                uninstall_app
+        $opt_uninstall)
+            if [ "$opt_uninstall" -gt 0 ]; then
+                if confirm_action "Run Uninstall?"; then
+                    rm -f "$tmp_manifest"
+                    trap - EXIT
+                    uninstall_app
+                else
+                    warn "Cancelled."
+                fi
             else
-                warn "Cancelled."
+                fail "Unknown option: $choice"
             fi
         ;;
-        *) fail "Unknown option: $choice" ;;
+        $opt_status)
+            rm -f "$tmp_manifest"
+            trap - EXIT
+            show_status
+        ;;
+        $opt_exit)
+            exit 0
+        ;;
+        *)
+            warn "Invalid choice."
+            rm -f "$tmp_manifest"
+            trap - EXIT
+            show_menu
+        ;;
     esac
 }
 

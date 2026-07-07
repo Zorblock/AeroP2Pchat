@@ -179,33 +179,69 @@ function Show-Status {
 
 function Show-Menu {
     Write-Title
+    
     $installed = Get-InstalledVersion
+    Write-Info "Checking versions..."
+    $latest = Get-LatestVersion
 
+    Write-Host ""
+    
     if ($installed -eq "not installed") {
         Write-Color "Status: Not Installed" "Yellow"
+        Write-Color "Latest: v$latest" "Cyan"
     } else {
-        Write-Color "Status: Installed (v$installed)" "Green"
+        if ($installed -eq $latest) {
+            Write-Color "Status: Installed & Up-to-date (v$installed)" "Green"
+        } else {
+            Write-Color "Status: Installed (v$installed)" "Green"
+            Write-Color "Latest: v$latest (Update available!)" "Yellow"
+        }
     }
     Write-Host ""
 
-    Write-Host "1) " -NoNewline; Write-Color "Install $AppName" "White"
-    Write-Host "2) " -NoNewline; Write-Color "Update to latest version" "White"
-    Write-Host "3) " -NoNewline; Write-Color "Check status" "White"
-    Write-Host "4) " -NoNewline; Write-Color "Uninstall" "Red"
-    Write-Host "5) " -NoNewline; Write-Color "Exit" "DarkGray"
-    Write-Host ""
-
-    $choice = Read-Host "Select an option [1-5]"
-    Write-Host ""
-
-    switch ($choice) {
-        "1" { Install-App }
-        "2" { Install-App -IsUpdate $true }
-        "3" { Show-Status }
-        "4" { Uninstall-App }
-        "5" { exit }
-        default { Write-Warn "Invalid choice."; Show-Menu }
+    $options = @()
+    
+    if ($installed -eq "not installed") {
+        $options += [PSCustomObject]@{ Label = "Install $AppName"; Action = { Install-App } }
+    } else {
+        if ($installed -ne $latest) {
+            $options += [PSCustomObject]@{ Label = "Update to v$latest"; Action = { Install-App -IsUpdate $true } }
+        } else {
+            $options += [PSCustomObject]@{ Label = "Reinstall v$latest"; Action = { Install-App -IsUpdate $true } }
+        }
+        $options += [PSCustomObject]@{ Label = "Uninstall $AppName"; Action = { Uninstall-App } }
     }
+    
+    $options += [PSCustomObject]@{ Label = "Check status details"; Action = { Show-Status } }
+    $options += [PSCustomObject]@{ Label = "Exit"; Action = { exit } }
+
+    for ($i = 0; $i -lt $options.Length; $i++) {
+        $num = $i + 1
+        $label = $options[$i].Label
+        if ($label -match "Uninstall") {
+            Write-Host "$num) " -NoNewline; Write-Color $label "Red"
+        } elseif ($label -match "Exit") {
+            Write-Host "$num) " -NoNewline; Write-Color $label "DarkGray"
+        } else {
+            Write-Host "$num) " -NoNewline; Write-Color $label "White"
+        }
+    }
+    Write-Host ""
+
+    $max = $options.Length
+    $choice = Read-Host "Select an option [1-$max]"
+    Write-Host ""
+
+    try {
+        $idx = [int]$choice - 1
+        if ($idx -ge 0 -and $idx -lt $max) {
+            & $options[$idx].Action
+            return
+        }
+    } catch {}
+    
+    Write-Warn "Invalid choice."
+    Show-Menu
 }
 
 # Main execution
