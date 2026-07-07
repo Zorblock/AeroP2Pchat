@@ -33,6 +33,7 @@ function App() {
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
+  const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [installedVersion, setInstalledVersion] = useState<string>('v1.1.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
@@ -95,9 +96,10 @@ function App() {
     { icon: <Terminal size={24} />, title: 'CLI Tools', desc: 'Launch directly from your terminal using aerop2p commands.' },
   ];
 
+  const domain = useFallbackDomain ? 'zorblock.github.io' : 'zorblock.de';
   const installCommands = {
-    windows: `iwr -useb https://raw.githubusercontent.com/Zorblock/AeroP2Pchat/main/.pages/public/install.ps1 | iex`,
-    linux: `curl -sSL https://raw.githubusercontent.com/Zorblock/AeroP2Pchat/main/.pages/public/install.sh | bash`
+    windows: `iwr -useb https://${domain}/AeroP2Pchat/install.ps1 | iex`,
+    linux: `curl -sSL https://${domain}/AeroP2Pchat/install.sh | bash`
   };
 
   return (
@@ -109,7 +111,7 @@ function App() {
           top: 0,
           left: 0,
           width: '100%',
-          height: '115vh', /* Extra height to prevent empty space when scrolling up */
+          height: '130vh', /* Extra height to prevent empty space when scrolling up */
           zIndex: -100,
           backgroundColor: '#0ea5e9',
           backgroundImage: `url('${import.meta.env.BASE_URL}img/skyboxes_4.png')`,
@@ -137,7 +139,7 @@ function App() {
 
       <DustParticles />
 
-      <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <main style={{ position: 'relative', zIndex: 10, padding: 'clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
         {/* Decorative insect at the top right of the hero */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
@@ -215,10 +217,10 @@ function App() {
               <img src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 10, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }} alt="" />
             </div>
           </Tilt>
-          <h1 style={{ fontSize: '4.5rem', fontWeight: 800, color: '#ffffff', marginTop: '1.5rem', letterSpacing: '-0.03em', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.5))' }}>
+          <h1 style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', fontWeight: 800, color: '#ffffff', marginTop: '1.5rem', letterSpacing: '-0.03em', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.5))' }}>
             Aero P2P Chat
           </h1>
-          <p style={{ color: '#e2e8f0', fontSize: '1.35rem', maxWidth: '600px', margin: '1rem auto 0', lineHeight: 1.6, fontWeight: 500, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+          <p style={{ color: '#e2e8f0', fontSize: 'clamp(1rem, 4vw, 1.35rem)', maxWidth: '600px', margin: '1rem auto 0', lineHeight: 1.6, fontWeight: 500, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
             Direct desktop messaging without the middleman. Secure, fast, and completely peer-to-peer.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
@@ -236,7 +238,7 @@ function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '600px' }}
         >
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="mobile-stack-buttons" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <motion.a
               href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
               whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
@@ -261,7 +263,7 @@ function App() {
           </div>
 
           <div style={{ marginTop: '2rem', width: '100%' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
+            <div className="install-os-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
               <button
                 className="liquid-btn"
                 onClick={() => setInstallOs('windows')}
@@ -277,7 +279,7 @@ function App() {
                 Linux
               </button>
             </div>
-            <div className="aero-glass liquid-animate" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
+            <div className="aero-glass liquid-animate mobile-col mobile-p-1" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
               <div style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
                 <AnimatePresence mode="wait">
                   <motion.code
@@ -305,6 +307,16 @@ function App() {
                 Copy
               </motion.button>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', width: '100%' }}>
+              <label className="subtle-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={useFallbackDomain} 
+                  onChange={(e) => setUseFallbackDomain(e.target.checked)} 
+                />
+                Fallback-Mirror verwenden (zorblock.github.io)
+              </label>
+            </div>
           </div>
 
           <motion.a
@@ -323,7 +335,7 @@ function App() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '1000px', marginTop: '6rem' }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem', width: '100%', maxWidth: '1000px', marginTop: '6rem' }}
         >
           {features.map((feat, i) => (
             <motion.div
@@ -348,7 +360,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          className="aero-glass liquid-animate"
+          className="aero-glass liquid-animate mobile-p-1"
           style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative' }}
         >
           {/* Overlay flare bleeding out of the element */}
@@ -372,13 +384,13 @@ function App() {
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Open the App</h4>
                 <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Launch Aero P2P Chat and instantly get your unique, randomized Peer ID.</p>
               </div>
-              <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
+              <div className="hide-on-mobile" style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
                 <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>2</div>
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Share ID</h4>
                 <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Send your Peer ID to a friend through any secure channel.</p>
               </div>
-              <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
+              <div className="hide-on-mobile" style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
                 <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>3</div>
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Connect directly</h4>
@@ -394,7 +406,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative', zIndex: 2 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative', zIndex: 2 }}
         >
           {/* Sealife next to the command prompt */}
           <img
@@ -416,7 +428,7 @@ function App() {
           </div>
 
           <motion.div 
-            className="aero-glass" 
+            className="aero-glass cli-window-drag" 
             style={{ overflow: 'hidden', padding: 0 }}
             drag
             dragControls={dragControls}
@@ -461,7 +473,7 @@ function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
-          className="aero-glass liquid-animate"
+          className="aero-glass liquid-animate mobile-col mobile-p-1 mobile-text-center"
           style={{
             marginTop: '10rem',
             padding: '2rem 3rem',
@@ -484,7 +496,7 @@ function App() {
             <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '48px', height: '48px', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }} />
             <div style={{ textAlign: 'left' }}>
               <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Aero P2P Chat</h4>
-              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>Zorblock</a>. All rights reserved.</p>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>© {new Date().getFullYear()} <a href="https://zorblock.de" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>Zorblock</a>. All rights reserved.</p>
             </div>
           </div>
 

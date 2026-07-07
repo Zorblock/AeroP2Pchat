@@ -38,30 +38,40 @@ body {
 }
 
 /* Hide native scrollbar */
-::-webkit-scrollbar { display: none; }
+::-webkit-scrollbar {
+  display: none;
+}
 
 /* Aero Glass Utility Classes */
 .aero-glass {
-  background: linear-gradient(120deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.1) 100%);
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.2) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0.1) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.9);
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-  border-right: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 
-    inset 0 2px 6px rgba(255,255,255,1), 
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 1),
     inset 0 -4px 12px rgba(14, 165, 233, 0.15),
     0 10px 40px rgba(2, 132, 199, 0.25),
-    0 4px 12px rgba(0,0,0,0.1);
+    0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 24px;
   position: relative;
-  overflow: hidden; /* For the optimized shimmer overlay */
+  overflow: hidden;
+  /* For the optimized shimmer overlay */
 }
 
 /* Optimized Float (Only transform) */
 @keyframes liquidFloatOpt {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .aero-glass.liquid-animate {
@@ -78,8 +88,11 @@ body {
 .liquid-btn::before {
   content: '';
   position: absolute;
-  top: -50%; left: -50%; width: 200%; height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
   opacity: 0;
   transform: scale(0.5);
   transition: opacity 0.4s, transform 0.4s;
@@ -93,15 +106,22 @@ body {
 }
 
 .liquid-btn:hover {
-  box-shadow: 
-    inset 0 4px 12px rgba(255,255,255,1),
+  box-shadow:
+    inset 0 4px 12px rgba(255, 255, 255, 1),
     0 0 25px rgba(56, 189, 248, 0.6),
     0 0 50px rgba(2, 132, 199, 0.4) !important;
 }
 
 @keyframes bgPulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.15); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
 }
 
 a {
@@ -154,9 +174,9 @@ a {
 }
 
 .share-btn:hover {
-  border-color: rgba(255,255,255,0.2);
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text);
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ─── PROFILE PIC ─── */
@@ -174,18 +194,18 @@ a {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 20%,
-    rgba(255,255,255,0.15) 50%,
-    transparent 80%
-  );
+  background: conic-gradient(from 0deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.15) 50%,
+      transparent 80%);
   animation: ringRotate 6s linear infinite;
   z-index: -1;
 }
 
 @keyframes ringRotate {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .profile-picture img {
@@ -193,10 +213,10 @@ a {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 0 0 4px rgba(255,255,255,0.03),
-    0 16px 48px rgba(0,0,0,0.55);
+    0 0 0 4px rgba(255, 255, 255, 0.03),
+    0 16px 48px rgba(0, 0, 0, 0.55);
 }
 
 /* ─── IDENTITY ─── */
@@ -215,7 +235,7 @@ a {
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -228,14 +248,23 @@ a {
   height: 6px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 8px rgba(34,197,94,0.7);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
   animation: statusPulse 2.5s infinite ease-in-out;
   flex-shrink: 0;
 }
 
 @keyframes statusPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.8); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }
 
 h1 {
@@ -245,14 +274,12 @@ h1 {
   letter-spacing: -2px;
   line-height: 1;
   /* animated gradient text */
-  background: linear-gradient(
-    to right,
-    #ffffff 0%,
-    #c7d2fe 25%,
-    #ffffff 50%,
-    #c7d2fe 75%,
-    #ffffff 100%
-  );
+  background: linear-gradient(to right,
+      #ffffff 0%,
+      #c7d2fe 25%,
+      #ffffff 50%,
+      #c7d2fe 75%,
+      #ffffff 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -339,12 +366,10 @@ h1 {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgba(255,255,255,0.04) 50%,
-    transparent 70%
-  );
+  background: linear-gradient(100deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 70%);
   transform: translateX(-100%);
   transition: transform 0s;
 }
@@ -356,8 +381,8 @@ h1 {
 
 .link:hover {
   border-color: color-mix(in srgb, var(--link-color) 40%, transparent);
-  background: color-mix(in srgb, var(--link-color) 8%, rgba(255,255,255,0.04));
-  box-shadow: 
+  background: color-mix(in srgb, var(--link-color) 8%, rgba(255, 255, 255, 0.04));
+  box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.3),
     0 0 20px color-mix(in srgb, var(--link-color) 20%, transparent),
     inset 0 1px 2px rgba(255, 255, 255, 0.1);
@@ -376,7 +401,7 @@ h1 {
   flex: 0 0 20px;
   display: grid;
   place-items: center;
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .link:hover .icon-wrapper {
@@ -385,12 +410,12 @@ h1 {
 
 .link-arrow {
   color: var(--faint);
-  transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   flex-shrink: 0;
 }
 
 .link:hover .link-arrow {
-  color: rgba(255,255,255,0.5);
+  color: rgba(255, 255, 255, 0.5);
   transform: translateX(4px);
 }
 
@@ -430,4 +455,91 @@ h1 {
     min-height: 52px;
     font-size: 13.5px;
   }
+}
+
+/* Mobile Overrides for App.tsx */
+@media (max-width: 768px) {
+  .mobile-col {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .mobile-text-center {
+    text-align: center !important;
+  }
+
+  .mobile-p-1 {
+    padding: 1.5rem !important;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .mobile-stack-buttons {
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  .mobile-stack-buttons>* {
+    width: 100% !important;
+    justify-content: center;
+  }
+
+  .install-os-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Subtle Custom Checkbox */
+.subtle-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.5;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.subtle-checkbox-label:hover {
+  opacity: 0.9;
+  color: #0f172a;
+}
+
+.subtle-checkbox-label input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  display: grid;
+  place-content: center;
+  transition: all 0.2s;
+  margin: 0;
+}
+
+.subtle-checkbox-label input::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  transform: scale(0);
+  transition: 0.12s transform ease-in-out;
+  box-shadow: inset 1em 1em #0284c7;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.subtle-checkbox-label input:checked::before {
+  transform: scale(1);
+}
+
+.subtle-checkbox-label input:checked {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(2, 132, 199, 0.4);
 }
