@@ -1,13 +1,22 @@
+import { useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
+import Lenis from 'lenis';
 import { DustParticles } from './DustParticles';
 import { Download, MonitorPlay, Shield, Zap, Terminal } from 'lucide-react';
 import './reset.css';
 import './index.css';
 
 function App() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      autoRaf: true,
+    });
+    return () => lenis.destroy();
+  }, []);
+
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '10%']);
 
