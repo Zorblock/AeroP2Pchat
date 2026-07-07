@@ -17,7 +17,8 @@
     "setup": "npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
-    "pages": "node scripts/deploy-pages.cjs"
+    "pages": "node scripts/deploy-pages.cjs",
+    "website:dev": "npm run dev --prefix website"
   },
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
