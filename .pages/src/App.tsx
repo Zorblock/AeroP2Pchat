@@ -220,19 +220,21 @@ function App() {
           <div style={{ marginTop: '2rem', width: '100%' }}>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
               <button
+                className="liquid-btn"
                 onClick={() => setInstallOs('windows')}
                 style={{ background: installOs === 'windows' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'windows' ? '#0369a1' : '#475569', border: installOs === 'windows' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'windows' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
               >
                 Windows
               </button>
               <button
+                className="liquid-btn"
                 onClick={() => setInstallOs('linux')}
                 style={{ background: installOs === 'linux' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'linux' ? '#0369a1' : '#475569', border: installOs === 'linux' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'linux' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
               >
                 Linux
               </button>
             </div>
-            <div className="aero-glass" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
+            <div className="aero-glass liquid-animate" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
               <div style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
                 <AnimatePresence mode="wait">
                   <motion.code
@@ -248,6 +250,7 @@ function App() {
                 </AnimatePresence>
               </div>
               <motion.button
+                className="liquid-btn"
                 whileHover={{ scale: 1.05, backgroundColor: '#bae6fd', boxShadow: '0 0 15px rgba(56,189,248,0.6)', color: '#0369a1' }}
                 whileTap={{ scale: 0.95, backgroundColor: '#7dd3fc' }}
                 onClick={() => {
@@ -264,6 +267,7 @@ function App() {
           <motion.a
             href="https://github.com/Zorblock/AeroP2Pchat"
             target="_blank"
+            className="aero-glass liquid-btn"
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
             whileTap={{ scale: 0.95 }}
             style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -282,7 +286,7 @@ function App() {
             <motion.div
               key={i}
               whileHover={{ y: -5, boxShadow: '0 12px 40px rgba(2,132,199,0.15)' }}
-              className="aero-glass"
+              className="aero-glass liquid-animate"
               style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'relative', overflow: 'hidden' }}
             >
               <img src={`${import.meta.env.BASE_URL}img/bubbles_43.png`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 0 }} alt="" />
@@ -301,7 +305,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          className="aero-glass"
+          className="aero-glass liquid-animate"
           style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative' }}
         >
           {/* Overlay flare bleeding out of the element */}
@@ -355,7 +359,7 @@ function App() {
             style={{ position: 'absolute', top: '-45%', right: '-15%', width: '400px', zIndex: 9999, pointerEvents: 'none', transform: 'rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
             alt=""
           />
-          <div className="aero-glass" style={{ padding: '2rem', borderRadius: '24px' }}>
+          <div className="aero-glass liquid-animate" style={{ padding: '2rem', borderRadius: '24px' }}>
             <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem' }}>Powerful CLI Integration</h2>
             <p style={{ color: '#334155', fontSize: '1.15rem', marginBottom: '1.5rem', lineHeight: 1.6, fontWeight: 500 }}>
               We know developers love the terminal. That's why Aero P2P Chat installs an intelligent <code style={{ background: 'rgba(255,255,255,0.5)', padding: '0.2rem 0.4rem', borderRadius: '4px', color: '#0284c7', border: '1px solid rgba(255,255,255,0.8)' }}>aerop2p</code> command globally on both Windows and Linux.
@@ -368,7 +372,7 @@ function App() {
             </ul>
           </div>
 
-          <div className="aero-glass" style={{ overflow: 'hidden', padding: 0 }}>
+          <div className="aero-glass liquid-animate" style={{ overflow: 'hidden', padding: 0 }}>
             <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.6)' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', textShadow: '0 1px 1px #fff' }}>Administrator: Command Prompt</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -394,7 +398,7 @@ function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
-          className="aero-glass"
+          className="aero-glass liquid-animate"
           style={{
             marginTop: '10rem',
             padding: '2rem 3rem',
