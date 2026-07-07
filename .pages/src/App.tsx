@@ -280,10 +280,16 @@ function App() {
                 Linux
               </button>
             </div>
-            <div className="aero-glass liquid-animate mobile-col mobile-p-1" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
-              <div style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
+            <motion.div 
+              layout 
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              className="aero-glass liquid-animate mobile-col mobile-p-1" 
+              style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}
+            >
+              <motion.div layout style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
                 <AnimatePresence mode="wait">
                   <motion.code
+                    layout
                     key={installOs}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -294,7 +300,7 @@ function App() {
                     {installCommands[installOs]}
                   </motion.code>
                 </AnimatePresence>
-              </div>
+              </motion.div>
               <motion.button
                 className="liquid-btn"
                 whileHover={{ scale: 1.05, backgroundColor: '#bae6fd', boxShadow: '0 0 15px rgba(56,189,248,0.6)', color: '#0369a1' }}
@@ -307,7 +313,7 @@ function App() {
               >
                 Copy
               </motion.button>
-            </div>
+            </motion.div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', width: '100%' }}>
               <label className="subtle-checkbox-label">
                 <input 
