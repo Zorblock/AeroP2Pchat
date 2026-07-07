@@ -143,6 +143,8 @@ function App() {
             <img src="https://img.shields.io/github/v/release/Zorblock/AeroP2Pchat?style=flat-square&color=0ea5e9" alt="Latest Release" />
             <img src="https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total?style=flat-square&color=38bdf8" alt="Total Downloads" />
             <img src="https://img.shields.io/badge/License-Proprietary-7dd3fc?style=flat-square" alt="License: Proprietary" />
+            <img src="https://img.shields.io/github/actions/workflow/status/Zorblock/AeroP2Pchat/build.yml?style=flat-square&label=Build" alt="Build Status" />
+            <img src="https://img.shields.io/github/actions/workflow/status/Zorblock/AeroP2Pchat/pages.yml?style=flat-square&label=Web" alt="Web Status" />
           </div>
         </motion.div>
 
