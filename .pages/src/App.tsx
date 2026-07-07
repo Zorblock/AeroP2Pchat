@@ -335,6 +335,17 @@ function App() {
         >
           <p style={{ margin: 0 }}>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}>Zorblock</a>. Built with Electron, React, and WebRTC.</p>
         </motion.footer>
+
+        {/* Decorative floating globe at the bottom */}
+        <motion.img 
+          src={`${import.meta.env.BASE_URL}img/globe.gif`}
+          alt="Globe"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1 }}
+          style={{ position: 'absolute', bottom: '150px', right: '5%', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
+        />
         
         <img 
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
