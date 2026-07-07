@@ -46,9 +46,9 @@ VersionInfoCopyright=Copyright (c) 2026 {#MyAppPublisher}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern dark
-SolidCompression=no
-Compression=zip
-InternalCompressLevel=normal
+SolidCompression=yes
+Compression=lzma2/ultra64
+InternalCompressLevel=ultra
 
 PrivilegesRequired=lowest
 AppMutex=AeroP2PChatAppMutex
@@ -157,7 +157,7 @@ begin
   TempConfigFile := ExpandConstant('{tmp}\config.json');
 
   if FileExists(ConfigFile) then begin
-    FileCopy(ConfigFile, TempConfigFile, False);
+    CopyFile(ConfigFile, TempConfigFile, False);
   end;
 
   if FileExists(UninstallerPath) then begin
@@ -168,7 +168,7 @@ begin
     if not DirExists(AppDir) then begin
       CreateDir(AppDir);
     end;
-    FileCopy(TempConfigFile, ConfigFile, False);
+    CopyFile(TempConfigFile, ConfigFile, False);
   end;
 end;
 
