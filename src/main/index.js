@@ -2,6 +2,7 @@ const {
   app,
   BrowserWindow,
   Menu,
+  Notification,
   Tray,
   clipboard,
   desktopCapturer,
@@ -50,12 +51,12 @@ let forceQuit = false;
 let systemShutdownStarted = false;
 let delayedQuitStarted = false;
 let delayedQuitTimer = null;
-const notificationWindows = [];
-const notificationWindowById = new Map();
-const notificationDetailsById = new Map();
+const activeNotifications = new Map();
 let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+app.name = projectConfig.app.name || "Aero P2P Chat";
+app.setAppUserModelId(projectConfig.app.id);
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
@@ -210,7 +211,7 @@ async function saveConfig(config) {
   await mkdir(app.getPath("userData"), { recursive: true });
   await writeFile(
     configPath,
-    `${JSON.stringify(normalizedConfig, null, 2)}\n`,
+    `${JSON.stringify(normalizedConfig, null, 2)}`,
     "utf8",
   );
   appConfig = normalizedConfig;
@@ -254,7 +255,7 @@ async function applyLinuxAutostartSettings() {
   ].join("\n");
 
   await mkdir(dirname(autostartPath), { recursive: true });
-  await writeFile(autostartPath, `${desktopEntry}\n`, "utf8");
+  await writeFile(autostartPath, `${desktopEntry}`, "utf8");
 }
 
 async function applyAutostartSettings() {
@@ -613,417 +614,84 @@ function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
-function positionNotificationWindows() {
-  const { workArea } = screen.getPrimaryDisplay();
-  let y = workArea.y + workArea.height - 12;
-
-  for (const win of [...notificationWindows].reverse()) {
-    if (win.isDestroyed()) {
-      continue;
-    }
-
-    const [width, height] = win.getSize();
-    y -= height;
-    win.setBounds({
-      x: workArea.x + workArea.width - width - 12,
-      y,
-      width,
-      height,
-    });
-    y -= 10;
-  }
-}
-
-function closeNotificationWindow(win) {
-  const index = notificationWindows.indexOf(win);
-  if (index !== -1) {
-    notificationWindows.splice(index, 1);
-  }
-  for (const [id, notificationWindow] of notificationWindowById) {
-    if (notificationWindow === win) {
-      notificationWindowById.delete(id);
-      notificationDetailsById.delete(id);
-    }
-  }
-  if (!win.isDestroyed()) {
-    win.close();
-  }
-  positionNotificationWindows();
-}
-
-function closeOtherNotificationWindows(keepId = "") {
-  for (const [id, win] of [...notificationWindowById.entries()]) {
-    if (id === keepId || win.isDestroyed()) {
-      continue;
-    }
-    closeNotificationWindow(win);
-  }
-}
-
 function sendNotificationAction(action) {
   if (action?.openWindow) {
     showMainWindow();
   }
-
   mainWindow?.webContents.send("notification-action", action);
 }
 
-function createNotificationHtml(details, soundUrl, logoUrl) {
-  const isCall = details.kind === "call";
-  const theme = details.theme === "dark" ? "dark" : "light";
-  const title = escapeHtml(
-    details.title || (isCall ? "Incoming call" : "New message"),
-  );
-  const body = escapeHtml(details.body || "");
-  const peerId = escapeAttribute(details.peerId || "");
-  const callId = escapeAttribute(details.callId || "");
-  const notificationId = escapeAttribute(details.id || "");
-  const sound = escapeAttribute(soundUrl);
-  const logo = escapeAttribute(logoUrl);
-
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: transparent;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      color: ${theme === "dark" ? "#eefbff" : "#0d2f43"};
-      user-select: none;
-    }
-    .toast {
-      width: 100%;
-      height: 100%;
-      border: 1px solid rgba(255,255,255,.82);
-      border-radius: 8px;
-      padding: 7px;
-      background:
-        ${
-          theme === "dark"
-            ? "linear-gradient(145deg, rgba(13,22,30,.98), rgba(6,12,18,.98)), radial-gradient(circle at 14% 0%, rgba(72,158,184,.12), transparent 8rem)"
-            : "linear-gradient(145deg, rgba(251,255,255,.97), rgba(179,239,252,.95)), radial-gradient(circle at 14% 0%, rgba(255,255,255,.86), transparent 8rem)"
-        };
-      box-shadow: ${theme === "dark" ? "0 16px 34px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.08)" : "0 16px 34px rgba(3, 43, 68, .28), inset 0 1px 0 rgba(255,255,255,.9)"};
-      animation: enter 170ms cubic-bezier(.2,.82,.2,1);
-    }
-    header {
-      display: grid;
-      grid-template-columns: 30px minmax(0,1fr) 24px;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-    .icon {
-      display: grid;
-      place-items: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: ${theme === "dark" ? "linear-gradient(#253947, #122532 48%, #07131c)" : "linear-gradient(#ffffff, #9cf1ff 48%, #34b7e7)"};
-      color: ${theme === "dark" ? "#e7fbff" : "#09536c"};
-      font-size: 10px;
-      font-weight: 900;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.12);
-    }
-    .icon img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      border-radius: 50%;
-    }
-    strong, p {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    strong {
-      display: block;
-      font-size: 12px;
-      line-height: 1.15;
-      white-space: nowrap;
-    }
-    p {
-      margin: 2px 0 0;
-      color: ${theme === "dark" ? "#a9c7d1" : "#315f72"};
-      font-size: 11px;
-      line-height: 1.25;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-    .close {
-      display: grid;
-      place-items: center;
-      width: 24px;
-      height: 24px;
-      border: 0;
-      border-radius: 5px;
-      background: ${theme === "dark" ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.45)"};
-      color: ${theme === "dark" ? "#cfe7ee" : "#456b7c"};
-      font-weight: 900;
-      cursor: pointer;
-    }
-    .actions {
-      display: grid;
-      grid-template-columns: ${isCall ? "1fr 1fr" : "minmax(0, 1fr) auto"};
-      gap: 6px;
-    }
-    input {
-      min-width: 0;
-      height: 27px;
-      border: 1px solid ${theme === "dark" ? "rgba(130,179,194,.24)" : "rgba(68,151,181,.35)"};
-      border-radius: 5px;
-      padding: 0 8px;
-      outline: none;
-      background: ${theme === "dark" ? "rgba(2,9,14,.82)" : "rgba(255,255,255,.84)"};
-      color: ${theme === "dark" ? "#eefbff" : "#0c3143"};
-      font-size: 12px;
-      box-shadow: inset 0 2px 5px rgba(18,102,133,.08);
-    }
-    button.action {
-      height: 28px;
-      border: 1px solid rgba(0,117,157,.25);
-      border-radius: 5px;
-      padding: 0 9px;
-      background: ${theme === "dark" ? "linear-gradient(#2d4654, #183240 48%, #0b1d28)" : "linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8)"};
-      color: ${theme === "dark" ? "#f0fbff" : "#05384f"};
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 5px 10px rgba(0,104,148,.1);
-    }
-    button.accept { color: ${theme === "dark" ? "#a8f2ce" : "#11613d"}; }
-    button.decline {
-      background: ${theme === "dark" ? "linear-gradient(#55212c, #36111a 48%, #200910)" : "linear-gradient(#ffffff, #ffe7eb 48%, #ffb3c0)"};
-      color: ${theme === "dark" ? "#ffdce4" : "#7b2534"};
-    }
-    @keyframes enter {
-      from { opacity: 0; transform: translateX(18px) scale(.98); }
-      to { opacity: 1; transform: translateX(0) scale(1); }
-    }
-  </style>
-</head>
-<body data-kind="${escapeAttribute(details.kind)}" data-peer-id="${peerId}" data-call-id="${callId}" data-id="${notificationId}">
-  <section class="toast" id="toast">
-    <header>
-      <div class="icon">${logo ? `<img src="${logo}" alt="" />` : "A"}</div>
-      <div>
-        <strong>${title}</strong>
-        <p>${body}</p>
-      </div>
-      <button class="close" type="button" id="close" aria-label="Close">×</button>
-    </header>
-    <div class="actions">
-      ${
-        isCall
-          ? `
-        <button class="action accept" type="button" id="accept">Accept</button>
-        <button class="action decline" type="button" id="decline">Decline</button>
-      `
-          : `
-        <input id="reply" type="text" maxlength="4000" placeholder="Reply..." />
-        <button class="action" type="button" id="send">Send</button>
-      `
-      }
-    </div>
-  </section>
-  ${sound ? `<audio id="sound" src="${sound}" ${isCall ? "" : "autoplay"}></audio>` : ""}
-  <script>
-    const body = document.body;
-    const base = {
-      id: body.dataset.id,
-      kind: body.dataset.kind,
-      peerId: body.dataset.peerId,
-      callId: body.dataset.callId
-    };
-    function close() {
-      window.aeroChatNotification.close(base.id);
-    }
-    async function action(type, extra = {}) {
-      await window.aeroChatNotification.action({ ...base, type, ...extra }).catch(() => {});
-      close();
-    }
-    document.getElementById("close").addEventListener("click", close);
-    document.getElementById("toast").addEventListener("click", (event) => {
-      if (event.target.closest("button") || event.target.closest("input")) return;
-      action("open", { openWindow: true });
-    });
-    const reply = document.getElementById("reply");
-    const send = document.getElementById("send");
-    if (reply && send) {
-      send.addEventListener("click", () => {
-        const text = reply.value.trim();
-        if (text) action("reply", { text, openWindow: false });
-      });
-      reply.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          send.click();
-        }
-      });
-      setTimeout(() => reply.focus(), 70);
-    }
-    document.getElementById("accept")?.addEventListener("click", () => action("accept-call", { openWindow: true }));
-    document.getElementById("decline")?.addEventListener("click", () => action("decline-call"));
-    const sound = document.getElementById("sound");
-    let ringtoneAudioContext = null;
-    let ringtoneSource = null;
-    async function playSound() {
-      if (!sound) return;
-      sound.volume = 1;
-      sound.currentTime = 0;
-      if (base.kind !== "call") {
-        await sound.play().catch(() => {});
-        return;
-      }
-
-      try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        ringtoneAudioContext = new AudioContextClass();
-        const response = await fetch(sound.src);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await ringtoneAudioContext.decodeAudioData(arrayBuffer);
-        ringtoneSource = ringtoneAudioContext.createBufferSource();
-        ringtoneSource.buffer = audioBuffer;
-        ringtoneSource.loop = true;
-        ringtoneSource.connect(ringtoneAudioContext.destination);
-        ringtoneSource.start(0);
-        sound.pause();
-      } catch {
-        sound.loop = true;
-        await sound.play().catch(() => {});
-      }
-    }
-    function stopSound() {
-      try {
-        ringtoneSource?.stop();
-      } catch {}
-      ringtoneSource = null;
-      ringtoneAudioContext?.close().catch(() => {});
-      ringtoneAudioContext = null;
-      if (sound) {
-        sound.pause();
-        sound.currentTime = 0;
-      }
-    }
-    window.addEventListener("beforeunload", stopSound);
-    playSound();
-  </script>
-</body>
-</html>`;
-}
-
 function showAppNotification(details = {}) {
-  if (
-    shouldSuppressNotification({
-      showWhenFocused: Boolean(details.showWhenFocused),
-    })
-  ) {
+  if (shouldSuppressNotification({ showWhenFocused: Boolean(details.showWhenFocused) })) {
     return { ok: true, suppressed: true };
   }
 
   const kind = details.kind === "call" ? "call" : "message";
-  const notification = {
-    id:
-      details.id ||
-      `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    kind,
-    peerId: details.peerId || "",
-    callId: details.callId || "",
-    title: String(details.title || ""),
-    body: String(details.body || ""),
-    theme: details.theme === "dark" ? "dark" : "light",
-  };
-  const existingWindow = notificationWindowById.get(notification.id);
-  if (existingWindow && !existingWindow.isDestroyed()) {
-    positionNotificationWindows();
-    return { ok: true, id: notification.id, existing: true };
+  const notificationId = details.id || `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  if (activeNotifications.has(notificationId)) {
+    return { ok: true, id: notificationId, existing: true };
   }
 
-  closeOtherNotificationWindows(notification.id);
+  const title = String(details.title || (kind === "call" ? "Incoming call" : "New message"));
+  const body = String(details.body || "");
+  const peerId = details.peerId || "";
+  const callId = details.callId || "";
 
-  const width = 342;
-  const height = kind === "call" ? 88 : 118;
-  const win = new BrowserWindow({
-    width,
-    height,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    show: false,
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      contextIsolation: true,
-      sandbox: true,
-      nodeIntegration: false,
-    },
+  // The 'actions' array adds Accept/Decline buttons to the native notification on supported platforms
+  const notification = new Notification({
+    title,
+    body,
+    icon: windowIcon,
+    silent: Boolean(details.silent),
+    actions: kind === "call" ? [
+      { type: 'button', text: 'Accept' },
+      { type: 'button', text: 'Decline' }
+    ] : undefined
   });
 
-  notificationWindows.push(win);
-  notificationWindowById.set(notification.id, win);
-  notificationDetailsById.set(notification.id, notification);
-  win.on("closed", () => {
-    const index = notificationWindows.indexOf(win);
-    if (index !== -1) {
-      notificationWindows.splice(index, 1);
-    }
-    notificationWindowById.delete(notification.id);
-    notificationDetailsById.delete(notification.id);
-    positionNotificationWindows();
-  });
-
-  const hasOtherCallNotification = Array.from(
-    notificationDetailsById.entries(),
-  ).some(([id, item]) => {
-    const notificationWindow = notificationWindowById.get(id);
-    return (
-      id !== notification.id &&
-      item.kind === "call" &&
-      notificationWindow &&
-      !notificationWindow.isDestroyed()
-    );
-  });
-  const shouldPlaySound =
-    !details.silent &&
-    !isSystemDoNotDisturbEnabled() &&
-    (kind !== "call" || !hasOtherCallNotification);
-  const soundUrl = shouldPlaySound
-    ? findNotificationSound(kind === "call" ? "ringtone" : "message")
-    : "";
-  const logoUrl = findNotificationLogo();
-  win.loadURL(
-    `data:text/html;charset=utf-8,${encodeURIComponent(createNotificationHtml(notification, soundUrl, logoUrl))}`,
-  );
-  win.once("ready-to-show", () => {
-    positionNotificationWindows();
-    win.show();
-    if (kind === "message") {
-      setTimeout(() => closeNotificationWindow(win), 12000);
+  notification.on('action', (event, index) => {
+    if (kind === "call") {
+      if (index === 0) {
+        sendNotificationAction({ type: 'accept-call', openWindow: true, id: notificationId, kind, peerId, callId });
+      } else if (index === 1) {
+        sendNotificationAction({ type: 'decline-call', id: notificationId, kind, peerId, callId });
+      }
     }
   });
 
-  return { ok: true, id: notification.id };
+  notification.on('click', () => {
+    sendNotificationAction({ type: 'open', openWindow: true, id: notificationId, kind, peerId, callId });
+  });
+
+  notification.on('close', () => {
+    activeNotifications.delete(notificationId);
+  });
+
+  activeNotifications.set(notificationId, notification);
+  notification.show();
+
+  if (kind === "message") {
+    setTimeout(() => {
+      const n = activeNotifications.get(notificationId);
+      if (n) {
+        n.close();
+        activeNotifications.delete(notificationId);
+      }
+    }, 12000);
+  }
+
+  return { ok: true, id: notificationId };
 }
 
 function closeAppNotification(id) {
-  const win = notificationWindowById.get(String(id));
-  if (win) {
-    closeNotificationWindow(win);
+  const notification = activeNotifications.get(String(id));
+  if (notification) {
+    notification.close();
+    activeNotifications.delete(String(id));
   }
   return { ok: true };
 }
-
 function getAppNotificationState() {
   return getNotificationState();
 }
