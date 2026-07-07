@@ -143,8 +143,40 @@ begin
   RegWriteStringValue(HKCU, 'Environment', 'Path', PathValue);
 end;
 
+procedure CleanPreviousInstallation;
+var
+  UninstallerPath: string;
+  iResultCode: Integer;
+  AppDir: string;
+  ConfigFile: string;
+  TempConfigFile: string;
+begin
+  AppDir := ExpandConstant('{app}');
+  UninstallerPath := AppDir + '\unins000.exe';
+  ConfigFile := AppDir + '\config.json';
+  TempConfigFile := ExpandConstant('{tmp}\config.json');
+
+  if FileExists(ConfigFile) then begin
+    FileCopy(ConfigFile, TempConfigFile, False);
+  end;
+
+  if FileExists(UninstallerPath) then begin
+    Exec(UninstallerPath, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART _?=' + AppDir, '', SW_HIDE, ewWaitUntilTerminated, iResultCode);
+  end;
+
+  if FileExists(TempConfigFile) then begin
+    if not DirExists(AppDir) then begin
+      CreateDir(AppDir);
+    end;
+    FileCopy(TempConfigFile, ConfigFile, False);
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssInstall then begin
+    CleanPreviousInstallation;
+  end;
   if CurStep = ssPostInstall then begin
     AddAppDirToUserPath;
   end;
