@@ -27,6 +27,7 @@ function App() {
   const cloudY3 = useTransform(scrollYProgress, [0, 1], [0, -450]);
   const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const cloudY5 = useTransform(scrollYProgress, [0, 1], [0, -700]);
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
@@ -98,6 +99,24 @@ function App() {
 
   return (
     <>
+      {/* Dynamic Parallax Background */}
+      <motion.div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '115vh', /* Extra height to prevent empty space when scrolling up */
+          zIndex: -100,
+          backgroundColor: '#0ea5e9',
+          backgroundImage: `url('${import.meta.env.BASE_URL}img/skyboxes_4.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          y: bgY,
+          willChange: 'transform'
+        }}
+      />
+
       {/* Static Overlays as requested */}
       <img
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
