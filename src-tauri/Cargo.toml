@@ -1,6 +1,6 @@
 [package]
 name = "aerop2p"
-version = "26.22.0"
+version = "26.23.0"
 description = "A peer-to-peer chat client built with Tauri."
 authors = ["Zorblock"]
 edition = "2021"
