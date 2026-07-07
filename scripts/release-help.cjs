@@ -249,8 +249,14 @@ function buildWindowsRelease(version) {
 
 function createReleaseWithWindowsAssets(version, branch) {
   const tag = `v${version}`;
+  
+  info("Generating latest.yml with Windows manifest...");
+  run("node", ["scripts/ci-create-latest.cjs", path.join("dist", "release")]);
+  
   const setupPath = path.join("dist", "release", "Aero-P2P-Chat-Windows-Setup.exe");
   const manifestPath = path.join("dist", "release", "update_manifest_windows.json");
+  const latestPath = path.join("dist", "release", "latest.yml");
+  
   if (!fs.existsSync(path.join(root, setupPath))) {
     throw new Error(`Missing Windows setup: ${setupPath}`);
   }
@@ -264,6 +270,7 @@ function createReleaseWithWindowsAssets(version, branch) {
     tag,
     setupPath,
     manifestPath,
+    latestPath,
     "--target",
     branch,
     "--title",
@@ -271,7 +278,7 @@ function createReleaseWithWindowsAssets(version, branch) {
     "--notes",
     `Aero P2P Chat ${tag}`,
   ]);
-  ok(`Created GitHub release ${tag} with Windows setup.`);
+  ok(`Created GitHub release ${tag} with Windows setup and latest.yml.`);
 }
 
 function commitAndPushVersionFiles(version, branch) {

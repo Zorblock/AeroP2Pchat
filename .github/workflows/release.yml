@@ -64,14 +64,8 @@ jobs:
           gh release download "v${{ inputs.version }}" --pattern update_manifest_windows.json --dir artifacts || true
           node scripts/ci-create-latest.cjs artifacts
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
-          fail_on_unmatched_files: true
-          files: |
-            artifacts/latest.yml
-            artifacts/Aero-P2P-Chat-Linux.AppImage
+      - name: Upload Linux assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ inputs.version }}" artifacts/latest.yml artifacts/Aero-P2P-Chat-Linux.AppImage --clobber

@@ -33,46 +33,59 @@ function main() {
   );
   const linuxManifest = manifests.find((manifest) => manifest.platform === "linux");
   const windowsManifest = manifests.find((manifest) => manifest.platform === "windows");
-  if (!linuxManifest) throw new Error("Linux release manifest missing.");
+  
+  if (!linuxManifest && !windowsManifest) {
+    throw new Error("No release manifests found.");
+  }
 
-  const version = linuxManifest.version;
-  const linux = linuxManifest.assets.find((asset) => asset.name === config.release.linuxAppImageAsset);
+  const version = (linuxManifest || windowsManifest).version;
+  if (!version) throw new Error("Release version missing.");
+
+  const linux = linuxManifest?.assets.find((asset) => asset.name === config.release.linuxAppImageAsset);
   const windows = windowsManifest?.assets.find(
     (asset) => asset.name === config.release.windowsInstallerAsset,
   );
-  if (!version) throw new Error("Release version missing.");
-  if (!linux) throw new Error("Linux AppImage asset info missing.");
 
   const tag = `v${version}`;
   const lines = [
     `version: ${yamlQuote(version)}`,
     `releaseDate: ${yamlQuote(new Date().toISOString())}`,
     `repo: ${yamlQuote(config.repo)}`,
-    `path: ${yamlQuote(windows?.name || linux.name)}`,
-    `url: ${yamlQuote(releaseUrl(tag, windows?.name || linux.name))}`,
-    `sha256: ${yamlQuote(windows?.sha256 || linux.sha256)}`,
-    `sha512: ${yamlQuote(windows?.sha512 || linux.sha512)}`,
-    `size: ${windows?.size || linux.size}`,
-    `linuxPath: ${yamlQuote(linux.name)}`,
-    `linuxUrl: ${yamlQuote(releaseUrl(tag, linux.name))}`,
-    `linuxSha256: ${yamlQuote(linux.sha256)}`,
-    `linuxSha512: ${yamlQuote(linux.sha512)}`,
-    `linuxSize: ${linux.size}`,
     `productName: ${yamlQuote(config.app.name)}`,
-    "",
   ];
 
+  const primary = windows || linux;
+  if (primary) {
+    lines.push(
+      `path: ${yamlQuote(primary.name)}`,
+      `url: ${yamlQuote(releaseUrl(tag, primary.name))}`,
+      `sha256: ${yamlQuote(primary.sha256)}`,
+      `sha512: ${yamlQuote(primary.sha512)}`,
+      `size: ${primary.size}`
+    );
+  }
+
   if (windows) {
-    lines.splice(
-      8,
-      0,
+    lines.push(
       `windowsPath: ${yamlQuote(windows.name)}`,
       `windowsUrl: ${yamlQuote(releaseUrl(tag, windows.name))}`,
       `windowsSha256: ${yamlQuote(windows.sha256)}`,
       `windowsSha512: ${yamlQuote(windows.sha512)}`,
-      `windowsSize: ${windows.size}`,
+      `windowsSize: ${windows.size}`
     );
   }
+
+  if (linux) {
+    lines.push(
+      `linuxPath: ${yamlQuote(linux.name)}`,
+      `linuxUrl: ${yamlQuote(releaseUrl(tag, linux.name))}`,
+      `linuxSha256: ${yamlQuote(linux.sha256)}`,
+      `linuxSha512: ${yamlQuote(linux.sha512)}`,
+      `linuxSize: ${linux.size}`
+    );
+  }
+
+  lines.push(""); // Trailing newline
 
   fs.writeFileSync(path.join(artifactsDir, "latest.yml"), lines.join("\n"), "utf8");
 }
