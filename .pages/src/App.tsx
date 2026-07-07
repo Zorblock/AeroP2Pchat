@@ -182,7 +182,7 @@ function App() {
         />
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '85%', left: '25%', width: '400px', zIndex: 100, opacity: 0.5, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
+          style={{ position: 'absolute', top: '75%', right: '5%', width: '400px', zIndex: 100, opacity: 0.6, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
 
@@ -377,7 +377,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative' }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center', position: 'relative', zIndex: 2 }}
         >
           {/* Sealife next to the command prompt */}
           <img
@@ -476,7 +476,7 @@ function App() {
 
         <img
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: -1, pointerEvents: 'none', objectFit: 'cover' }}
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: 5, pointerEvents: 'none', objectFit: 'cover' }}
           alt=""
         />
 
