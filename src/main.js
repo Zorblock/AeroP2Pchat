@@ -462,14 +462,21 @@ function waitForImageReady(image) {
     return Promise.resolve();
   }
 
-  if (image.complete && image.naturalWidth > 0) {
-    return image.decode ? image.decode().catch(() => {}) : Promise.resolve();
+  if (image.complete) {
+    if (image.naturalWidth > 0 && image.decode) {
+      return image.decode().catch(() => {});
+    }
+    return Promise.resolve();
   }
 
   return new Promise((resolve) => {
     image.addEventListener("load", () => resolve(), { once: true });
     image.addEventListener("error", () => resolve(), { once: true });
-  }).then(() => (image.decode ? image.decode().catch(() => {}) : undefined));
+  }).then(() => {
+    if (image.naturalWidth > 0 && image.decode) {
+      return image.decode().catch(() => {});
+    }
+  });
 }
 
 async function waitForVisualReady() {
