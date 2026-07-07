@@ -16,7 +16,6 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Window};
 
-const CONFIG_FILE_NAME: &str = "config.json";
 const TRAY_MENU_OPEN: &str = "tray-open";
 const TRAY_MENU_HIDE: &str = "tray-hide";
 const TRAY_MENU_QUIT: &str = "tray-quit";
@@ -35,14 +34,14 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
         .path()
         .app_config_dir()
         .map_err(|error| error.to_string())?;
-        
+
     let profile = std::env::var("AEROP2P_PROFILE").unwrap_or_default();
     let file_name = if profile.is_empty() {
         "config.json".to_string()
     } else {
         format!("config-{}.json", profile)
     };
-    
+
     Ok(dir.join(file_name))
 }
 
@@ -361,6 +360,7 @@ fn window_control(window: Window, action: String) -> Result<Value, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[allow(unused_mut)]
     let mut builder = tauri::Builder::default();
 
     #[cfg(not(debug_assertions))]
