@@ -195,6 +195,11 @@ function App() {
           style={{ position: 'absolute', top: '75%', right: '5%', width: '400px', zIndex: 100, opacity: 0.6, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
+        <motion.img
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '76%', left: '5%', width: '450px', zIndex: 100, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
+          alt=""
+        />
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
