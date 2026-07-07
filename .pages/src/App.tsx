@@ -359,7 +359,7 @@ function App() {
           transition={{ duration: 1, delay: 1 }}
           className="aero-glass"
           style={{ 
-            marginTop: 'auto', 
+            marginTop: '10rem', 
             padding: '2rem 3rem', 
             width: '100%', 
             maxWidth: '1000px',
@@ -407,6 +407,13 @@ function App() {
           style={{ position: 'absolute', bottom: '150px', right: '5%', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
         />
         
+        {/* Sealife behind the water, peeking out */}
+        <img 
+          src={`${import.meta.env.BASE_URL}img/sealife_14.png`}
+          style={{ position: 'absolute', bottom: '0', right: '5%', width: '600px', zIndex: -2, pointerEvents: 'none', transform: 'rotate(-5deg)' }}
+          alt=""
+        />
+
         <img 
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: -1, pointerEvents: 'none', objectFit: 'cover' }}
