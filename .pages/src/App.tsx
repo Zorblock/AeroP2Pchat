@@ -131,6 +131,7 @@ function App() {
 
       <img
         src={`${import.meta.env.BASE_URL}img/flares_6.png`}
+        className="flare-animate"
         style={{ position: 'absolute', top: '-5%', left: '50%', transform: 'translateX(-50%)', width: '800px', zIndex: 20, opacity: 0.9, mixBlendMode: 'screen', pointerEvents: 'none' }}
         alt=""
       />
@@ -236,7 +237,7 @@ function App() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '600px' }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '800px' }}
         >
           <div className="mobile-stack-buttons" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <motion.a
@@ -262,7 +263,7 @@ function App() {
             </motion.a>
           </div>
 
-          <div style={{ marginTop: '2rem', width: '100%' }}>
+          <div style={{ marginTop: '2rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div className="install-os-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
               <button
                 className="liquid-btn"
