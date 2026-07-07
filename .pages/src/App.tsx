@@ -13,6 +13,35 @@ function App() {
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>(
     typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('windows') ? 'windows' : 'linux'
   );
+  const [latestVersion, setLatestVersion] = useState('v26.28.0');
+  const [installedVersion, setInstalledVersion] = useState('v26.27.0');
+
+  useEffect(() => {
+    fetch('https://api.github.com/repos/Zorblock/AeroP2Pchat/releases/latest')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tag_name) {
+          const latest = data.tag_name;
+          setLatestVersion(latest);
+          
+          const parts = latest.split('.');
+          if (parts.length === 3) {
+            const patch = parseInt(parts[2], 10);
+            if (!isNaN(patch) && patch > 0) {
+              parts[2] = (patch - 1).toString();
+            } else {
+               const minor = parseInt(parts[1], 10);
+               if (!isNaN(minor) && minor > 0) {
+                 parts[1] = (minor - 1).toString();
+                 parts[2] = '0';
+               }
+            }
+            setInstalledVersion(parts.join('.'));
+          }
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -307,10 +336,10 @@ function App() {
             <div style={{ padding: '1.5rem', fontFamily: 'monospace', fontSize: '0.9rem', color: '#e2e8f0', lineHeight: 1.6 }}>
               <div style={{ marginBottom: '0.5rem' }}><span style={{ color: '#38bdf8' }}>$</span> aerop2p menu</div>
               <div style={{ color: '#9db0bb', marginBottom: '1rem' }}>
-                <div style={{ color: '#a3e635' }}>Status: Installed (v26.27.0)</div>
-                <div style={{ color: '#facc15' }}>Latest: v26.28.0 (Update available!)</div>
+                <div style={{ color: '#a3e635' }}>Status: Installed ({installedVersion})</div>
+                <div style={{ color: '#facc15' }}>Latest: {latestVersion} (Update available!)</div>
               </div>
-              <div style={{ marginBottom: '0.2rem' }}>1 - <span style={{ fontWeight: 'bold' }}>Update to v26.28.0</span></div>
+              <div style={{ marginBottom: '0.2rem' }}>1 - <span style={{ fontWeight: 'bold' }}>Update to {latestVersion}</span></div>
               <div style={{ marginBottom: '0.2rem', color: '#f87171' }}>2 - Uninstall</div>
               <div style={{ marginBottom: '0.2rem', color: '#22d3ee' }}>3 - Check status details</div>
               <div style={{ marginBottom: '1rem', color: '#64748b' }}>4 - Exit</div>
