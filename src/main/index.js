@@ -56,7 +56,9 @@ let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.name = projectConfig.app.name || "Aero P2P Chat";
-app.setAppUserModelId(projectConfig.app.id);
+if (app.isPackaged) {
+  app.setAppUserModelId(projectConfig.app.id);
+}
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
