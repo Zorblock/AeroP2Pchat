@@ -14,16 +14,8 @@
     "autostartDesktopFileName": "aero-p2p-chat.desktop"
   },
   "release": {
-    "artifactName": "Aero-P2P-Chat-${version}-${os}-${arch}.${ext}",
-    "windowsInstallerAsset": "Aero-P2P-Chat-Windows-Setup.exe",
-    "windowsX64SetupAsset": "Aero-P2P-Chat-Windows-x64-Setup.exe",
-    "windowsX64PortableAsset": "Aero-P2P-Chat-Windows-x64-Portable.exe",
     "windowsSetupBaseName": "Aero-P2P-Chat-Setup",
-    "linuxAppImageAsset": "Aero-P2P-Chat-Linux.AppImage",
-    "linuxX64AppImageAsset": "Aero-P2P-Chat-Linux-x64.AppImage",
-    "linuxX64DebAsset": "Aero-P2P-Chat-Linux-x64.deb",
-    "linuxX64PortableAsset": "Aero-P2P-Chat-Linux-x64-Portable.tar.gz",
-    "macosUniversalDmgAsset": "Aero-P2P-Chat-macOS-Universal.dmg",
-    "macosUniversalPortableAsset": "Aero-P2P-Chat-macOS-Universal-Portable.zip"
+    "windowsSetupAsset": "Aero-P2P-Chat-Windows-x64-Setup.exe",
+    "linuxAppImageAsset": "Aero-P2P-Chat-Linux-x64.AppImage"
   }
 }

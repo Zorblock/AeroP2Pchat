@@ -5,14 +5,21 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
+const releaseDir = path.join(root, "dist", "release");
 
 function run(command, args, options = {}) {
   console.log(`> ${command} ${args.join(" ")}`);
-  const isWindowsNpm = process.platform === "win32" && command === "npm";
-  const executable = isWindowsNpm ? process.env.ComSpec || "cmd.exe" : command;
-  const finalArgs = isWindowsNpm
-    ? ["/d", "/s", "/c", "npm.cmd", ...args]
-    : args;
+  const isWindowsNpm =
+    process.platform === "win32" &&
+    (command === "npm" || command === "npx" || command === "node");
+  const executable =
+    isWindowsNpm && command !== "node"
+      ? process.env.ComSpec || "cmd.exe"
+      : command;
+  const finalArgs =
+    isWindowsNpm && command !== "node"
+      ? ["/d", "/s", "/c", `${command}.cmd`, ...args]
+      : args;
   const result = spawnSync(executable, finalArgs, {
     cwd: root,
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
@@ -41,7 +48,7 @@ function writeJson(filePath, data) {
 
 function parseArgs() {
   const options = {
-    bump: "patch",
+    bump: "minor",
     dryRun: false,
   };
 
@@ -108,26 +115,48 @@ function ensureGitRepository() {
     capture: true,
   });
   if (!branch || branch === "HEAD") {
-    throw new Error("Release must run from a named Git branch, not detached HEAD.");
+    throw new Error(
+      "Release must run from a named Git branch, not detached HEAD.",
+    );
   }
   return branch;
 }
 
 function ensureTagDoesNotExist(tag) {
-  const local = spawnSync("git", ["rev-parse", "-q", "--verify", `refs/tags/${tag}`], {
-    cwd: root,
-    stdio: "ignore",
-  });
+  const local = spawnSync(
+    "git",
+    ["rev-parse", "-q", "--verify", `refs/tags/${tag}`],
+    {
+      cwd: root,
+      stdio: "ignore",
+    },
+  );
   if (local.status === 0) {
     throw new Error(`Tag ${tag} already exists locally.`);
   }
 
-  const remote = spawnSync("git", ["ls-remote", "--exit-code", "--tags", "origin", tag], {
+  const remote = spawnSync(
+    "git",
+    ["ls-remote", "--exit-code", "--tags", "origin", tag],
+    {
+      cwd: root,
+      stdio: "ignore",
+    },
+  );
+  if (remote.status === 0) {
+    throw new Error(`Tag ${tag} already exists on origin.`);
+  }
+}
+
+function ensureGhCli() {
+  const result = spawnSync("gh", ["--version"], {
     cwd: root,
     stdio: "ignore",
   });
-  if (remote.status === 0) {
-    throw new Error(`Tag ${tag} already exists on origin.`);
+  if (result.status !== 0) {
+    throw new Error(
+      "gh CLI is not installed. Install it from https://cli.github.com/ and run: gh auth login",
+    );
   }
 }
 
@@ -139,16 +168,36 @@ function hasStagedChanges() {
   return result.status !== 0;
 }
 
+function collectReleaseFiles() {
+  if (!fs.existsSync(releaseDir)) {
+    throw new Error(`Release directory not found: ${releaseDir}`);
+  }
+
+  const files = fs
+    .readdirSync(releaseDir)
+    .map((name) => path.join(releaseDir, name))
+    .filter((filePath) => fs.statSync(filePath).isFile());
+
+  if (files.length === 0) {
+    throw new Error("No release artifacts found in dist/release/.");
+  }
+
+  return files;
+}
+
 function main() {
   const options = parseArgs();
   const branch = ensureGitRepository();
+  ensureGhCli();
   const pkgBefore = readJson(packagePath);
-  const nextVersion = options.version || bumpVersion(pkgBefore.version, options.bump);
+  const nextVersion =
+    options.version || bumpVersion(pkgBefore.version, options.bump);
   const tag = `v${nextVersion}`;
 
   ensureTagDoesNotExist(tag);
 
   console.log(`Release: ${pkgBefore.version} -> ${nextVersion}`);
+  console.log(`Bump:    ${options.bump}`);
   console.log(`Branch:  ${branch}`);
   console.log(`Tag:     ${tag}`);
 
@@ -157,10 +206,21 @@ function main() {
     return;
   }
 
+  // 1. Bump version
   setPackageVersion(nextVersion);
 
+  // 2. Run tests
   run("npm", ["run", "test"]);
 
+  // 3. Build Windows (electron-builder + Inno Setup) and create latest.yml
+  run("node", [
+    "scripts/ci-build-release.cjs",
+    "--platform=windows",
+    `--version=${nextVersion}`,
+  ]);
+  run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
+
+  // 4. Commit, push, tag
   run("git", ["add", "-A"]);
   if (hasStagedChanges()) {
     run("git", ["commit", "-m", `chore: release ${tag}`]);
@@ -172,9 +232,24 @@ function main() {
   run("git", ["tag", tag]);
   run("git", ["push", "origin", tag]);
 
+  // 5. Create GitHub release and upload Windows artifacts + latest.yml
+  const releaseFiles = collectReleaseFiles();
+  const ghArgs = [
+    "release",
+    "create",
+    tag,
+    "--title",
+    tag,
+    "--generate-notes",
+    ...releaseFiles,
+  ];
+  run("gh", ghArgs);
+
   console.log("");
-  console.log(`Release ${tag} started on GitHub Actions.`);
-  console.log("build.yml and cd.yml build the release packages on GitHub Actions.");
+  console.log(`Release ${tag} created on GitHub with Windows artifacts.`);
+  console.log(
+    "GitHub Actions will now build the Linux AppImage and add it to the release.",
+  );
 }
 
 try {

@@ -8,16 +8,19 @@ const distDir = path.join(root, "dist");
 const releaseDir = path.join(distDir, "release");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
-const config = JSON.parse(fs.readFileSync(path.join(root, "config.json"), "utf8"));
+const config = JSON.parse(
+  fs.readFileSync(path.join(root, "config.json"), "utf8"),
+);
 
 function parseArgs() {
   const options = { platform: "", version: "" };
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith("--platform=")) options.platform = arg.slice(11);
-    if (arg.startsWith("--version=")) options.version = arg.slice(10).replace(/^v/, "");
+    if (arg.startsWith("--version="))
+      options.version = arg.slice(10).replace(/^v/, "");
   }
-  if (!["linux", "windows", "macos"].includes(options.platform)) {
-    throw new Error("Missing --platform=linux|windows|macos");
+  if (!["linux", "windows"].includes(options.platform)) {
+    throw new Error("Missing --platform=linux|windows");
   }
   return options;
 }
@@ -75,7 +78,10 @@ function clean() {
 }
 
 function hashFile(filePath, algorithm) {
-  return crypto.createHash(algorithm).update(fs.readFileSync(filePath)).digest("hex");
+  return crypto
+    .createHash(algorithm)
+    .update(fs.readFileSync(filePath))
+    .digest("hex");
 }
 
 function hashFileBase64(filePath, algorithm) {
@@ -85,33 +91,27 @@ function hashFileBase64(filePath, algorithm) {
     .digest("base64");
 }
 
-function copyAsset(source, name, assets) {
+function copyAsset(source, name) {
   if (!source || !fs.existsSync(source)) {
     throw new Error(`Expected build asset was not found: ${source || name}`);
   }
   const target = path.join(releaseDir, name);
   fs.copyFileSync(source, target);
-  assets.push({
+  return {
     name,
     size: fs.statSync(target).size,
     sha256: hashFile(target, "sha256"),
     sha512: hashFileBase64(target, "sha512"),
-  });
+  };
 }
 
 function findFile(startDir, predicate) {
   if (!fs.existsSync(startDir)) return "";
-  const entries = fs.readdirSync(startDir, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const fullPath = path.join(startDir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...findAllFiles(fullPath, predicate));
-    } else if (predicate(entry.name, fullPath)) {
-      files.push(fullPath);
-    }
-  }
-  files.sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs);
+  const files = findAllFiles(startDir, predicate);
+  files.sort(
+    (left, right) =>
+      fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs,
+  );
   return files[0] || "";
 }
 
@@ -124,49 +124,26 @@ function findAllFiles(startDir, predicate) {
   });
 }
 
-function writePlatformManifest(platform, version, assets) {
+function writePlatformManifest(platform, version, asset) {
   fs.writeFileSync(
     path.join(releaseDir, `update_manifest_${platform}.json`),
-    `${JSON.stringify({ version, platform, assets }, null, 2)}\n`,
+    `${JSON.stringify({ version, platform, asset }, null, 2)}\n`,
     "utf8",
   );
 }
 
 function buildWindows(version) {
   run("npm", ["run", "setup"]);
-  run("npx", [
-    "electron-builder",
-    "--config",
-    "electron-builder.config.cjs",
-    "--win",
-    "portable",
-    "--publish",
-    "never",
-  ]);
 
-  const assets = [];
-  copyAsset(
-    path.join(distDir, "installer", `${config.release.windowsSetupBaseName}-${version}.exe`),
-    config.release.windowsX64SetupAsset,
-    assets,
+  const asset = copyAsset(
+    path.join(
+      distDir,
+      "installer",
+      `${config.release.windowsSetupBaseName}-${version}.exe`,
+    ),
+    config.release.windowsSetupAsset,
   );
-  copyAsset(
-    findFile(distDir, (name, fullPath) => {
-      return (
-        name.endsWith(".exe") &&
-        !name.includes("Setup") &&
-        !fullPath.includes(`${path.sep}installer${path.sep}`)
-      );
-    }),
-    config.release.windowsX64PortableAsset,
-    assets,
-  );
-  copyAsset(
-    path.join(releaseDir, config.release.windowsX64SetupAsset),
-    config.release.windowsInstallerAsset,
-    assets,
-  );
-  writePlatformManifest("windows", version, assets);
+  writePlatformManifest("windows", version, asset);
 }
 
 function buildLinux(version) {
@@ -177,40 +154,15 @@ function buildLinux(version) {
     "electron-builder.config.cjs",
     "--linux",
     "AppImage",
-    "deb",
-    "tar.gz",
     "--publish",
     "never",
   ]);
 
-  const assets = [];
-  copyAsset(findFile(distDir, (name) => name.endsWith(".AppImage")), config.release.linuxX64AppImageAsset, assets);
-  const debPath = findFile(distDir, (name) => name.endsWith(".deb"));
-  copyAsset(debPath, `Aero-P2P-Chat-Linux-x64-${version}-amd64.deb`, assets);
-  copyAsset(debPath, config.release.linuxX64DebAsset, assets);
-  copyAsset(findFile(distDir, (name) => name.endsWith(".tar.gz")), config.release.linuxX64PortableAsset, assets);
-  copyAsset(path.join(releaseDir, config.release.linuxX64AppImageAsset), config.release.linuxAppImageAsset, assets);
-  writePlatformManifest("linux", version, assets);
-}
-
-function buildMacos(version) {
-  run("node", ["scripts/run-electron-vite.cjs", "build"]);
-  run("npx", [
-    "electron-builder",
-    "--config",
-    "electron-builder.config.cjs",
-    "--mac",
-    "dmg",
-    "zip",
-    "--universal",
-    "--publish",
-    "never",
-  ]);
-
-  const assets = [];
-  copyAsset(findFile(distDir, (name) => name.endsWith(".dmg")), config.release.macosUniversalDmgAsset, assets);
-  copyAsset(findFile(distDir, (name) => name.endsWith(".zip")), config.release.macosUniversalPortableAsset, assets);
-  writePlatformManifest("macos", version, assets);
+  const asset = copyAsset(
+    findFile(distDir, (name) => name.endsWith(".AppImage")),
+    config.release.linuxAppImageAsset,
+  );
+  writePlatformManifest("linux", version, asset);
 }
 
 function main() {
@@ -220,7 +172,6 @@ function main() {
 
   if (options.platform === "windows") buildWindows(version);
   if (options.platform === "linux") buildLinux(version);
-  if (options.platform === "macos") buildMacos(version);
 }
 
 main();

@@ -7,7 +7,6 @@ module.exports = {
     output: "dist",
   },
   files: ["out/**/*", "assets/**/*", "package.json"],
-  artifactName: projectConfig.release.artifactName,
   win: {
     target: "dir",
     icon: "assets/app.ico",
@@ -17,11 +16,6 @@ module.exports = {
     icon: "assets/linux-icons",
     category: "Network",
     syncDesktopName: true,
-  },
-  mac: {
-    target: ["dmg", "zip"],
-    icon: "assets/app.png",
-    category: "public.app-category.social-networking",
   },
   asar: true,
 };

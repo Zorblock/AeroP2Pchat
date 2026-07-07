@@ -1,7 +1,7 @@
 {
   "name": "aero-p2p-chat",
   "version": "26.14.6",
-  "description": "A clean Electron peer-to-peer chat client for Windows, Linux, and macOS.",
+  "description": "A clean Electron peer-to-peer chat client for Windows and Linux.",
   "author": {
     "name": "Jonas Grimm",
     "email": "jonasgrimmde@users.noreply.github.com",
@@ -11,11 +11,11 @@
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
     "dev:2": "node scripts/dev-two.cjs",
-    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
+    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/ci-append-linux-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
     "build": "node scripts/build-win.cjs",
     "setup": "npm run build && node scripts/build-inno.cjs",
-    "release": "node scripts/release-help.cjs",
-    "patch": "node scripts/release-help.cjs",
+    "release": "node scripts/release-help.cjs --minor",
+    "patch": "node scripts/release-help.cjs --patch",
     "pages": "node scripts/deploy-pages.cjs"
   },
   "dependencies": {

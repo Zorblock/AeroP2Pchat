@@ -5,15 +5,13 @@ permissions:
 
 on:
   push:
-    branches:
-      - "**"
     tags:
       - "v*"
-  pull_request:
 
 jobs:
-  build:
+  linux:
     runs-on: ubuntu-22.04
+    environment: release
 
     steps:
       - name: Checkout
@@ -31,36 +29,24 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Build package
+      - name: Build Linux AppImage
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
-          else
-            node scripts/ci-build-release.cjs --platform=linux
-          fi
+        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
 
-      - name: Create latest.yml
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: node scripts/ci-create-latest.cjs dist/release
-
-      - name: Create release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          fail_on_unmatched_files: true
-          files: |
-            dist/release/latest.yml
-            dist/release/*.AppImage
+      - name: Download existing latest.yml from release
+        run: gh release download "${{ github.ref_name }}" --pattern "latest.yml" --dir ./dist/release --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload build artifacts
-        if: "!startsWith(github.ref, 'refs/tags/v')"
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-Linux-x64
-          path: dist/release/*
-          if-no-files-found: error
-          retention-days: 7
+      - name: Append Linux entries to latest.yml
+        run: node scripts/ci-append-linux-latest.cjs ./dist/release/latest.yml ./dist/release
+
+      - name: Upload Linux AppImage and updated latest.yml to release
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            "./dist/release/Aero-P2P-Chat-Linux-x64.AppImage" \
+            "./dist/release/latest.yml" \
+            --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
