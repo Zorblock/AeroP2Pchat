@@ -59,7 +59,7 @@ function App() {
           left: 0,
           right: 0,
           bottom: '-15vh',
-          backgroundImage: 'linear-gradient(to bottom, rgba(7, 11, 16, 0.7), rgba(19, 28, 38, 0.98)), url(/background.png)',
+          backgroundImage: `linear-gradient(to bottom, rgba(7, 11, 16, 0.7), rgba(19, 28, 38, 0.98)), url(${import.meta.env.BASE_URL}background.png)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           y: backgroundY,
@@ -85,7 +85,7 @@ function App() {
         }}
       >
         <img 
-          src="/logo.png" 
+          src={`${import.meta.env.BASE_URL}logo.png`} 
           alt="" 
           style={{ 
             width: '100%', 
@@ -111,7 +111,7 @@ function App() {
         }}
       >
         <img 
-          src="/logo.png" 
+          src={`${import.meta.env.BASE_URL}logo.png`} 
           alt="" 
           style={{ 
             width: '100%', 
@@ -131,7 +131,7 @@ function App() {
           style={{ marginBottom: '4rem', textAlign: 'center' }}
         >
           <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05} transitionSpeed={2000}>
-            <img src="/logo.png" alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
           </Tilt>
           <h1 style={{ fontSize: '4rem', fontWeight: 800, color: '#fff', marginTop: '1.5rem', letterSpacing: '-0.03em', background: 'linear-gradient(to right, #fff, #7dd3fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Aero P2P Chat

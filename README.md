@@ -1,144 +1,74 @@
-# Aero P2P Chat
+<div align="center">
+  <img src="https://zorblock.github.io/AeroP2Pchat/logo.png" alt="Aero P2P Chat Logo" width="150" height="150" />
 
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total)](https://github.com/Zorblock/AeroP2Pchat/releases)
-[![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/Zorblock/AeroP2Pchat/main)](https://github.com/Zorblock/AeroP2Pchat/blob/main/package.json)
+  <h1>Aero P2P Chat</h1>
+  <p><strong>Direct desktop messaging without the middleman. Secure, fast, and completely peer-to-peer.</strong></p>
 
-Aero P2P Chat is a compact Electron desktop chat client for direct peer-to-peer conversations. It uses PeerJS/WebRTC data connections so chat messages travel peer-to-peer after both users are connected.
+  <p>
+    <a href="https://github.com/Zorblock/AeroP2Pchat/releases"><img src="https://img.shields.io/github/v/release/Zorblock/AeroP2Pchat?style=flat-square&color=0ea5e9" alt="Latest Release" /></a>
+    <a href="https://github.com/Zorblock/AeroP2Pchat/releases"><img src="https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total?style=flat-square&color=38bdf8" alt="Total Downloads" /></a>
+    <img src="https://img.shields.io/badge/License-Proprietary-7dd3fc?style=flat-square" alt="License: Proprietary" />
+  </p>
+</div>
 
-## Features
+---
 
-- Compact friends-list style layout
-- Peer ID based direct chat
-- Copy your own Peer ID
-- Connect to another peer by entering their Peer ID
-- Native desktop builds for Windows, Linux, and macOS
-- Terminal commands for updates, status, opening, and uninstalling
+Aero P2P Chat is a modern, lightweight desktop application that lets you connect directly to your friends without routing your messages through centralized servers. Built on top of WebRTC, it guarantees low-latency and secure direct peer-to-peer connections.
 
-## How It Works
+## ✨ Features
 
-1. Start Aero P2P Chat.
-2. Copy your Peer ID and send it to your chat partner.
-3. Your chat partner pastes that ID into the connect field.
-4. Once connected, both sides can send messages directly.
+- **Direct P2P Connection**: No servers in the middle! Once connected, your messages travel directly between you and your chat partner.
+- **Screen Sharing**: Instantly share your screen in high quality with zero latency.
+- **Lightning Fast**: Built on native WebRTC architecture for maximum performance.
+- **File Transfer** *(Coming soon)*: Send files securely with zero size limits.
+- **CLI Integrated**: Open, update, check the status, or uninstall the app straight from your terminal (`aerop2p` command).
 
-PeerJS is used for signaling. That means you do not need to run your own server, but the app still needs PeerJS signaling to discover and connect peers. The actual chat data is sent over WebRTC peer-to-peer.
+---
 
-## Install On Windows
+## 📥 Installation
 
-Download and run the latest Windows installer from GitHub Releases:
+Installing Aero P2P Chat is as simple as running a single command in your terminal. This will download the latest version, install the app, and set up the `aerop2p` command for you.
 
-```text
-https://github.com/Zorblock/AeroP2Pchat/releases/latest
-```
-
-The Windows release assets are:
-
-```text
-Aero-P2P-Chat-Windows-x64-Setup.exe
-Aero-P2P-Chat-Windows-x64-Portable.exe
-```
-
-After installing, open a new terminal and use:
-
+### 🪟 Windows (PowerShell)
+Open PowerShell as Administrator (or just standard user) and run:
 ```powershell
-aerop2p status
-aerop2p update
-aerop2p open
-aerop2p uninstall
+irm https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex
 ```
 
-Available Windows CLI commands:
-
-- `aerop2p status` shows the installed and latest version.
-- `aerop2p update` downloads and starts the latest installer.
-- `aerop2p open` starts Aero P2P Chat.
-- `aerop2p uninstall` starts the Windows uninstaller.
-
-The terminal command is removed again when Aero P2P Chat is uninstalled.
-
-## Install On macOS
-
-Download the latest universal macOS build from GitHub Releases:
-
-```text
-https://github.com/Zorblock/AeroP2Pchat/releases/latest
+### 🐧 Linux (Bash)
+Open your terminal and run:
+```bash
+curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
 ```
 
-The macOS release assets are:
+> **Note:** If you prefer downloading the installer manually, you can grab the `.exe` (Windows) or `.AppImage` (Linux) directly from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the [Official Website](https://zorblock.github.io/AeroP2Pchat).
 
-- `Aero-P2P-Chat-macOS-Universal.dmg`
-- `Aero-P2P-Chat-macOS-Universal-Portable.zip`
+---
 
-## Install On Linux
+## 🚀 How to Use
 
-Use the installer script from the GitHub repository:
+### 1. Connect with a Friend
+- **Start the app:** Open "Aero P2P Chat" from your Start Menu/Applications folder, or simply type `aerop2p` in your terminal.
+- **Share your ID:** In the main window, click on your **Peer ID** at the top to copy it to your clipboard. Send this ID to your friend.
+- **Connect:** Your friend pastes your ID into the "Remote Peer ID" input box and clicks **Connect**.
+- **Chat!** You are now securely connected directly to each other.
 
-```sh
-curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh
-```
+### 2. Using the CLI Tool
+The installer automatically adds the `aerop2p` command to your system. You can use it anytime in your terminal:
 
-After installing, use:
+- `aerop2p open` - Starts the chat client.
+- `aerop2p status` - Checks your current version against the latest available release.
+- `aerop2p update` - Seamlessly updates your client to the newest version in the background.
+- `aerop2p menu` - Opens an interactive terminal menu for managing the app.
+- `aerop2p uninstall` - Completely removes the app from your system.
 
-```sh
-aerop2p status
-aerop2p update
-aerop2p open
-aerop2p uninstall
-```
+---
 
-Available Linux CLI commands:
+## 📄 License & Terms
 
-- `aerop2p status` shows the installed and latest version.
-- `aerop2p update` installs the latest release.
-- `aerop2p open` starts Aero P2P Chat.
-- `aerop2p uninstall` removes Aero P2P Chat.
+This software is strictly intended for private use. 
+**Aero P2P Chat is NOT Open Source.** 
 
-You can still call the installer directly:
+The software is provided under a custom End User License Agreement (EULA). You are allowed to use it and modify it for your own personal use, but you may **not** distribute, fork, publish, or commercialize the source code or the compiled application under any circumstances. 
 
-```sh
-curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh -s -- status
-curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh -s -- update
-curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh -s -- uninstall
-```
-
-On Debian/Ubuntu-style systems, the Linux installer prefers the `.deb` package.
-On other distributions, or if the package install is not available, it falls
-back to the AppImage.
-
-The Linux installer creates or manages:
-
-- Debian package: `aero-p2p-chat` when `.deb` installation is available
-- AppImage fallback: `~/.local/share/aero-p2p-chat/Aero-P2P-Chat.AppImage`
-- App command: `~/.local/bin/aero-p2p-chat`
-- CLI command: `~/.local/bin/aerop2p`
-- Desktop entry: `~/.local/share/applications/de.zorblock.aerop2pchat.desktop`
-- Icon: `~/.local/share/icons/hicolor/512x512/apps/de.zorblock.aerop2pchat.png`
-
-The terminal command is removed again when Aero P2P Chat is uninstalled.
-
-## Repository
-
-```text
-https://github.com/Zorblock/AeroP2Pchat
-```
-
-## Release Workflow
-
-Releases are built by GitHub Actions. Run:
-
-```sh
-npm run release
-```
-
-The script bumps the patch version, runs the lightweight checks, commits the
-release, pushes the branch so `build.yml` runs, then pushes the `v*` tag so
-`cd.yml` builds the packages and creates the GitHub release.
-
-Useful variants:
-
-```sh
-npm run release -- --minor
-npm run release -- --major
-npm run release -- --version=26.15.0
-npm run release -- --no-bump
-```
+For more details, see the [LICENSE](./LICENSE) file. All rights reserved by **Zorblock**.
