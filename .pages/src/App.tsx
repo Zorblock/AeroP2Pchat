@@ -302,12 +302,12 @@ function App() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
           className="aero-glass"
-          style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative', overflow: 'hidden' }}
+          style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative' }}
         >
-          {/* Inner overlay flare */}
+          {/* Overlay flare bleeding out of the element */}
           <img
             src={`${import.meta.env.BASE_URL}img/flares_12.png`}
-            style={{ position: 'absolute', top: '-60%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 1, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 9999999 }}
+            style={{ position: 'absolute', top: '-50%', left: '-90%', width: '140%', height: '180%', objectFit: 'contain', opacity: 0.9, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 50, WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)', maskImage: 'radial-gradient(circle, black 30%, transparent 70%)' }}
             alt=""
           />
 
