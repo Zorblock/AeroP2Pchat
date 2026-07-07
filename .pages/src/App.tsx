@@ -172,17 +172,17 @@ function App() {
         {/* Foreground overlapping clouds for 3D depth effect */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '25%', left: '-15%', width: '450px', zIndex: 50, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
+          style={{ position: 'absolute', top: '25%', left: '5%', width: '450px', zIndex: 100, opacity: 0.4, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '65%', right: '-10%', width: '550px', zIndex: 50, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
+          style={{ position: 'absolute', top: '65%', right: '15%', width: '550px', zIndex: 100, opacity: 0.45, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
           alt=""
         />
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '85%', left: '-10%', width: '400px', zIndex: 50, opacity: 0.85, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
+          style={{ position: 'absolute', top: '85%', left: '25%', width: '400px', zIndex: 100, opacity: 0.5, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
 
