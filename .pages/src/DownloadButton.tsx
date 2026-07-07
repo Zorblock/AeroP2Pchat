@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface DownloadButtonProps {
-  url: string;
-  filename: string;
+  os: 'windows' | 'linux';
   icon: React.ReactNode;
   text: string;
   colorTheme?: 'blue' | 'green';
   onClick?: () => void;
 }
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({ url, filename, icon, text, colorTheme = 'blue', onClick }) => {
-  const [progress, setProgress] = useState(0);
+export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, colorTheme = 'blue', onClick }) => {
   const [downloading, setDownloading] = useState(false);
+  const [statusText, setStatusText] = useState('');
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -21,56 +20,40 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ url, filename, i
     if (onClick) onClick();
 
     setDownloading(true);
-    setProgress(0);
+    setStatusText('Verifying release...');
 
     try {
-      const response = await fetch(url);
-      if (!response.body) throw new Error('ReadableStream not yet supported in this browser.');
+      const res = await fetch('https://api.github.com/repos/Zorblock/AeroP2Pchat/releases/latest');
+      if (!res.ok) throw new Error('API request failed');
+      const release = await res.json();
+      
+      const ext = os === 'windows' ? '.exe' : '.AppImage';
+      const asset = release.assets.find((a: any) => a.name.endsWith(ext));
 
-      const contentLength = response.headers.get('content-length');
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-      let loaded = 0;
-
-      const reader = response.body.getReader();
-      const chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          loaded += value.length;
-          if (total) {
-            setProgress(Math.round((loaded / total) * 100));
-          } else {
-            // Indeterminate progress trick (fake up to 99%)
-            setProgress(Math.min(99, Math.round(loaded / 1024 / 1024))); 
-          }
-        }
+      if (!asset) {
+        setStatusText('File not found!');
+        setTimeout(() => setDownloading(false), 2000);
+        return;
       }
 
-      const blob = new Blob(chunks);
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(downloadUrl);
-      document.body.removeChild(a);
+      setStatusText(`Verified ${release.tag_name}. Starting...`);
       
-      setProgress(100);
       setTimeout(() => {
+        window.location.href = asset.browser_download_url;
         setDownloading(false);
-        setProgress(0);
-      }, 2000);
+      }, 1000);
 
     } catch (err) {
-      console.error('Download failed:', err);
-      // Fallback to normal download navigation
-      window.location.href = url;
-      setDownloading(false);
+      console.error('Verification failed:', err);
+      setStatusText('Using fallback URL...');
+      
+      setTimeout(() => {
+        const fallbackUrl = os === 'windows' 
+          ? 'https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe'
+          : 'https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage';
+        window.location.href = fallbackUrl;
+        setDownloading(false);
+      }, 1000);
     }
   };
 
@@ -103,20 +86,23 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ url, filename, i
       }}
     >
       {downloading && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '100%',
-          width: `${progress}%`,
-          background: 'rgba(255, 255, 255, 0.3)',
-          transition: 'width 0.1s linear',
-          zIndex: 1
-        }} />
+        <motion.div 
+          initial={{ opacity: 0, width: '0%' }}
+          animate={{ opacity: 1, width: '100%' }}
+          transition={{ duration: 1, ease: "easeInOut" }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            background: 'rgba(255, 255, 255, 0.25)',
+            zIndex: 1
+          }} 
+        />
       )}
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {icon}
-        {downloading ? `Downloading... ${progress}%` : text}
+        {downloading ? statusText : text}
       </div>
     </motion.button>
   );

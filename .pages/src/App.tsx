@@ -234,16 +234,14 @@ function App() {
         >
           <div className="mobile-stack-buttons" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <DownloadButton
-              url="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
-              filename="Aero-P2P-Chat-Windows-x64-Setup.exe"
+              os="windows"
               text="Windows Setup (.exe)"
               icon={<Download size={22} />}
               onClick={triggerConfetti}
             />
 
             <DownloadButton
-              url="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
-              filename="Aero-P2P-Chat-Linux-x64.AppImage"
+              os="linux"
               text="Linux (.AppImage)"
               icon={<Download size={22} />}
               colorTheme="green"
