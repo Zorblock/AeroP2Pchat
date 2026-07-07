@@ -142,7 +142,7 @@ function buildLinux(version) {
   fs.rmSync(releaseDir, { recursive: true, force: true });
   fs.mkdirSync(releaseDir, { recursive: true });
 
-  run("npm", ["run", "tauri", "--", "build"]);
+  run("npm", ["run", "tauri", "--", "build", "--no-bundle"]);
 
   const items = [];
   const executableName = config.app.cliCommandName || "aerop2p";
