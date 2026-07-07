@@ -10,7 +10,7 @@ module.exports = defineConfig({
   main: {
     define: defineProjectConfig,
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           index: resolve(__dirname, "src/main/index.js"),
         },
@@ -19,7 +19,7 @@ module.exports = defineConfig({
   },
   preload: {
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           index: resolve(__dirname, "src/preload/index.js"),
         },
@@ -31,7 +31,7 @@ module.exports = defineConfig({
     root: resolve(__dirname, "src/renderer"),
     publicDir: resolve(__dirname, "public"),
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           index: resolve(__dirname, "src/renderer/index.html"),
         },
