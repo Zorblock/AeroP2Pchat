@@ -12,7 +12,7 @@ on:
         type: string
 
 jobs:
-  linux-appimage:
+  linux-executable:
     runs-on: ubuntu-22.04
     environment: release
 
@@ -52,7 +52,7 @@ jobs:
       - name: Check frontend and scripts
         run: npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs
 
-      - name: Build AppImage
+      - name: Build Linux Executable
         run: node scripts/ci-build-release.cjs --platform=linux --version=${{ inputs.version }}
 
       - name: Create latest.yml
