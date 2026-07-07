@@ -35,7 +35,15 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
         .path()
         .app_config_dir()
         .map_err(|error| error.to_string())?;
-    Ok(dir.join(CONFIG_FILE_NAME))
+        
+    let profile = std::env::var("AEROP2P_PROFILE").unwrap_or_default();
+    let file_name = if profile.is_empty() {
+        "config.json".to_string()
+    } else {
+        format!("config-{}.json", profile)
+    };
+    
+    Ok(dir.join(file_name))
 }
 
 fn default_config() -> Value {
@@ -353,10 +361,16 @@ fn window_control(window: Window, action: String) -> Result<Value, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(not(debug_assertions))]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main_window(app);
-        }))
+        }));
+    }
+
+    builder
         .plugin(tauri_plugin_opener::init())
         .on_menu_event(|app, event| match event.id().as_ref() {
             TRAY_MENU_OPEN => show_main_window(app),

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tauri dev",
+    "start:2": "set AEROP2P_PROFILE=2&& set WEBVIEW2_USER_DATA_FOLDER=%LOCALAPPDATA%\\AeroP2P\\Profile2&& start src-tauri/target/debug/aerop2p.exe",
     "dev": "vite",
     "build": "vite build",
     "tauri": "tauri",

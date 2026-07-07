@@ -1,4 +1,4 @@
-package de.jonasgrimm.aerop2p
+package de.zorblock.aerop2p
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

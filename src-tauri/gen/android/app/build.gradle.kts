@@ -15,10 +15,10 @@ val tauriProperties = Properties().apply {
 
 android {
     compileSdk = 36
-    namespace = "de.jonasgrimm.aerop2p"
+    namespace = "de.zorblock.aerop2p"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "de.jonasgrimm.aerop2p"
+        applicationId = "de.zorblock.aerop2p"
         minSdk = 24
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
