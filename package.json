@@ -1,6 +1,6 @@
 {
   "name": "aero-p2p-chat",
-  "version": "26.29.1",
+  "version": "26.29.2",
   "description": "A clean Electron peer-to-peer chat client for Windows and Linux.",
   "author": {
     "name": "Zorblock",
