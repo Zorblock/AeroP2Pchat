@@ -6947,6 +6947,7 @@ function createPeer() {
 
   const nextPeer = new Peer(identity.id, {
     debug: 1,
+    secure: true,
     config: peerConnectionConfig,
   });
 
