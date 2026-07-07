@@ -156,7 +156,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
       
       if (!input) return;
 
-      if (lowerInput.includes('install.ps1') || lowerInput.includes('aerop2p')) {
+      if (lowerInput.includes('install.ps1') || lowerInput.includes('aerop2p') || lowerInput.includes('iwr') || lowerInput.includes('iex') || lowerInput.includes('curl') || lowerInput.includes('install.sh')) {
         await simulateInit();
       } else if (lowerInput === 'cls' || lowerInput === 'clear') {
         setTermLines([]);
