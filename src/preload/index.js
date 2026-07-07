@@ -25,6 +25,14 @@ contextBridge.exposeInMainWorld("aeroChat", {
       ipcRenderer.removeListener("disconnect-p2p", listener);
     };
   },
+  updateTrayState: (state) => ipcRenderer.send("update-tray-state", state),
+  onTrayAction: (callback) => {
+    const listener = (_event, action) => callback(action);
+    ipcRenderer.on("tray-action", listener);
+    return () => {
+      ipcRenderer.removeListener("tray-action", listener);
+    };
+  },
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),

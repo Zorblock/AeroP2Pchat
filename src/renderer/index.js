@@ -7933,10 +7933,55 @@ clearUpdateAvailableUi();
 setBootProgress(82, "Rendering chat");
 peer = createPeer();
 setBootProgress(90, "Starting peer");
+setBootProgress(90, "Starting peer");
 checkForUpdates();
 setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
 window.aeroChat?.onCheckForUpdates?.(() => checkForUpdates({ manual: true }));
 window.aeroChat?.onDisconnect?.(() => cleanupRealtimeConnections());
+
+function syncTrayState() {
+  window.aeroChat?.updateTrayState?.({
+    peerId: callState.peerId || (peer && peer.id) || null,
+    isMuted: Boolean(callState.muted),
+    isDeafened: Boolean(callState.deafened),
+    status: appConfig.appSettings?.presenceStatus || "online",
+    theme: appConfig.appSettings?.theme || "light",
+    autostart: Boolean(appConfig.appSettings?.autostart),
+    closeToTray: Boolean(appConfig.appSettings?.closeToTray),
+  });
+}
+
+setInterval(syncTrayState, 1500);
+
+window.aeroChat?.onTrayAction?.(({ action, value }) => {
+  if (action === "toggle-mute") {
+    setCallMuted(!callState.muted);
+  } else if (action === "toggle-deafen") {
+    setCallDeafened(!callState.deafened);
+  } else if (action === "set-status") {
+    appConfig.appSettings.presenceStatus = value;
+    renderAppSettings();
+    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+    
+    let label = "Online";
+    if (value === "offline") label = "Offline";
+    if (value === "dnd") label = "Do Not Disturb";
+    setStatus(value, label);
+  } else if (action === "toggle-theme") {
+    appConfig.appSettings.theme = appConfig.appSettings.theme === "light" ? "dark" : "light";
+    renderAppSettings();
+    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+  } else if (action === "toggle-autostart") {
+    appConfig.appSettings.autostart = !appConfig.appSettings.autostart;
+    renderAppSettings();
+    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+  } else if (action === "toggle-close-to-tray") {
+    appConfig.appSettings.closeToTray = !appConfig.appSettings.closeToTray;
+    renderAppSettings();
+    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+  }
+  syncTrayState();
+});
 
 async function finishBootScreen() {
   await waitForVisualReady();

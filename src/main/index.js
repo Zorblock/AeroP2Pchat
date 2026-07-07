@@ -287,6 +287,16 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
+let trayState = {
+  peerId: null,
+  isMuted: false,
+  isDeafened: false,
+  status: "online",
+  theme: "light",
+  autostart: true,
+  closeToTray: true,
+};
+
 function updateTrayMenu() {
   if (!tray) {
     return;
@@ -295,11 +305,60 @@ function updateTrayMenu() {
   const { nativeImage } = require("electron");
   const menuIcon = nativeImage.createFromPath(windowIcon).resize({ width: 16, height: 16 });
 
+  const sendTrayAction = (action, value) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("tray-action", { action, value });
+    }
+  };
+
   const menuTemplate = [
     {
       label: `${appDisplayName} v${app.getVersion()}`,
       icon: menuIcon,
       enabled: false,
+    },
+    { type: "separator" },
+  ];
+
+  if (trayState.peerId) {
+    menuTemplate.push({
+      label: `Copy Peer ID`,
+      click: () => {
+        clipboard.writeText(trayState.peerId);
+      },
+    });
+  }
+
+  menuTemplate.push(
+    {
+      label: "Online Status",
+      submenu: [
+        { label: "Online", type: "radio", checked: trayState.status === "online", click: () => sendTrayAction("set-status", "online") },
+        { label: "Do Not Disturb", type: "radio", checked: trayState.status === "dnd", click: () => sendTrayAction("set-status", "dnd") },
+        { label: "Offline / Hidden", type: "radio", checked: trayState.status === "offline", click: () => sendTrayAction("set-status", "offline") },
+      ]
+    },
+    { type: "separator" },
+    {
+      label: "Mute Microphone",
+      type: "checkbox",
+      checked: trayState.isMuted,
+      click: () => sendTrayAction("toggle-mute"),
+    },
+    {
+      label: "Deafen Audio",
+      type: "checkbox",
+      checked: trayState.isDeafened,
+      click: () => sendTrayAction("toggle-deafen"),
+    },
+    { type: "separator" },
+    {
+      label: "Quick Settings",
+      submenu: [
+        { label: "Dark Mode", type: "checkbox", checked: trayState.theme === "dark", click: () => sendTrayAction("toggle-theme") },
+        { label: "Launch on Startup", type: "checkbox", checked: trayState.autostart, click: () => sendTrayAction("toggle-autostart") },
+        { label: "Close to Tray", type: "checkbox", checked: trayState.closeToTray, click: () => sendTrayAction("toggle-close-to-tray") },
+      ]
     },
     { type: "separator" },
     {
@@ -308,19 +367,11 @@ function updateTrayMenu() {
     },
     {
       label: "Check for Updates",
-      click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("check-for-updates");
-        }
-      },
+      click: () => sendTrayAction("check-for-updates"),
     },
     {
       label: "Disconnect All",
-      click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("disconnect-p2p");
-        }
-      },
+      click: () => sendTrayAction("disconnect-p2p"),
     },
     {
       label: "Hide to Tray",
@@ -330,7 +381,7 @@ function updateTrayMenu() {
         }
       },
     },
-  ];
+  );
 
   if (!app.isPackaged) {
     menuTemplate.push(
@@ -1340,6 +1391,10 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.on("update-tray-state", (_event, state) => {
+    trayState = { ...trayState, ...state };
+    updateTrayMenu();
+  });
   ipcMain.handle("get-screen-sources", async (event) => {
     const requestingWindow = BrowserWindow.fromWebContents(event.sender);
     if (requestingWindow !== mainWindow) {
