@@ -5,7 +5,7 @@
 #define MyAppName GetEnv("AERO_APP_NAME")
 #define MyAppVersion GetEnv("npm_package_version")
 #define MyAppPublisher GetEnv("AERO_APP_AUTHOR")
-#define MyAppURL "https://jonasgrimm.de"
+#define MyAppURL "https://zorblock.github.io"
 #define MyAppExeName GetEnv("AERO_APP_EXE_NAME")
 #define MyCliName GetEnv("AERO_CLI_COMMAND_NAME")
 #define MySetupBaseName GetEnv("AERO_WINDOWS_SETUP_BASE_NAME")
@@ -24,7 +24,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 AppCopyright=Copyright (c) 2026 {#MyAppPublisher}
 
-DefaultDirName={userappdata}\jonasgrimm.de\{#MyAppName}
+DefaultDirName={userappdata}\zorblock\{#MyAppName}
 UsePreviousAppDir=no
 DisableDirPage=yes
 DisableProgramGroupPage=yes

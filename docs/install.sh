@@ -2,7 +2,7 @@
 set -eu
 
 APP_NAME="Aero P2P Chat"
-APP_ID="de.jonasgrimm.aerop2pchat"
+APP_ID="de.zorblock.aerop2pchat"
 APP_SLUG="aero-p2p-chat"
 CLI_COMMAND_NAME="aerop2p"
 APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"

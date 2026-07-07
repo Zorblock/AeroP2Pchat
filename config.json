@@ -4,7 +4,7 @@
   "pagesBaseUrl": "https://zorblock.github.io/AeroP2Pchat",
   "app": {
     "name": "Aero P2P Chat",
-    "id": "de.jonasgrimm.aerop2pchat",
+    "id": "de.zorblock.aerop2pchat",
     "packageName": "aero-p2p-chat",
     "cliCommandName": "aerop2p"
   },

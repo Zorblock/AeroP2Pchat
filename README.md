@@ -111,8 +111,8 @@ The Linux installer creates or manages:
 - AppImage fallback: `~/.local/share/aero-p2p-chat/Aero-P2P-Chat.AppImage`
 - App command: `~/.local/bin/aero-p2p-chat`
 - CLI command: `~/.local/bin/aerop2p`
-- Desktop entry: `~/.local/share/applications/de.jonasgrimm.aerop2pchat.desktop`
-- Icon: `~/.local/share/icons/hicolor/512x512/apps/de.jonasgrimm.aerop2pchat.png`
+- Desktop entry: `~/.local/share/applications/de.zorblock.aerop2pchat.desktop`
+- Icon: `~/.local/share/icons/hicolor/512x512/apps/de.zorblock.aerop2pchat.png`
 
 The terminal command is removed again when Aero P2P Chat is uninstalled.
 
