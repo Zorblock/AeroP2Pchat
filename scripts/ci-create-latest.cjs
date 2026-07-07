@@ -41,7 +41,7 @@ function main() {
   const version = (linuxManifest || windowsManifest).version;
   if (!version) throw new Error("Release version missing.");
 
-  const linux = linuxManifest?.assets.find((asset) => asset.name === config.release.linuxAppImageAsset);
+  const linux = linuxManifest?.assets.find((asset) => asset.name === config.release.linuxExecutableAsset);
   const windows = windowsManifest?.assets.find(
     (asset) => asset.name === config.release.windowsInstallerAsset,
   );

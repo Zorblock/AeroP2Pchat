@@ -142,14 +142,12 @@ function buildLinux(version) {
   fs.rmSync(releaseDir, { recursive: true, force: true });
   fs.mkdirSync(releaseDir, { recursive: true });
 
-  run("npm", ["run", "tauri", "--", "build", "--bundles", "appimage"]);
+  run("npm", ["run", "tauri", "--", "build"]);
 
   const items = [];
-  const appImage = findNewestFile(
-    path.join(tauriTargetDir, "bundle"),
-    (name) => name.endsWith(".AppImage"),
-  );
-  copyAsset(appImage, config.release.linuxAppImageAsset, items);
+  const executableName = config.app.cliCommandName || "aerop2p";
+  const executable = path.join(tauriTargetDir, executableName);
+  copyAsset(executable, config.release.linuxExecutableAsset, items);
   writeManifest(version, { platform: "linux", items });
 }
 

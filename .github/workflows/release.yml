@@ -68,4 +68,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "v${{ inputs.version }}" artifacts/latest.yml artifacts/Aero-P2P-Chat-Linux.AppImage --clobber
+          gh release upload "v${{ inputs.version }}" artifacts/latest.yml artifacts/Aero-P2P-Chat-Linux.x86_64 --clobber
