@@ -282,11 +282,11 @@ function App() {
             </div>
             <motion.div 
               layout 
-              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-              className="aero-glass liquid-animate mobile-col mobile-p-1" 
-              style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="aero-glass mobile-col mobile-p-1" 
+              style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden', borderRadius: '1rem' }}
             >
-              <motion.div layout style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
+              <motion.div layout style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                 <AnimatePresence mode="wait">
                   <motion.code
                     layout
@@ -302,6 +302,7 @@ function App() {
                 </AnimatePresence>
               </motion.div>
               <motion.button
+                layout
                 className="liquid-btn"
                 whileHover={{ scale: 1.05, backgroundColor: '#bae6fd', boxShadow: '0 0 15px rgba(56,189,248,0.6)', color: '#0369a1' }}
                 whileTap={{ scale: 0.95, backgroundColor: '#7dd3fc' }}
@@ -309,7 +310,7 @@ function App() {
                   navigator.clipboard.writeText(installCommands[installOs]);
                   toast.success("Command copied to clipboard!");
                 }}
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.5))', border: '1px solid rgba(255,255,255,0.9)', color: '#0f172a', padding: '0.6rem 1.2rem', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0, transition: 'all 0.2s', boxShadow: '0 4px 10px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.8)' }}
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.5))', border: '1px solid rgba(255,255,255,0.9)', color: '#0f172a', padding: '0.6rem 1.2rem', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0, transition: 'background-color 0.2s', boxShadow: '0 4px 10px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.8)' }}
               >
                 Copy
               </motion.button>
