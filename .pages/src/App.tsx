@@ -38,7 +38,7 @@ function App() {
   const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
-  
+
   const constraintsRef = useRef(null);
 
   useEffect(() => {
@@ -266,10 +266,10 @@ function App() {
                 Linux
               </button>
             </div>
-            <motion.div 
-              layout 
+            <motion.div
+              layout
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="aero-glass mobile-col mobile-p-1" 
+              className="aero-glass mobile-col mobile-p-1"
               style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden', borderRadius: '1rem' }}
             >
               <motion.div layout style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
@@ -303,12 +303,12 @@ function App() {
             </motion.div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', width: '100%' }}>
               <label className="subtle-checkbox-label">
-                <input 
-                  type="checkbox" 
-                  checked={useFallbackDomain} 
-                  onChange={(e) => setUseFallbackDomain(e.target.checked)} 
+                <input
+                  type="checkbox"
+                  checked={useFallbackDomain}
+                  onChange={(e) => setUseFallbackDomain(e.target.checked)}
                 />
-                Fallback-Mirror verwenden (zorblock.github.io)
+                Use Fallback-Mirror (zorblock.github.io)
               </label>
             </div>
           </div>
