@@ -142,7 +142,7 @@ function App() {
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
             <img src="https://img.shields.io/github/v/release/Zorblock/AeroP2Pchat?style=flat-square&color=0ea5e9" alt="Latest Release" />
             <img src="https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total?style=flat-square&color=38bdf8" alt="Total Downloads" />
-            <img src="https://img.shields.io/github/license/Zorblock/AeroP2Pchat?style=flat-square&color=7dd3fc" alt="License" />
+            <img src="https://img.shields.io/badge/License-Proprietary-7dd3fc?style=flat-square" alt="License: Proprietary" />
           </div>
         </motion.div>
 
