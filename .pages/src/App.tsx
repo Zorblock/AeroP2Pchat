@@ -132,7 +132,7 @@ function App() {
 
       <DustParticles />
 
-      <main style={{ position: 'relative', zIndex: 10, padding: 'clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflow: 'hidden' }}>
+      <main style={{ position: 'relative', zIndex: 10, padding: 'clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
         {/* Decorative insect at the top right of the hero */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
@@ -442,7 +442,7 @@ function App() {
             width: '100%',
             maxWidth: '1000px',
             borderRadius: '24px',
-            marginBottom: '4rem',
+            marginBottom: '1.5rem',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -487,7 +487,7 @@ function App() {
 
         <img
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
-          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 'min(350px, 40vh)', zIndex: 5, pointerEvents: 'none', objectFit: 'cover', objectPosition: 'top' }}
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: 5, pointerEvents: 'none', objectFit: 'cover' }}
           alt=""
         />
 
