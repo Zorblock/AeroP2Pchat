@@ -9,7 +9,7 @@ import './index.css';
 function App() {
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '10%']);
-  
+
   const v1Y = useTransform(scrollYProgress, [0, 1], ['0vh', '30vh']);
   const v1Rotate = useTransform(scrollYProgress, [0, 1], [0, 120]);
   const v2Y = useTransform(scrollYProgress, [0, 1], ['0vh', '-40vh']);
@@ -82,8 +82,8 @@ function App() {
       </motion.div>
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -100,14 +100,14 @@ function App() {
           </p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '600px' }}
         >
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <motion.a 
+            <motion.a
               href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
               whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(14,165,233,0.5)' }}
               whileTap={{ scale: 0.95 }}
@@ -117,8 +117,8 @@ function App() {
               <Download size={20} />
               Windows Setup (.exe)
             </motion.a>
-            
-            <motion.a 
+
+            <motion.a
               href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
               whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(14,165,233,0.5)' }}
               whileTap={{ scale: 0.95 }}
@@ -135,7 +135,7 @@ function App() {
               <code style={{ color: '#a3e635', fontFamily: 'monospace', flex: 1, fontSize: '0.9rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                 curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
               </code>
-              <button 
+              <button
                 onClick={() => {
                   navigator.clipboard.writeText("curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash");
                 }}
@@ -145,8 +145,8 @@ function App() {
               </button>
             </div>
           </div>
-          
-          <motion.a 
+
+          <motion.a
             href="https://github.com/Zorblock/AeroP2Pchat"
             target="_blank"
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
@@ -157,14 +157,14 @@ function App() {
           </motion.a>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '1000px', marginTop: '6rem' }}
         >
           {features.map((feat, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.08)' }}
               style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
@@ -178,7 +178,7 @@ function App() {
           ))}
         </motion.div>
 
-        <motion.footer 
+        <motion.footer
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
