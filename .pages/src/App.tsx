@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useDragControls } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
@@ -37,6 +37,8 @@ function App() {
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [installedVersion, setInstalledVersion] = useState<string>('v1.1.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
+  
+  const constraintsRef = useRef(null);
 
   useEffect(() => {
     // Fetch latest release
@@ -410,6 +412,7 @@ function App() {
 
         {/* CLI Showcase Section */}
         <motion.div
+          ref={constraintsRef}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -441,9 +444,9 @@ function App() {
             drag
             dragControls={dragControls}
             dragListener={false}
-            dragConstraints={{ top: -50, left: -50, right: 50, bottom: 50 }}
+            dragConstraints={{ top: -100, bottom: 100, left: -100, right: 100 }}
             dragSnapToOrigin={true}
-            dragElastic={0.5}
+            dragElastic={0.1}
           >
             <div className="win7">
               <div className="window active" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', borderRadius: 0 }}>
