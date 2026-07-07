@@ -187,7 +187,7 @@ if [ -x "/opt/$APP_NAME/$APP_SLUG" ]; then
     exec "/opt/$APP_NAME/$APP_SLUG" "\$@"
 fi
 if [ -x "$APPIMAGE_PATH" ]; then
-    exec "$APPIMAGE_PATH" "\$@"
+    exec "$APPIMAGE_PATH" --appimage-extract-and-run "\$@"
 fi
 if command -v gtk-launch >/dev/null 2>&1; then
     exec gtk-launch "$APP_ID"
@@ -274,7 +274,7 @@ write_desktop_entry() {
 Type=Application
 Name=${APP_NAME}
 Comment=Peer-to-peer chat client
-Exec=${APPIMAGE_PATH} %U
+Exec=${APPIMAGE_PATH} --appimage-extract-and-run %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
