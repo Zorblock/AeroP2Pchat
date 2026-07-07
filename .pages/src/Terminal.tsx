@@ -31,7 +31,7 @@ export const Terminal: React.FC<TerminalProps> = ({ latestVersion, dragControls 
     { text: `> Checking versions...`, color: '#00ffff' },
     { text: ``, color: '#cccccc' },
     { text: `Status: Not Installed`, color: '#ffff00' },
-    { text: `Latest: v1.2.0`, color: '#00ffff' },
+    { text: `Latest: ${latestVersion}`, color: '#00ffff' },
     { text: ``, color: '#cccccc' },
     { text: `1) Install Aero P2P Chat`, color: '#ffffff' },
     { text: `2) Check status details`, color: '#ffffff' },
@@ -41,6 +41,15 @@ export const Terminal: React.FC<TerminalProps> = ({ latestVersion, dragControls 
   const [termInput, setTermInput] = useState('');
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTermLines(prev => prev.map((line, i) => {
+      if (i === 7 && typeof line.text === 'string' && line.text.startsWith('Latest:')) {
+        return { ...line, text: `Latest: ${latestVersion}` };
+      }
+      return line;
+    }));
+  }, [latestVersion]);
 
   const printMenu = () => {
     setTermLines(prev => [
