@@ -47,8 +47,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern dark
 SolidCompression=yes
-Compression=lzma2/ultra64
-InternalCompressLevel=ultra
+Compression=lzma2/normal
+InternalCompressLevel=normal
 
 PrivilegesRequired=lowest
 AppMutex=AeroP2PChatAppMutex

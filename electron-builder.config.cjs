@@ -19,5 +19,4 @@ module.exports = {
   },
   electronLanguages: ["en-US"],
   asar: true,
-  compression: "maximum",
 };
