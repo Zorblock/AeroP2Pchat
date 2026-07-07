@@ -8,10 +8,23 @@ interface CMDProps {
 
 type TermState = 'idle' | 'menu' | 'installing' | 'status';
 
+const dosColors: Record<string, string> = {
+  '0': '#000000', '8': '#808080',
+  '1': '#0000AA', '9': '#5555FF',
+  '2': '#00AA00', 'a': '#55FF55',
+  '3': '#00AAAA', 'b': '#55FFFF',
+  '4': '#AA0000', 'c': '#FF5555',
+  '5': '#AA00AA', 'd': '#FF55FF',
+  '6': '#AA5500', 'e': '#FFFF55',
+  '7': '#AAAAAA', 'f': '#FFFFFF'
+};
+
 export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
   const [termState, setTermState] = useState<TermState>('menu');
+  const [termBg, setTermBg] = useState('#000000');
+  const [termFg, setTermFg] = useState('#cccccc');
   const [termLines, setTermLines] = useState<{ text: React.ReactNode, color?: string }[]>([
-    { text: `C:\\Users\\Admin> aerop2p`, color: '#cccccc' },
+    { text: `C:\\Windows\\System32> aerop2p`, color: '#cccccc' },
     { text: `----------------------------------------`, color: '#808080' },
     { text: `Aero P2P Chat Windows Installer`, color: '#ffffff' },
     { text: `----------------------------------------`, color: '#808080' },
@@ -64,7 +77,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
     await new Promise(r => setTimeout(r, 1500));
     setTermLines(prev => [...prev, { text: `> Running installer...`, color: '#00ffff' }]);
     await new Promise(r => setTimeout(r, 2000));
-    setTermLines(prev => [...prev, { text: `OK Added C:\\Users\\Admin\\.local\\bin to User PATH. You may need to restart your terminal.`, color: '#00ff00' }]);
+    setTermLines(prev => [...prev, { text: `OK Added C:\\Windows\\System32\\.local\\bin to User PATH. You may need to restart your terminal.`, color: '#00ff00' }]);
     setTermLines(prev => [...prev, { text: `OK Aero P2P Chat installed successfully!`, color: '#00ff00' }]);
     await new Promise(r => setTimeout(r, 1000));
     setTermLines(prev => [...prev, { text: ``, color: '#cccccc' }]);
@@ -91,8 +104,8 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
     const dirs = [
       'C:\\Windows\\System32', 
       'C:\\Windows\\System32\\drivers',
-      'C:\\Users\\Admin\\AppData\\Roaming\\AeroP2P', 
-      'C:\\Users\\Admin\\Downloads',
+      'C:\\Windows\\System32\\config\\systemprofile\\AppData\\Roaming\\AeroP2P', 
+      'C:\\Windows\\System32\\Drivers\\etc',
       'C:\\Program Files\\Common Files'
     ];
     const files = ['kernel32.dll', 'user32.dll', 'hal.dll', 'config.json', 'install.ps1', 'aerop2p.exe', 'libcrypto.dll', 'sqlite3.dll'];
@@ -139,7 +152,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
     if (termState === 'idle') {
       const lowerInput = input.toLowerCase();
       
-      setTermLines(prev => [...prev, { text: `C:\\Users\\Admin> ${input}`, color: '#cccccc' }]);
+      setTermLines(prev => [...prev, { text: `C:\\Windows\\System32> ${input}`, color: termFg }]);
       
       if (!input) return;
 
@@ -167,7 +180,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
           { text: ` Volume in drive C has no label.`, color: '#cccccc' },
           { text: ` Volume Serial Number is 1234-5678`, color: '#cccccc' },
           { text: ``, color: '#cccccc' },
-          { text: ` Directory of C:\\Users\\Admin`, color: '#cccccc' },
+          { text: ` Directory of C:\\Windows\\System32`, color: '#cccccc' },
           { text: ``, color: '#cccccc' },
           { text: `10/24/2023  10:00 AM    <DIR>          .`, color: '#cccccc' },
           { text: `10/24/2023  10:00 AM    <DIR>          ..`, color: '#cccccc' },
@@ -184,6 +197,54 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
           { text: `Microsoft Windows [Version 6.1.7601]`, color: '#cccccc' },
           { text: ``, color: '#cccccc' }
         ]);
+      } else if (lowerInput.startsWith('color')) {
+        const arg = lowerInput.substring(5).trim();
+        if (!arg) {
+          setTermBg('#000000');
+          setTermFg('#cccccc');
+        } else {
+          const match = arg.match(/^[0-9a-f]{1,2}$/i);
+          if (match) {
+            const hex = match[0].toLowerCase();
+            if (hex.length === 1) {
+              if (termBg.toLowerCase() === dosColors[hex].toLowerCase()) {
+                setTermLines(prev => [...prev, { text: `Color output cannot be the same as the background color.`, color: '#cccccc' }]);
+              } else {
+                setTermFg(dosColors[hex]);
+              }
+            } else {
+              const bg = hex[0];
+              const fg = hex[1];
+              if (bg === fg) {
+                setTermLines(prev => [...prev, { text: `Color output cannot be the same as the background color.`, color: '#cccccc' }]);
+              } else {
+                setTermBg(dosColors[bg]);
+                setTermFg(dosColors[fg]);
+              }
+            }
+          } else {
+            setTermLines(prev => [
+              ...prev,
+              { text: `Sets the default console foreground and background colors.`, color: '#cccccc' },
+              { text: ``, color: '#cccccc' },
+              { text: `COLOR [attr]`, color: '#cccccc' },
+              { text: ``, color: '#cccccc' },
+              { text: `  attr        Specifies color attribute of console output`, color: '#cccccc' },
+              { text: ``, color: '#cccccc' },
+              { text: `Color attributes are specified by TWO hex digits -- the first`, color: '#cccccc' },
+              { text: `corresponds to the background; the second the foreground.`, color: '#cccccc' },
+              { text: ``, color: '#cccccc' },
+              { text: `    0 = Black       8 = Gray`, color: '#cccccc' },
+              { text: `    1 = Blue        9 = Light Blue`, color: '#cccccc' },
+              { text: `    2 = Green       A = Light Green`, color: '#cccccc' },
+              { text: `    3 = Aqua        B = Light Aqua`, color: '#cccccc' },
+              { text: `    4 = Red         C = Light Red`, color: '#cccccc' },
+              { text: `    5 = Purple      D = Light Purple`, color: '#cccccc' },
+              { text: `    6 = Yellow      E = Light Yellow`, color: '#cccccc' },
+              { text: `    7 = White       F = Bright White`, color: '#cccccc' }
+            ]);
+          }
+        }
       } else if (lowerInput.startsWith('echo ')) {
         setTermLines(prev => [
           ...prev,
@@ -271,8 +332,8 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
           padding: '0.5rem', 
           fontFamily: "'Lucida Console', 'Courier New', monospace", 
           fontSize: '0.85rem', 
-          color: '#cccccc', 
-          background: '#000000', 
+          color: termFg, 
+          background: termBg, 
           lineHeight: 1.3, 
           height: '350px',
           width: '100%',
@@ -282,15 +343,15 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
         }}
       >
         {termLines.map((line, i) => (
-          <div key={i} style={{ color: line.color || '#cccccc', whiteSpace: 'pre-wrap' }}>{line.text}</div>
+          <div key={i} style={{ color: line.color === '#cccccc' ? termFg : (line.color || termFg), whiteSpace: 'pre-wrap' }}>{line.text}</div>
         ))}
         
         {termState !== 'installing' && (
           <form onSubmit={handleTerminalSubmit} style={{ display: 'flex' }}>
             {termState === 'idle' ? (
-              <span style={{ marginRight: '0.5rem' }}>C:\Windows\System32&gt;</span>
+              <span style={{ marginRight: '0.5rem', color: termFg }}>C:\Windows\System32&gt;</span>
             ) : termState === 'menu' ? (
-              <span style={{ marginRight: '0.5rem' }}>Select an option [1-3]:</span>
+              <span style={{ marginRight: '0.5rem', color: termFg }}>Select an option [1-3]:</span>
             ) : null}
             <input
               ref={inputRef}
@@ -300,7 +361,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#cccccc',
+                color: termFg,
                 fontFamily: 'inherit',
                 fontSize: 'inherit',
                 outline: 'none',
