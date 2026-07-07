@@ -18,7 +18,7 @@
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
     "pages": "node scripts/deploy-pages.cjs",
-    "website:dev": "npm run dev --prefix .pages"
+    "web": "npm run dev --prefix .pages"
   },
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
