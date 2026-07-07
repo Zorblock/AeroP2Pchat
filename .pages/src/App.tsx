@@ -130,6 +130,11 @@ function App() {
           <p style={{ color: '#9db0bb', fontSize: '1.25rem', maxWidth: '600px', margin: '1rem auto 0', lineHeight: 1.6 }}>
             Direct desktop messaging without the middleman. Secure, fast, and completely peer-to-peer.
           </p>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+            <img src="https://img.shields.io/github/v/release/Zorblock/AeroP2Pchat?style=flat-square&color=0ea5e9" alt="Latest Release" />
+            <img src="https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total?style=flat-square&color=38bdf8" alt="Total Downloads" />
+            <img src="https://img.shields.io/github/license/Zorblock/AeroP2Pchat?style=flat-square&color=7dd3fc" alt="License" />
+          </div>
         </motion.div>
 
         <motion.div
