@@ -446,7 +446,7 @@ function App() {
                   style={{ cursor: 'grab', borderBottom: '1px solid rgba(255,255,255,0.6)' }}
                   title="Drag me!"
                 >
-                  <div className="title-bar-text">Administrator: Command Prompt</div>
+                  <div className="title-bar-text">C:\Windows\system32\cmd.exe</div>
                   <div className="title-bar-controls">
                     <button aria-label="Minimize" onClick={(e) => e.preventDefault()}></button>
                     <button aria-label="Maximize" onClick={(e) => e.preventDefault()}></button>
@@ -455,17 +455,17 @@ function App() {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '1.5rem', fontFamily: 'Consolas, monospace', fontSize: '0.9rem', color: '#e2e8f0', background: '#0a0f14', lineHeight: 1.6 }}>
-              <div style={{ marginBottom: '0.5rem' }}>C:\Users\Admin&gt; aerop2p menu</div>
-              <div style={{ color: '#9db0bb', marginBottom: '1rem' }}>
-                <div style={{ color: '#a3e635' }}>Status: Installed ({installedVersion})</div>
-                <div style={{ color: '#facc15' }}>Latest: {latestVersion} (Update available!)</div>
+            <div style={{ padding: '0.5rem', fontFamily: "'Lucida Console', 'Courier New', monospace", fontSize: '0.85rem', color: '#cccccc', background: '#000000', lineHeight: 1.2, minHeight: '300px' }}>
+              <div style={{ marginBottom: '0.5rem' }}>C:\Users\Admin&gt;aerop2p menu</div>
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ color: '#00ff00' }}>Status: Installed ({installedVersion})</div>
+                <div style={{ color: '#ffff00' }}>Latest: {latestVersion} (Update available!)</div>
               </div>
-              <div style={{ marginBottom: '0.2rem' }}>1 - <span style={{ fontWeight: 'bold' }}>Update to {latestVersion}</span></div>
-              <div style={{ marginBottom: '0.2rem', color: '#f87171' }}>2 - Uninstall</div>
-              <div style={{ marginBottom: '0.2rem', color: '#22d3ee' }}>3 - Check status details</div>
-              <div style={{ marginBottom: '1rem', color: '#64748b' }}>4 - Exit</div>
-              <div><span style={{ color: '#e2e8f0' }}>Choose an option [1-4]:</span> 1</div>
+              <div style={{ marginBottom: '0.2rem' }}>1 - Update to {latestVersion}</div>
+              <div style={{ marginBottom: '0.2rem', color: '#ff0000' }}>2 - Uninstall</div>
+              <div style={{ marginBottom: '0.2rem', color: '#00ffff' }}>3 - Check status details</div>
+              <div style={{ marginBottom: '1rem', color: '#808080' }}>4 - Exit</div>
+              <div>Choose an option [1-4]: 1</div>
             </div>
           </motion.div>
         </motion.div>
