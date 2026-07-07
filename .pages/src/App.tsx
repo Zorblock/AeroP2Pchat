@@ -184,7 +184,7 @@ function App() {
           transition={{ duration: 1, delay: 1 }}
           style={{ marginTop: 'auto', paddingTop: '6rem', color: '#55707d', textAlign: 'center', fontSize: '0.9rem' }}
         >
-          <p>© {new Date().getFullYear()} Zorblock. Built with Electron, React, and WebRTC.</p>
+          <p>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>Zorblock</a>. Built with Electron, React, and WebRTC.</p>
         </motion.footer>
 
       </main>
