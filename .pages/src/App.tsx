@@ -35,15 +35,28 @@ function App() {
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
   const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
-  const [installedVersion, setInstalledVersion] = useState<string>('v1.1.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
   
   const constraintsRef = useRef(null);
 
   // Terminal Simulation State
   type TermState = 'idle' | 'menu' | 'installing' | 'status';
-  const [termState, setTermState] = useState<TermState>('idle');
-  const [termLines, setTermLines] = useState<{ text: React.ReactNode, color?: string }[]>([]);
+  const [termState, setTermState] = useState<TermState>('menu');
+  const [termLines, setTermLines] = useState<{ text: React.ReactNode, color?: string }[]>([
+    { text: `C:\\Users\\Admin> aerop2p`, color: '#cccccc' },
+    { text: `----------------------------------------`, color: '#808080' },
+    { text: `Aero P2P Chat Windows Installer`, color: '#ffffff' },
+    { text: `----------------------------------------`, color: '#808080' },
+    { text: `> Checking versions...`, color: '#00ffff' },
+    { text: ``, color: '#cccccc' },
+    { text: `Status: Not Installed`, color: '#ffff00' },
+    { text: `Latest: v1.2.0`, color: '#00ffff' },
+    { text: ``, color: '#cccccc' },
+    { text: `1) Install Aero P2P Chat`, color: '#ffffff' },
+    { text: `2) Check status details`, color: '#ffffff' },
+    { text: `3) Exit`, color: '#808080' },
+    { text: ``, color: '#cccccc' }
+  ]);
   const [termInput, setTermInput] = useState('');
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -154,16 +167,6 @@ function App() {
         if (releases && releases.length > 0) {
           const latest = releases[0];
           setLatestVersion(latest.tag_name);
-
-          // Calculate an artificial 'installed' version (e.g. decrement patch or minor)
-          let versionParts = latest.tag_name.replace('v', '').split('.');
-          if (versionParts.length === 3) {
-            let patch = parseInt(versionParts[2]);
-            let minor = parseInt(versionParts[1]);
-            if (patch > 0) patch--;
-            else if (minor > 0) minor--;
-            setInstalledVersion(`v${versionParts[0]}.${minor}.${patch}`);
-          }
 
           // Calculate total downloads across all releases
           let downloads = 0;
