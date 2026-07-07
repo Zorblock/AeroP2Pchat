@@ -387,7 +387,7 @@ function updateTrayMenu() {
     menuTemplate.push(
       { type: "separator" },
       {
-        label: "Debug",
+        label: "Dev",
         submenu: [
           {
             label: "Toggle Developer Tools",
