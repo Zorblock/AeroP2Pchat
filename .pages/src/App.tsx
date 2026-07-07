@@ -9,6 +9,7 @@ import { Download, MonitorPlay, Shield, Zap, Terminal } from 'lucide-react';
 import './reset.css';
 import './index.css';
 import '7.css/dist/7.scoped.css';
+import { CMD } from './CMD';
 
 const AeroBadge = ({ label, value, color }: { label: string, value: string, color: string }) => (
   <div style={{ display: 'flex', overflow: 'hidden', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'sans-serif' }}>
@@ -38,126 +39,6 @@ function App() {
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
   
   const constraintsRef = useRef(null);
-
-  // Terminal Simulation State
-  type TermState = 'idle' | 'menu' | 'installing' | 'status';
-  const [termState, setTermState] = useState<TermState>('menu');
-  const [termLines, setTermLines] = useState<{ text: React.ReactNode, color?: string }[]>([
-    { text: `C:\\Users\\Admin> aerop2p`, color: '#cccccc' },
-    { text: `----------------------------------------`, color: '#808080' },
-    { text: `Aero P2P Chat Windows Installer`, color: '#ffffff' },
-    { text: `----------------------------------------`, color: '#808080' },
-    { text: `> Checking versions...`, color: '#00ffff' },
-    { text: ``, color: '#cccccc' },
-    { text: `Status: Not Installed`, color: '#ffff00' },
-    { text: `Latest: v1.2.0`, color: '#00ffff' },
-    { text: ``, color: '#cccccc' },
-    { text: `1) Install Aero P2P Chat`, color: '#ffffff' },
-    { text: `2) Check status details`, color: '#ffffff' },
-    { text: `3) Exit`, color: '#808080' },
-    { text: ``, color: '#cccccc' }
-  ]);
-  const [termInput, setTermInput] = useState('');
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const printMenu = () => {
-    setTermLines(prev => [
-      ...prev,
-      { text: `----------------------------------------`, color: '#808080' },
-      { text: `Aero P2P Chat Windows Installer`, color: '#ffffff' },
-      { text: `----------------------------------------`, color: '#808080' },
-      { text: ``, color: '#cccccc' },
-      { text: `Status: Not Installed`, color: '#ffff00' },
-      { text: `Latest: ${latestVersion}`, color: '#00ffff' },
-      { text: ``, color: '#cccccc' },
-      { text: `1) Install Aero P2P Chat`, color: '#ffffff' },
-      { text: `2) Check status details`, color: '#ffffff' },
-      { text: `3) Exit`, color: '#808080' },
-      { text: ``, color: '#cccccc' }
-    ]);
-    setTermState('menu');
-  };
-
-  const simulateInit = async () => {
-    setTermState('installing');
-    setTermLines(prev => [...prev, { text: `> Checking versions...`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 800));
-    printMenu();
-  };
-
-  const simulateInstall = async () => {
-    setTermState('installing');
-    setTermLines(prev => [...prev, { text: `> Fetching latest release info...`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 600));
-    setTermLines(prev => [...prev, { text: `> Latest version: ${latestVersion}`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 400));
-    setTermLines(prev => [...prev, { text: `> Downloading Aero P2P Chat Setup...`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 1500));
-    setTermLines(prev => [...prev, { text: `> Running installer...`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 2000));
-    setTermLines(prev => [...prev, { text: `OK Added C:\\Users\\Admin\\.local\\bin to User PATH. You may need to restart your terminal.`, color: '#00ff00' }]);
-    setTermLines(prev => [...prev, { text: `OK Aero P2P Chat installed successfully!`, color: '#00ff00' }]);
-    await new Promise(r => setTimeout(r, 1000));
-    setTermLines(prev => [...prev, { text: ``, color: '#cccccc' }]);
-    setTermState('idle');
-  };
-
-  const simulateStatus = async () => {
-    setTermState('installing');
-    setTermLines(prev => [...prev, { text: `> Fetching latest release info...`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 600));
-    setTermLines(prev => [...prev, { text: `Installed version: not installed`, color: '#00ffff' }]);
-    setTermLines(prev => [...prev, { text: `Latest version:    ${latestVersion}`, color: '#00ffff' }]);
-    await new Promise(r => setTimeout(r, 1000));
-    printMenu();
-  };
-
-  const handleTerminalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (termState === 'installing' || termState === 'status') return;
-
-    const input = termInput.trim();
-    setTermInput('');
-    
-    if (termState === 'idle') {
-      if (input.includes('install.ps1') || input.includes('aerop2p')) {
-        setTermLines(prev => [...prev, { text: `C:\\Users\\Admin> ${input}`, color: '#cccccc' }]);
-        await simulateInit();
-      } else {
-        setTermLines(prev => [
-          ...prev, 
-          { text: `C:\\Users\\Admin> ${input}`, color: '#cccccc' },
-          ...(input ? [{ text: `'${input}' is not recognized as an internal or external command.`, color: '#ff0000' }] : [])
-        ]);
-      }
-    } else if (termState === 'menu') {
-      setTermLines(prev => [...prev, { text: `Select an option [1-3]: ${input}`, color: '#cccccc' }]);
-      if (input === '1') {
-        simulateInstall();
-      } else if (input === '2') {
-        simulateStatus();
-      } else if (input === '3') {
-        setTermState('installing');
-        setTermLines(prev => [...prev, { text: `Exiting...`, color: '#cccccc' }]);
-        setTimeout(() => {
-          setTermLines([]);
-          setTermState('idle');
-        }, 800);
-      } else {
-        setTermLines(prev => [...prev, { text: `WARN Invalid choice.`, color: '#ffff00' }]);
-        setTimeout(() => {
-           printMenu();
-        }, 500);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [termLines, termInput]);
 
   useEffect(() => {
     // Fetch latest release
@@ -547,86 +428,7 @@ function App() {
             </ul>
           </div>
 
-          <motion.div 
-            className="aero-glass cli-window-drag" 
-            style={{ overflow: 'hidden', padding: 0 }}
-            drag
-            dragControls={dragControls}
-            dragListener={false}
-            dragConstraints={{ top: -100, bottom: 100, left: -100, right: 100 }}
-            dragSnapToOrigin={true}
-            dragElastic={0.6}
-            whileDrag={{ scale: 1.03, rotate: 2, filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))' }}
-            dragTransition={{ bounceStiffness: 150, bounceDamping: 12 }}
-          >
-            <div className="win7">
-              <div className="window active" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', borderRadius: 0 }}>
-                <div 
-                  className="title-bar"
-                  onPointerDown={(e) => dragControls.start(e)}
-                  style={{ cursor: 'grab', borderBottom: '1px solid rgba(255,255,255,0.6)' }}
-                  title="Drag me!"
-                >
-                  <div className="title-bar-text">C:\Windows\system32\cmd.exe</div>
-                  <div className="title-bar-controls">
-                    <button aria-label="Minimize" onClick={(e) => e.preventDefault()}></button>
-                    <button aria-label="Maximize" onClick={(e) => e.preventDefault()}></button>
-                    <button aria-label="Close" onClick={(e) => e.preventDefault()}></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div 
-              ref={terminalRef}
-              onClick={() => inputRef.current?.focus()}
-              style={{ 
-                padding: '0.5rem', 
-                fontFamily: "'Lucida Console', 'Courier New', monospace", 
-                fontSize: '0.85rem', 
-                color: '#cccccc', 
-                background: '#000000', 
-                lineHeight: 1.3, 
-                minHeight: '300px',
-                maxHeight: '400px',
-                overflowY: 'auto',
-                cursor: 'text',
-                wordBreak: 'break-all'
-              }}
-            >
-              {termLines.map((line, i) => (
-                <div key={i} style={{ color: line.color || '#cccccc' }}>{line.text}</div>
-              ))}
-              
-              {termState !== 'installing' && (
-                <form onSubmit={handleTerminalSubmit} style={{ display: 'flex' }}>
-                  {termState === 'idle' ? (
-                    <span style={{ marginRight: '0.5rem' }}>C:\Users\Admin&gt;</span>
-                  ) : termState === 'menu' ? (
-                    <span style={{ marginRight: '0.5rem' }}>Select an option [1-3]:</span>
-                  ) : null}
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={termInput}
-                    onChange={e => setTermInput(e.target.value)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#cccccc',
-                      fontFamily: 'inherit',
-                      fontSize: 'inherit',
-                      outline: 'none',
-                      flex: 1,
-                      padding: 0,
-                      margin: 0
-                    }}
-                    autoComplete="off"
-                    spellCheck="false"
-                  />
-                </form>
-              )}
-            </div>
-          </motion.div>
+          <CMD latestVersion={latestVersion} dragControls={dragControls} />
         </motion.div>
 
         <motion.footer
