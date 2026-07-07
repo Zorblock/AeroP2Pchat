@@ -143,6 +143,8 @@ function App() {
           alt=""
         />
 
+
+
         {/* Decorative scattered clouds across the entire scrollable height */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
