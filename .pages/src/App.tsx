@@ -252,13 +252,14 @@ function App() {
               key={i}
               whileHover={{ y: -5, boxShadow: '0 12px 40px rgba(2,132,199,0.15)' }}
               className="aero-glass"
-              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'relative', overflow: 'hidden' }}
             >
-              <div style={{ background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'inline-block', border: '1px solid #7dd3fc', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
+              <img src={`${import.meta.env.BASE_URL}img/bubbles_43.png`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 0 }} alt="" />
+              <div style={{ position: 'relative', zIndex: 1, background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'inline-block', border: '1px solid #7dd3fc', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
                 {feat.icon}
               </div>
-              <h3 style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{feat.title}</h3>
-              <p style={{ color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>{feat.desc}</p>
+              <h3 style={{ position: 'relative', zIndex: 1, color: '#0f172a', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{feat.title}</h3>
+              <p style={{ position: 'relative', zIndex: 1, color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>{feat.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -270,32 +271,41 @@ function App() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
           className="aero-glass"
-          style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem' }}
+          style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', position: 'relative', overflow: 'hidden' }}
         >
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem' }}>How It Works</h2>
-            <p style={{ color: '#334155', fontSize: '1.15rem', maxWidth: '600px', margin: '0 auto', fontWeight: 500 }}>
-              Aero P2P Chat cuts out the middleman. By utilizing WebRTC, data streams directly between you and your friend.
-            </p>
-          </div>
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>1</div>
-              <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Open the App</h4>
-              <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Launch Aero P2P Chat and instantly get your unique, randomized Peer ID.</p>
+          {/* Inner overlay flare */}
+          <img 
+            src={`${import.meta.env.BASE_URL}img/flares_12.png`} 
+            style={{ position: 'absolute', top: '-50%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 0.4, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 0 }} 
+            alt="" 
+          />
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem' }}>How It Works</h2>
+              <p style={{ color: '#334155', fontSize: '1.15rem', maxWidth: '600px', margin: '0 auto', fontWeight: 500 }}>
+                Aero P2P Chat cuts out the middleman. By utilizing WebRTC, data streams directly between you and your friend.
+              </p>
             </div>
-            <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
-            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>2</div>
-              <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Share ID</h4>
-              <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Send your Peer ID to a friend through any secure channel.</p>
-            </div>
-            <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
-            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>3</div>
-              <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Connect directly</h4>
-              <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>They paste it in, hit connect, and the peer-to-peer tunnel is established!</p>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>1</div>
+                <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Open the App</h4>
+                <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Launch Aero P2P Chat and instantly get your unique, randomized Peer ID.</p>
+              </div>
+              <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
+              <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>2</div>
+                <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Share ID</h4>
+                <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Send your Peer ID to a friend through any secure channel.</p>
+              </div>
+              <div style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
+              <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>3</div>
+                <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Connect directly</h4>
+                <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>They paste it in, hit connect, and the peer-to-peer tunnel is established!</p>
+              </div>
             </div>
           </div>
         </motion.div>
