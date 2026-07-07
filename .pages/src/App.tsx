@@ -358,9 +358,42 @@ function App() {
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1 }}
           className="aero-glass"
-          style={{ marginTop: 'auto', padding: '1rem 2rem', color: '#55707d', textAlign: 'center', fontSize: '0.9rem', borderRadius: '100px', marginBottom: '2rem' }}
+          style={{ 
+            marginTop: 'auto', 
+            padding: '2rem 3rem', 
+            width: '100%', 
+            maxWidth: '1000px',
+            borderRadius: '24px', 
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '2rem',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.1), inset 0 2px 10px rgba(255,255,255,0.8)',
+            position: 'relative',
+            zIndex: 10
+          }}
         >
-          <p style={{ margin: 0 }}>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}>Zorblock</a>. Built with Electron, React, and WebRTC.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Logo" style={{ width: '48px', height: '48px', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }} />
+            <div style={{ textAlign: 'left' }}>
+              <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem', fontWeight: 800 }}>Aero P2P Chat</h4>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>© {new Date().getFullYear()} <a href="https://zorblock.github.io" target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>Zorblock</a>. All rights reserved.</p>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Powered by</p>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <span style={{ background: '#0284c7', color: '#fff', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>Electron</span>
+                <span style={{ background: '#38bdf8', color: '#fff', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>React</span>
+                <span style={{ background: '#0ea5e9', color: '#fff', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>WebRTC</span>
+              </div>
+            </div>
+          </div>
         </motion.footer>
 
         {/* Decorative floating globe at the bottom */}
@@ -377,6 +410,13 @@ function App() {
         <img 
           src={`${import.meta.env.BASE_URL}img/water_1.png`}
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: -1, pointerEvents: 'none', objectFit: 'cover' }}
+          alt=""
+        />
+
+        {/* Decorative bubbles overlay at the bottom left */}
+        <img 
+          src={`${import.meta.env.BASE_URL}img/bubbles_39.png`}
+          style={{ position: 'absolute', bottom: '-5%', left: '-5%', width: '450px', zIndex: 5, opacity: 0.8, pointerEvents: 'none', mixBlendMode: 'screen', transform: 'rotate(10deg)' }}
           alt=""
         />
       </main>
