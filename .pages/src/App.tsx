@@ -1,8 +1,9 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
 import { DustParticles } from './DustParticles';
-import { Download, MonitorPlay, Shield, Zap, Terminal, Activity } from 'lucide-react';
+import { Download, MonitorPlay, Shield, Zap, Terminal } from 'lucide-react';
 import './reset.css';
 import './index.css';
 
@@ -40,7 +41,9 @@ function App() {
           left: 0,
           right: 0,
           bottom: '-15vh',
-          background: 'linear-gradient(to bottom, #070b10, #131c26)',
+          backgroundImage: 'linear-gradient(to bottom, rgba(7, 11, 16, 0.7), rgba(19, 28, 38, 0.98)), url(/background.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           y: backgroundY,
           zIndex: 0,
         }}
@@ -57,12 +60,22 @@ function App() {
           y: v1Y,
           rotate: v1Rotate,
           zIndex: 1,
-          opacity: 0.05,
+          opacity: 0.06,
           pointerEvents: 'none',
-          color: '#38bdf8',
+          width: '300px',
+          height: '300px',
         }}
       >
-        <Activity size={300} strokeWidth={1} />
+        <img 
+          src="/logo.png" 
+          alt="" 
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain',
+            filter: 'grayscale(100%) sepia(100%) hue-rotate(170deg) saturate(400%) brightness(1.2)'
+          }} 
+        />
       </motion.div>
 
       <motion.div
@@ -73,12 +86,22 @@ function App() {
           y: v2Y,
           rotate: v2Rotate,
           zIndex: 1,
-          opacity: 0.05,
+          opacity: 0.06,
           pointerEvents: 'none',
-          color: '#38bdf8',
+          width: '400px',
+          height: '400px',
         }}
       >
-        <Activity size={400} strokeWidth={1} />
+        <img 
+          src="/logo.png" 
+          alt="" 
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain',
+            filter: 'grayscale(100%) sepia(100%) hue-rotate(170deg) saturate(400%) brightness(1.2)'
+          }} 
+        />
       </motion.div>
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -138,6 +161,7 @@ function App() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText("curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash");
+                  toast.success("Command copied to clipboard!");
                 }}
                 style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
               >
