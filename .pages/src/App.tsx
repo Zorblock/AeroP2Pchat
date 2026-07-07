@@ -446,7 +446,9 @@ function App() {
             dragListener={false}
             dragConstraints={{ top: -100, bottom: 100, left: -100, right: 100 }}
             dragSnapToOrigin={true}
-            dragElastic={0.1}
+            dragElastic={0.6}
+            whileDrag={{ scale: 1.03, rotate: 2, filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))' }}
+            dragTransition={{ bounceStiffness: 150, bounceDamping: 12 }}
           >
             <div className="win7">
               <div className="window active" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', borderRadius: 0 }}>
