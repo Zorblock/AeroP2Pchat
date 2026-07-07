@@ -7,13 +7,11 @@ APP_SLUG="aero-p2p-chat"
 CLI_COMMAND_NAME="aerop2p"
 APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
 APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
-DEB_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.deb"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
 PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
 APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
-DEB_URL="${RELEASE_BASE}/${DEB_RELEASE_NAME}"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
 INSTALLER_URL="${PAGES_BASE}/install.sh"
 ICON_URL="${PAGES_BASE}/logo.png"
@@ -130,15 +128,6 @@ get_manifest_appimage_url() {
     printf '%s' "$url"
 }
 
-get_manifest_deb_url() {
-    manifest="$1"
-    url="$(read_manifest_value "linuxX64DebUrl" "$manifest")"
-    if [ -z "$url" ]; then
-        url="$DEB_URL"
-    fi
-    printf '%s' "$url"
-}
-
 verify_sha256() {
     file="$1"
     expected="$2"
@@ -174,14 +163,6 @@ get_latest_version() {
 }
 
 get_installed_version() {
-    if is_deb_installed; then
-        deb_version="$(dpkg-query -W -f='${Version}' "$APP_SLUG" 2>/dev/null || true)"
-        if [ -n "$deb_version" ]; then
-            printf '%s' "$deb_version"
-            return
-        fi
-    fi
-
     if [ -f "$VERSION_PATH" ]; then
         cat "$VERSION_PATH"
     else
@@ -190,56 +171,10 @@ get_installed_version() {
 }
 
 is_installed() {
-    is_deb_installed || { [ -f "$APPIMAGE_PATH" ] && [ -x "$APPIMAGE_PATH" ]; }
+    [ -f "$APPIMAGE_PATH" ] && [ -x "$APPIMAGE_PATH" ]
 }
 
-is_deb_capable() {
-    command -v dpkg >/dev/null 2>&1 && { command -v apt-get >/dev/null 2>&1 || command -v apt >/dev/null 2>&1; }
-}
 
-is_deb_installed() {
-    command -v dpkg-query >/dev/null 2>&1 && dpkg-query -W -f='${Status}' "$APP_SLUG" 2>/dev/null | grep -q "install ok installed"
-}
-
-run_privileged() {
-    if [ "$(id -u)" -eq 0 ]; then
-        "$@"
-    elif command -v sudo >/dev/null 2>&1; then
-        sudo "$@"
-    elif command -v doas >/dev/null 2>&1; then
-        doas "$@"
-    else
-        return 1
-    fi
-}
-
-install_deb_package() {
-    deb_path="$1"
-
-    if command -v apt-get >/dev/null 2>&1; then
-        run_privileged apt-get install --yes "$deb_path"
-    elif command -v apt >/dev/null 2>&1; then
-        run_privileged apt install --yes "$deb_path"
-    else
-        return 1
-    fi
-}
-
-remove_deb_package() {
-    if ! is_deb_installed; then
-        return 0
-    fi
-
-    if command -v apt-get >/dev/null 2>&1; then
-        run_privileged apt-get remove --yes "$APP_SLUG"
-    elif command -v apt >/dev/null 2>&1; then
-        run_privileged apt remove --yes "$APP_SLUG"
-    elif command -v dpkg >/dev/null 2>&1; then
-        run_privileged dpkg -r "$APP_SLUG"
-    else
-        return 1
-    fi
-}
 
 write_launcher() {
     mkdir -p "$BIN_DIR"
@@ -366,9 +301,6 @@ install_icon() {
 }
 
 print_paths() {
-    if is_deb_installed; then
-        printf '%s %s\n' "$(color dim 'Package ')" "$APP_SLUG"
-    fi
     printf '%s %s\n' "$(color dim 'AppImage')" "$APPIMAGE_PATH"
     printf '%s %s\n' "$(color dim 'App cmd ')" "$BIN_PATH"
     printf '%s %s\n' "$(color dim 'CLI cmd ')" "$CLI_PATH"
@@ -522,12 +454,10 @@ install_app() {
     fetch_manifest "$tmp_manifest"
     latest_version="$(get_latest_version "$tmp_manifest")"
     appimage_url="$(get_manifest_appimage_url "$tmp_manifest")"
-    deb_url="$(get_manifest_deb_url "$tmp_manifest")"
     appimage_sha256="$(read_manifest_value "linuxSha256" "$tmp_manifest")"
     if [ -z "$appimage_sha256" ]; then
         appimage_sha256="$(read_manifest_value "linuxX64AppImageSha256" "$tmp_manifest")"
     fi
-    deb_sha256="$(read_manifest_value "linuxX64DebSha256" "$tmp_manifest")"
     installed_version="$(get_installed_version)"
     
     if is_installed; then
@@ -543,31 +473,6 @@ install_app() {
         close_running_instances
     else
         info "Installing ${latest_version}..."
-    fi
-
-    if is_deb_capable && [ -n "$deb_url" ]; then
-        tmp_deb="$(mktemp --suffix=.deb 2>/dev/null || mktemp)"
-        trap 'rm -f "$tmp_manifest" "$tmp_appimage" "$tmp_deb"' EXIT
-
-        info "Debian package support detected. Installing .deb package..."
-        if download "$deb_url" "$tmp_deb"; then
-            verify_sha256 "$tmp_deb" "$deb_sha256" "Debian package"
-            if install_deb_package "$tmp_deb"; then
-                rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
-                rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
-                write_launcher
-                write_terminal_command
-                ok "${APP_NAME} ${latest_version} installed from Debian package."
-                print_paths
-                if ! printf '%s' ":$PATH:" | grep -q ":$BIN_DIR:"; then
-                    warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: $CLI_COMMAND_NAME update"
-                fi
-                return
-            fi
-            warn "Debian package install failed or was cancelled. Falling back to AppImage."
-        else
-            warn "Debian package download failed. Falling back to AppImage."
-        fi
     fi
     
     download "$appimage_url" "$tmp_appimage"
@@ -632,12 +537,6 @@ uninstall_app() {
     fi
     
     close_running_instances
-    if is_deb_installed; then
-        info "Removing Debian package..."
-        if ! remove_deb_package; then
-            warn "Could not remove Debian package automatically."
-        fi
-    fi
     rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$CLI_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
     rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
     

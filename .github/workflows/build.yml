@@ -1,30 +1,19 @@
 name: build
 
+permissions:
+  contents: write
+
 on:
-  pull_request:
   push:
     branches:
       - "**"
-    tags-ignore:
-      - "**"
+    tags:
+      - "v*"
+  pull_request:
 
 jobs:
   build:
-    strategy:
-      fail-fast: true
-      matrix:
-        platform:
-          - os_name: Linux-x64
-            os: ubuntu-22.04
-            build_platform: linux
-          - os_name: Windows-x64
-            os: windows-latest
-            build_platform: windows
-          - os_name: macOS-Universal
-            os: macos-latest
-            build_platform: macos
-
-    runs-on: ${{ matrix.platform.os }}
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -39,26 +28,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Linux packaging dependencies
-        if: matrix.platform.build_platform == 'linux'
-        run: sudo apt-get update --yes && sudo apt-get install --yes libarchive-tools rpm
-
-      - name: Install Inno Setup
-        if: matrix.platform.build_platform == 'windows'
-        run: choco install innosetup --no-progress --yes
-
       - name: Test
         run: npm run test
 
-      - name: Build packages
+      - name: Build package
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: node scripts/ci-build-release.cjs --platform=${{ matrix.platform.build_platform }}
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
+          else
+            node scripts/ci-build-release.cjs --platform=linux
+          fi
+
+      - name: Create latest.yml
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node scripts/ci-create-latest.cjs dist/release
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            dist/release/latest.yml
+            dist/release/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload build artifacts
+        if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ matrix.platform.os_name }}
+          name: artifacts-Linux-x64
           path: dist/release/*
           if-no-files-found: error
           retention-days: 7
