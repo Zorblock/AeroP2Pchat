@@ -77,7 +77,7 @@ function App() {
       {/* Static Overlays as requested */}
       <img 
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '500px', objectFit: 'cover', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '800px', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
         alt=""
       />
       
@@ -87,9 +87,44 @@ function App() {
         alt=""
       />
 
+
+
       <DustParticles />
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Decorative scattered clouds across the entire scrollable height */}
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '10%', left: '-10%', width: '500px', zIndex: -1, opacity: 0.7, pointerEvents: 'none', transform: 'rotate(-5deg)' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '30%', right: '-5%', width: '400px', zIndex: -1, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(10deg)' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '55%', left: '2%', width: '300px', zIndex: -1, opacity: 0.6, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-15deg)' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '80%', right: '10%', width: '600px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(5deg)' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '95%', left: '-15%', width: '700px', zIndex: -1, opacity: 0.4, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-8deg)' }}
+          alt=""
+        />
+
+        {/* Decorative background bubbles */}
+        <img 
+          src={`${import.meta.env.BASE_URL}img/bubbles_37.png`}
+          style={{ position: 'absolute', top: '45%', right: '-5%', width: '500px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(-15deg)' }}
+          alt=""
+        />
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
