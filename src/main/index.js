@@ -295,11 +295,17 @@ function updateTrayMenu() {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
-        label: "Open",
+        label: `${appDisplayName} v${app.getVersion()}`,
+        enabled: false,
+      },
+      { type: "separator" },
+      {
+        label: "Open Aero P2P Chat",
         click: showMainWindow,
       },
+      { type: "separator" },
       {
-        label: "Close",
+        label: "Quit",
         click: () => {
           forceQuit = true;
           app.quit();
