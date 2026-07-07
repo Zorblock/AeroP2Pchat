@@ -220,7 +220,7 @@ fn parse_update_detail(details: &Value, key: &str) -> String {
 
 #[cfg(target_os = "windows")]
 fn verify_update_url(url: &str) -> Result<(), String> {
-    if !url.starts_with(RELEASE_DOWNLOAD_PREFIX) || !url.ends_with(".exe") {
+    if !url.to_lowercase().starts_with(&RELEASE_DOWNLOAD_PREFIX.to_lowercase()) || !url.to_lowercase().ends_with(".exe") {
         return Err("Refused untrusted update URL.".into());
     }
     Ok(())
@@ -242,7 +242,7 @@ fn sha512_base64(bytes: &[u8]) -> String {
 }
 
 #[tauri::command]
-fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
+async fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
     #[cfg(not(target_os = "windows"))]
     {
         let _ = details;
@@ -251,7 +251,7 @@ fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
     }
 
     #[cfg(target_os = "windows")]
-    {
+    tauri::async_runtime::spawn_blocking(move || {
         let url = parse_update_detail(&details, "url");
         let version = parse_update_detail(&details, "version");
         let expected_sha256 = parse_update_detail(&details, "sha256").to_lowercase();
@@ -340,7 +340,9 @@ fn install_update(app: AppHandle, details: Value) -> Result<CommandOk, String> {
             .map_err(|error| error.to_string())?;
         app.exit(0);
         Ok(CommandOk { ok: true })
-    }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

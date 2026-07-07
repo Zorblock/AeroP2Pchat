@@ -7680,7 +7680,13 @@ async function installAvailableUpdate() {
       headerUpdateButton.disabled = false;
       updateButton.textContent = "Install update";
       headerUpdateButton.textContent = "Update";
-      setStatus("offline", error.message || "Update failed.");
+      let errorMessage = "Update failed.";
+      if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      setStatus("offline", errorMessage);
     }
     return;
   }
