@@ -187,7 +187,7 @@ if [ -x "/opt/$APP_NAME/$APP_SLUG" ]; then
     exec "/opt/$APP_NAME/$APP_SLUG" "\$@"
 fi
 if [ -x "$APPIMAGE_PATH" ]; then
-    exec "$APPIMAGE_PATH" --appimage-extract-and-run "\$@"
+    exec "$APPIMAGE_PATH" "\$@"
 fi
 if command -v gtk-launch >/dev/null 2>&1; then
     exec gtk-launch "$APP_ID"
@@ -274,7 +274,7 @@ write_desktop_entry() {
 Type=Application
 Name=${APP_NAME}
 Comment=Peer-to-peer chat client
-Exec=${APPIMAGE_PATH} --appimage-extract-and-run %U
+Exec=${APPIMAGE_PATH} %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
@@ -477,9 +477,52 @@ show_menu() {
         ;;
     esac
 }
+install_dependencies() {
+    needs_fuse=0
+    if ! command -v fusermount >/dev/null 2>&1 && [ ! -f /lib/x86_64-linux-gnu/libfuse.so.2 ] && [ ! -f /usr/lib/libfuse.so.2 ] && [ ! -f /usr/lib64/libfuse.so.2 ]; then
+        needs_fuse=1
+    fi
+
+    needs_dl=0
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        needs_dl=1
+    fi
+
+    if [ "$needs_fuse" -eq 0 ] && [ "$needs_dl" -eq 0 ]; then
+        return 0
+    fi
+
+    info "Installing missing dependencies (sudo privileges may be required)..."
+
+    if command -v apt-get >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 1 ] && deps="$deps libfuse2"
+        [ "$needs_dl" -eq 1 ] && deps="$deps curl"
+        sudo apt-get update
+        sudo apt-get install -y $deps
+    elif command -v pacman >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 1 ] && deps="$deps fuse2"
+        [ "$needs_dl" -eq 1 ] && deps="$deps curl"
+        sudo pacman -Sy --noconfirm $deps
+    elif command -v dnf >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 1 ] && deps="$deps fuse"
+        [ "$needs_dl" -eq 1 ] && deps="$deps curl"
+        sudo dnf install -y $deps
+    elif command -v zypper >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 1 ] && deps="$deps libfuse2"
+        [ "$needs_dl" -eq 1 ] && deps="$deps curl"
+        sudo zypper install -y $deps
+    else
+        warn "Unsupported package manager. Please install dependencies manually: libfuse2, curl"
+    fi
+}
 
 install_app() {
     title
+    install_dependencies
     mkdir -p "$INSTALL_DIR"
     
     tmp_manifest="$(mktemp)"
