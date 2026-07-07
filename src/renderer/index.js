@@ -7936,6 +7936,7 @@ setBootProgress(90, "Starting peer");
 checkForUpdates();
 setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
 window.aeroChat?.onCheckForUpdates?.(() => checkForUpdates({ manual: true }));
+window.aeroChat?.onDisconnect?.(() => cleanupRealtimeConnections());
 
 async function finishBootScreen() {
   await waitForVisualReady();

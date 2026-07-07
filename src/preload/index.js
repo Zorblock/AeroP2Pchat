@@ -18,6 +18,13 @@ contextBridge.exposeInMainWorld("aeroChat", {
       ipcRenderer.removeListener("check-for-updates", listener);
     };
   },
+  onDisconnect: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("disconnect-p2p", listener);
+    return () => {
+      ipcRenderer.removeListener("disconnect-p2p", listener);
+    };
+  },
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),

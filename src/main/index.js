@@ -292,9 +292,13 @@ function updateTrayMenu() {
     return;
   }
 
+  const { nativeImage } = require("electron");
+  const menuIcon = nativeImage.createFromPath(windowIcon).resize({ width: 16, height: 16 });
+
   const menuTemplate = [
     {
       label: `${appDisplayName} v${app.getVersion()}`,
+      icon: menuIcon,
       enabled: false,
     },
     { type: "separator" },
@@ -307,6 +311,14 @@ function updateTrayMenu() {
       click: () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send("check-for-updates");
+        }
+      },
+    },
+    {
+      label: "Disconnect All",
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("disconnect-p2p");
         }
       },
     },
