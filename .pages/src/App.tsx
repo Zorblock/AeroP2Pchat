@@ -27,6 +27,7 @@ function App() {
   const cloudY3 = useTransform(scrollYProgress, [0, 1], [0, -450]);
   const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const cloudY5 = useTransform(scrollYProgress, [0, 1], [0, -700]);
+  const insectY = useTransform(scrollYProgress, [0, 1], [0, -40]); /* Very subtle parallax */
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
@@ -135,10 +136,10 @@ function App() {
       <DustParticles />
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* Decorative insect at the top right */}
+        {/* Decorative insect at the top left */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
-          style={{ position: 'absolute', top: '35%', right: '2%', width: '450px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: cloudY4 }}
+          style={{ position: 'absolute', top: '35%', left: '2%', width: '450px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: insectY }}
           alt=""
         />
 
