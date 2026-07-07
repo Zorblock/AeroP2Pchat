@@ -4612,3 +4612,9 @@ body[data-theme="dark"] .settings-choice input:checked {
   background: var(--ui-primary) !important;
   box-shadow: inset 0 0 0 3px #071018;
 }
+
+/* Custom Liquid Glass Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.6); border-radius: 10px; border: 2px solid rgba(255,255,255,0.4); }
+::-webkit-scrollbar-thumb:hover { background: rgba(2, 132, 199, 0.8); }
