@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
@@ -10,6 +10,8 @@ import './reset.css';
 import './index.css';
 
 function App() {
+  const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
+
   useEffect(() => {
     const lenis = new Lenis({
       autoRaf: true,
@@ -40,6 +42,11 @@ function App() {
     { icon: <Zap size={24} />, title: 'Lightning Fast', desc: 'Built on WebRTC and Electron for native desktop performance.' },
     { icon: <Terminal size={24} />, title: 'CLI Tools', desc: 'Launch directly from your terminal using aerop2p commands.' },
   ];
+
+  const installCommands = {
+    windows: "irm https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex",
+    linux: "curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash"
+  };
 
   return (
     <>
@@ -168,16 +175,30 @@ function App() {
           </div>
 
           <div style={{ marginTop: '1rem', width: '100%' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setInstallOs('windows')}
+                style={{ background: installOs === 'windows' ? 'rgba(56,189,248,0.2)' : 'transparent', color: installOs === 'windows' ? '#38bdf8' : '#9db0bb', border: 'none', padding: '0.4rem 1rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
+              >
+                Windows
+              </button>
+              <button 
+                onClick={() => setInstallOs('linux')}
+                style={{ background: installOs === 'linux' ? 'rgba(56,189,248,0.2)' : 'transparent', color: installOs === 'linux' ? '#38bdf8' : '#9db0bb', border: 'none', padding: '0.4rem 1rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s' }}
+              >
+                Linux / macOS
+              </button>
+            </div>
             <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <code style={{ color: '#a3e635', fontFamily: 'monospace', flex: 1, fontSize: '0.9rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-                curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
+                {installCommands[installOs]}
               </code>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText("curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash");
+                  navigator.clipboard.writeText(installCommands[installOs]);
                   toast.success("Command copied to clipboard!");
                 }}
-                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', flexShrink: 0 }}
               >
                 Copy
               </button>
