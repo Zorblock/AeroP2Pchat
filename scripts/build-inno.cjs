@@ -133,4 +133,19 @@ const result = spawnSync(
   },
 );
 
+if (result.status === 0) {
+  const version = process.env.npm_package_version || packageJson.version;
+  const exePath = path.join(
+    root,
+    "dist",
+    "installer",
+    `${projectConfig.release.windowsSetupBaseName}-${version}.exe`,
+  );
+  if (fs.existsSync(exePath)) {
+    const stats = fs.statSync(exePath);
+    const sizeMb = (stats.size / (1024 * 1024)).toFixed(2);
+    console.log(`\n✅ Setup created: ${path.basename(exePath)} (${sizeMb} MB)`);
+  }
+}
+
 process.exit(result.status || 0);
