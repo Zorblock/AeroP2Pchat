@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
@@ -50,13 +50,6 @@ function App() {
     return () => lenis.destroy();
   }, []);
 
-  const { scrollYProgress } = useScroll();
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '10%']);
-
-  const v1Y = useTransform(scrollYProgress, [0, 1], ['0vh', '30vh']);
-  const v1Rotate = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const v2Y = useTransform(scrollYProgress, [0, 1], ['0vh', '-40vh']);
-  const v2Rotate = useTransform(scrollYProgress, [0, 1], [0, -180]);
 
   const triggerConfetti = () => {
     confetti({
@@ -84,7 +77,7 @@ function App() {
       {/* Static Overlays as requested */}
       <img 
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)' }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '500px', objectFit: 'cover', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
         alt=""
       />
       
