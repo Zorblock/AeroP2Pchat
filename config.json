@@ -4,7 +4,7 @@
   "pagesBaseUrl": "https://zorblock.github.io/AeroP2Pchat",
   "app": {
     "name": "Aero P2P Chat",
-    "id": "de.zorblock.aerop2pchat",
+    "id": "de.jonasgrimm.aerop2pchat",
     "packageName": "aero-p2p-chat",
     "cliCommandName": "aerop2p"
   },
@@ -16,6 +16,14 @@
   "release": {
     "artifactName": "Aero-P2P-Chat-${version}-${os}-${arch}.${ext}",
     "windowsInstallerAsset": "Aero-P2P-Chat-Windows-Setup.exe",
-    "linuxExecutableAsset": "Aero-P2P-Chat-Linux.x86_64"
+    "windowsX64SetupAsset": "Aero-P2P-Chat-Windows-x64-Setup.exe",
+    "windowsX64PortableAsset": "Aero-P2P-Chat-Windows-x64-Portable.exe",
+    "windowsSetupBaseName": "Aero-P2P-Chat-Setup",
+    "linuxAppImageAsset": "Aero-P2P-Chat-Linux.AppImage",
+    "linuxX64AppImageAsset": "Aero-P2P-Chat-Linux-x64.AppImage",
+    "linuxX64DebAsset": "Aero-P2P-Chat-Linux-x64.deb",
+    "linuxX64PortableAsset": "Aero-P2P-Chat-Linux-x64-Portable.tar.gz",
+    "macosUniversalDmgAsset": "Aero-P2P-Chat-macOS-Universal.dmg",
+    "macosUniversalPortableAsset": "Aero-P2P-Chat-macOS-Universal-Portable.zip"
   }
 }

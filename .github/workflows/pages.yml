@@ -1,15 +1,15 @@
-name: pages
+name: GitHub Pages
+
+on:
+  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-on:
-  workflow_dispatch:
-
 concurrency:
-  group: pages
+  group: github-pages
   cancel-in-progress: true
 
 jobs:
@@ -18,19 +18,18 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload docs
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
 
-      - name: Deploy Pages
+      - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

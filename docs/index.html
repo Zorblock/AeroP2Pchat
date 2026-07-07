@@ -7,7 +7,7 @@
     <title>Aero P2P Chat</title>
     <meta
       name="description"
-      content="Aero P2P Chat is a desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and a Linux Linux Executable release."
+      content="Aero P2P Chat is a desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and native Windows, Linux, and macOS builds."
     />
     <meta name="author" content="Zorblock" />
     <meta name="robots" content="index, follow" />
@@ -22,7 +22,7 @@
     <meta property="og:title" content="Aero P2P Chat" />
     <meta
       property="og:description"
-      content="A desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and a Linux Linux Executable release."
+      content="A desktop peer-to-peer messenger with Aero IDs, calls, screen sharing, notifications, and native Windows, Linux, and macOS builds."
     />
     <meta property="og:url" content="https://zorblock.github.io/AeroP2Pchat/" />
     <meta
@@ -58,7 +58,6 @@
         <a href="#features">Features</a>
         <a href="#workflow">How it works</a>
         <a href="#download">Download</a>
-        <a href="wiki/">Wiki</a>
         <a href="https://github.com/Zorblock/AeroP2Pchat" rel="noopener">
           GitHub
         </a>
@@ -88,7 +87,7 @@
             </div>
             <div>
               <dt>Platforms</dt>
-              <dd>Windows + Linux</dd>
+              <dd>Windows, Linux, macOS</dd>
             </div>
             <div>
               <dt>Command</dt>
@@ -138,7 +137,7 @@
                 <span>Online now</span>
               </div>
               <div class="preview-contact">
-                <strong>Zorblock</strong>
+                <strong>Jonas</strong>
                 <span>Last chat saved</span>
               </div>
             </aside>
@@ -231,49 +230,10 @@
             <span class="feature-icon">UP</span>
             <h3>Updates and CLI</h3>
             <p>
-              Windows can update from the installer, and Linux uses Linux Executable
-              support with the <code class="inline-code">aerop2p</code> helper.
+              Windows uses the setup installer, Linux uses AppImage support,
+              and macOS builds are produced by the release workflow.
             </p>
           </article>
-        </div>
-      </section>
-
-      <section class="section wiki-section" id="wiki">
-        <div class="section-heading reveal">
-          <p class="eyebrow">Docs</p>
-          <h2>Install notes, Linux fixes, and release help.</h2>
-          <p>
-            The wiki keeps practical setup and troubleshooting notes outside the
-            app UI, including Linux Executable, X11, Wayland, update, and release
-            checks.
-          </p>
-        </div>
-
-        <div class="wiki-grid">
-          <a class="wiki-card reveal" href="wiki/linux.html">
-            <span class="feature-icon">LX</span>
-            <h3>Linux, X11, Wayland</h3>
-            <p>
-              Linux Executable start commands, session checks, WebKitGTK notes, and
-              display-server troubleshooting.
-            </p>
-          </a>
-          <a class="wiki-card reveal" href="wiki/release.html">
-            <span class="feature-icon">RL</span>
-            <h3>Release and updates</h3>
-            <p>
-              What <code class="inline-code">npm run release</code> does, which
-              assets are uploaded, and how latest.yml is used.
-            </p>
-          </a>
-          <a class="wiki-card reveal" href="wiki/troubleshooting.html">
-            <span class="feature-icon">FX</span>
-            <h3>Troubleshooting</h3>
-            <p>
-              Black screen, missing launcher, permissions, audio/video, and
-              update repair steps.
-            </p>
-          </a>
         </div>
       </section>
 
@@ -335,7 +295,7 @@
               <h3>Light and dark themes</h3>
               <p>
                 The app stores settings in Electron userData and keeps the
-                interface consistent across the Linux Executable desktop build.
+                interface consistent across Windows, Linux, and macOS.
               </p>
             </article>
             <article>
@@ -354,9 +314,10 @@
           <p class="eyebrow">Get Aero</p>
           <h2>Download for your desktop.</h2>
           <p>
-            Pick the current release for your desktop. Windows ships as a setup
-            installer, and Linux ships as a native Executable with the installer command
-            for launcher setup.
+            Pick the current release for your system. The Linux installer is the
+            recommended path when you want Debian packages preferred where
+            available, AppImage fallback elsewhere, and the terminal command set
+            up together.
           </p>
         </div>
 
@@ -364,18 +325,24 @@
           <article class="download-card recommended reveal">
             <div>
               <p class="platform">Windows x64</p>
-              <h3>Setup installer</h3>
+              <h3>Installer and portable</h3>
               <p>
-                Download the Windows setup installer built locally during the
-                release command.
+                Use the setup installer for normal installs, or the portable
+                executable when you do not want to install it.
               </p>
             </div>
             <div class="download-actions">
               <a
                 class="button primary"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-Setup.exe"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
               >
                 Installer .exe
+              </a>
+              <a
+                class="button secondary"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Portable.exe"
+              >
+                Portable .exe
               </a>
             </div>
           </article>
@@ -383,18 +350,55 @@
           <article class="download-card reveal">
             <div>
               <p class="platform">Linux x64</p>
-              <h3>Linux Executable</h3>
+              <h3>AppImage, Debian, archive</h3>
               <p>
-                Download the Linux Executable directly or use the installer command to
-                install the launcher and terminal command.
+                Download the AppImage directly, install the Debian package, or
+                use the portable archive.
               </p>
             </div>
             <div class="download-actions">
               <a
                 class="button primary"
-                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux.x86_64"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
               >
-                Linux Executable
+                AppImage
+              </a>
+              <a
+                class="button secondary"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.deb"
+              >
+                Debian .deb
+              </a>
+              <a
+                class="button secondary"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64-Portable.tar.gz"
+              >
+                Portable .tar.gz
+              </a>
+            </div>
+          </article>
+
+          <article class="download-card reveal">
+            <div>
+              <p class="platform">macOS</p>
+              <h3>DMG and portable app</h3>
+              <p>
+                Universal macOS builds are created on GitHub Actions for Intel
+                and Apple Silicon Macs.
+              </p>
+            </div>
+            <div class="download-actions">
+              <a
+                class="button primary"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-macOS-Universal.dmg"
+              >
+                Installer .dmg
+              </a>
+              <a
+                class="button secondary"
+                href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-macOS-Universal-Portable.zip"
+              >
+                Portable .zip
               </a>
             </div>
           </article>
@@ -404,20 +408,21 @@
           <div>
             <p class="platform">Linux installer command (Recommended)</p>
             <p>
-              Installs the Linux Executable, launcher, icon, and
+              Prefers the Debian package on compatible systems, falls back to
+              AppImage elsewhere, and installs the
               <code class="inline-code">aerop2p</code> terminal command.
             </p>
           </div>
           <div class="command-box">
             <code id="install-command"
-              >bash &lt;(curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh)</code
+              >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
+              sh</code
             >
             <button id="copy-install" type="button">Copy</button>
           </div>
         </div>
 
         <div class="link-row">
-          <a href="wiki/">Open wiki</a>
           <a href="https://github.com/Zorblock/AeroP2Pchat/releases">
             View all releases
           </a>
@@ -452,13 +457,13 @@
 
     <footer>
       <span>© <span id="year"></span> Aero P2P Chat</span>
-      <a href="https://github.com/Zorblock" rel="noopener">Zorblock</a>
+      <a href="https://jonasgrimm.de" rel="noopener">jonasgrimm.de</a>
     </footer>
 
     <script src="https://unpkg.com/lenis@1.3.25/dist/lenis.min.js"></script>
     <script>
       const installCommand =
-        'bash <(curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh)';
+        'curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh';
       const copyButton = document.getElementById("copy-install");
       const commandElement = document.getElementById("install-command");
       const yearElement = document.getElementById("year");

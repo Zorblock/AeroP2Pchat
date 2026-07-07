@@ -11,16 +11,16 @@ function yamlQuote(value) {
 
 function findManifests(dir) {
   if (!fs.existsSync(dir)) return [];
-  const manifests = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      manifests.push(...findManifests(fullPath));
-    } else if (/^update_manifest_(linux|windows)\.json$/.test(entry.name)) {
-      manifests.push(fullPath);
-    }
-  }
-  return manifests;
+    if (entry.isDirectory()) return findManifests(fullPath);
+    return /^update_manifest_.+\.json$/.test(entry.name) ? [fullPath] : [];
+  });
+}
+
+function findAsset(manifests, platform, predicate) {
+  const manifest = manifests.find((entry) => entry.platform === platform);
+  return manifest ? manifest.assets.find(predicate) : null;
 }
 
 function releaseUrl(tag, assetName) {
@@ -31,47 +31,90 @@ function main() {
   const manifests = findManifests(artifactsDir).map((filePath) =>
     JSON.parse(fs.readFileSync(filePath, "utf8")),
   );
-  const linuxManifest = manifests.find((manifest) => manifest.platform === "linux");
-  const windowsManifest = manifests.find((manifest) => manifest.platform === "windows");
-  
-  if (!linuxManifest && !windowsManifest) {
-    throw new Error("No release manifests found.");
-  }
-
-  const version = (linuxManifest || windowsManifest).version;
-  if (!version) throw new Error("Release version missing.");
-
-  const linux = linuxManifest?.assets.find((asset) => asset.name === config.release.linuxExecutableAsset);
-  const windows = windowsManifest?.assets.find(
-    (asset) => asset.name === config.release.windowsInstallerAsset,
-  );
+  const version = (manifests.find((entry) => entry.version) || {}).version;
+  if (!version) throw new Error("No release manifests found.");
 
   const tag = `v${version}`;
+  const windows = findAsset(
+    manifests,
+    "windows",
+    (asset) => asset.name === config.release.windowsInstallerAsset,
+  );
+  const windowsSetup = findAsset(
+    manifests,
+    "windows",
+    (asset) => asset.name === config.release.windowsX64SetupAsset,
+  );
+  const windowsPortable = findAsset(
+    manifests,
+    "windows",
+    (asset) => asset.name === config.release.windowsX64PortableAsset,
+  );
+  const linux = findAsset(
+    manifests,
+    "linux",
+    (asset) => asset.name === config.release.linuxAppImageAsset,
+  );
+  const linuxAppImage = findAsset(
+    manifests,
+    "linux",
+    (asset) => asset.name === config.release.linuxX64AppImageAsset,
+  );
+  const linuxDeb = findAsset(
+    manifests,
+    "linux",
+    (asset) => asset.name === config.release.linuxX64DebAsset,
+  );
+  const linuxPortable = findAsset(
+    manifests,
+    "linux",
+    (asset) => asset.name === config.release.linuxX64PortableAsset,
+  );
+  const macosDmg = findAsset(
+    manifests,
+    "macos",
+    (asset) => asset.name === config.release.macosUniversalDmgAsset,
+  );
+  const macosPortable = findAsset(
+    manifests,
+    "macos",
+    (asset) => asset.name === config.release.macosUniversalPortableAsset,
+  );
+  if (!windows) throw new Error("Windows setup asset info missing.");
+
   const lines = [
     `version: ${yamlQuote(version)}`,
     `releaseDate: ${yamlQuote(new Date().toISOString())}`,
     `repo: ${yamlQuote(config.repo)}`,
-    `productName: ${yamlQuote(config.app.name)}`,
+    `path: ${yamlQuote(windows.name)}`,
+    `url: ${yamlQuote(releaseUrl(tag, windows.name))}`,
+    `sha256: ${yamlQuote(windows.sha256)}`,
+    `sha512: ${yamlQuote(windows.sha512)}`,
+    `size: ${windows.size}`,
+    `windowsPath: ${yamlQuote(windows.name)}`,
+    `windowsUrl: ${yamlQuote(releaseUrl(tag, windows.name))}`,
+    `windowsSha256: ${yamlQuote(windows.sha256)}`,
+    `windowsSha512: ${yamlQuote(windows.sha512)}`,
+    `windowsSize: ${windows.size}`,
   ];
 
-  const primary = windows || linux;
-  if (primary) {
+  if (windowsSetup) {
     lines.push(
-      `path: ${yamlQuote(primary.name)}`,
-      `url: ${yamlQuote(releaseUrl(tag, primary.name))}`,
-      `sha256: ${yamlQuote(primary.sha256)}`,
-      `sha512: ${yamlQuote(primary.sha512)}`,
-      `size: ${primary.size}`
+      `windowsX64SetupPath: ${yamlQuote(windowsSetup.name)}`,
+      `windowsX64SetupUrl: ${yamlQuote(releaseUrl(tag, windowsSetup.name))}`,
+      `windowsX64SetupSha256: ${yamlQuote(windowsSetup.sha256)}`,
+      `windowsX64SetupSha512: ${yamlQuote(windowsSetup.sha512)}`,
+      `windowsX64SetupSize: ${windowsSetup.size}`,
     );
   }
 
-  if (windows) {
+  if (windowsPortable) {
     lines.push(
-      `windowsPath: ${yamlQuote(windows.name)}`,
-      `windowsUrl: ${yamlQuote(releaseUrl(tag, windows.name))}`,
-      `windowsSha256: ${yamlQuote(windows.sha256)}`,
-      `windowsSha512: ${yamlQuote(windows.sha512)}`,
-      `windowsSize: ${windows.size}`
+      `windowsX64PortablePath: ${yamlQuote(windowsPortable.name)}`,
+      `windowsX64PortableUrl: ${yamlQuote(releaseUrl(tag, windowsPortable.name))}`,
+      `windowsX64PortableSha256: ${yamlQuote(windowsPortable.sha256)}`,
+      `windowsX64PortableSha512: ${yamlQuote(windowsPortable.sha512)}`,
+      `windowsX64PortableSize: ${windowsPortable.size}`,
     );
   }
 
@@ -81,12 +124,61 @@ function main() {
       `linuxUrl: ${yamlQuote(releaseUrl(tag, linux.name))}`,
       `linuxSha256: ${yamlQuote(linux.sha256)}`,
       `linuxSha512: ${yamlQuote(linux.sha512)}`,
-      `linuxSize: ${linux.size}`
+      `linuxSize: ${linux.size}`,
     );
   }
 
-  lines.push(""); // Trailing newline
+  if (linuxAppImage) {
+    lines.push(
+      `linuxX64AppImagePath: ${yamlQuote(linuxAppImage.name)}`,
+      `linuxX64AppImageUrl: ${yamlQuote(releaseUrl(tag, linuxAppImage.name))}`,
+      `linuxX64AppImageSha256: ${yamlQuote(linuxAppImage.sha256)}`,
+      `linuxX64AppImageSha512: ${yamlQuote(linuxAppImage.sha512)}`,
+      `linuxX64AppImageSize: ${linuxAppImage.size}`,
+    );
+  }
 
+  if (linuxDeb) {
+    lines.push(
+      `linuxX64DebPath: ${yamlQuote(linuxDeb.name)}`,
+      `linuxX64DebUrl: ${yamlQuote(releaseUrl(tag, linuxDeb.name))}`,
+      `linuxX64DebSha256: ${yamlQuote(linuxDeb.sha256)}`,
+      `linuxX64DebSha512: ${yamlQuote(linuxDeb.sha512)}`,
+      `linuxX64DebSize: ${linuxDeb.size}`,
+    );
+  }
+
+  if (linuxPortable) {
+    lines.push(
+      `linuxX64PortablePath: ${yamlQuote(linuxPortable.name)}`,
+      `linuxX64PortableUrl: ${yamlQuote(releaseUrl(tag, linuxPortable.name))}`,
+      `linuxX64PortableSha256: ${yamlQuote(linuxPortable.sha256)}`,
+      `linuxX64PortableSha512: ${yamlQuote(linuxPortable.sha512)}`,
+      `linuxX64PortableSize: ${linuxPortable.size}`,
+    );
+  }
+
+  if (macosDmg) {
+    lines.push(
+      `macosUniversalDmgPath: ${yamlQuote(macosDmg.name)}`,
+      `macosUniversalDmgUrl: ${yamlQuote(releaseUrl(tag, macosDmg.name))}`,
+      `macosUniversalDmgSha256: ${yamlQuote(macosDmg.sha256)}`,
+      `macosUniversalDmgSha512: ${yamlQuote(macosDmg.sha512)}`,
+      `macosUniversalDmgSize: ${macosDmg.size}`,
+    );
+  }
+
+  if (macosPortable) {
+    lines.push(
+      `macosUniversalPortablePath: ${yamlQuote(macosPortable.name)}`,
+      `macosUniversalPortableUrl: ${yamlQuote(releaseUrl(tag, macosPortable.name))}`,
+      `macosUniversalPortableSha256: ${yamlQuote(macosPortable.sha256)}`,
+      `macosUniversalPortableSha512: ${yamlQuote(macosPortable.sha512)}`,
+      `macosUniversalPortableSize: ${macosPortable.size}`,
+    );
+  }
+
+  lines.push(`productName: ${yamlQuote(config.app.name)}`, "");
   fs.writeFileSync(path.join(artifactsDir, "latest.yml"), lines.join("\n"), "utf8");
 }
 

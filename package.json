@@ -1,20 +1,21 @@
 {
-  "name": "aerop2p",
-  "private": true,
-  "version": "26.24.0",
-  "type": "module",
+  "name": "aero-p2p-chat",
+  "version": "26.14.6",
+  "description": "A clean Electron peer-to-peer chat client for Windows, Linux, and macOS.",
+  "author": {
+    "name": "Jonas Grimm",
+    "email": "jonasgrimmde@users.noreply.github.com",
+    "url": "https://jonasgrimm.de"
+  },
+  "main": "out/main/index.js",
   "scripts": {
-    "start": "tauri dev",
-    "start:2": "set AEROP2P_PROFILE=2&& set WEBVIEW2_USER_DATA_FOLDER=%LOCALAPPDATA%\\AeroP2P\\Profile2&& start src-tauri/target/debug/aerop2p.exe",
-    "dev": "vite",
-    "build": "vite build",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "test": "npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && cargo check --manifest-path src-tauri/Cargo.toml",
+    "dev": "node scripts/run-electron-vite.cjs dev",
+    "dev:2": "node scripts/dev-two.cjs",
+    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
+    "build": "node scripts/build-win.cjs",
+    "setup": "npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs",
-    "release:dry": "node scripts/release-help.cjs --dry-run",
-    "patch": "node scripts/release-help.cjs --patch",
+    "patch": "node scripts/release-help.cjs",
     "pages": "node scripts/deploy-pages.cjs"
   },
   "dependencies": {
@@ -22,7 +23,16 @@
     "peerjs": "^1.5.5"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "vite": "^7.3.5"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.1": true
   }
 }

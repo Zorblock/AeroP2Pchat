@@ -2,16 +2,18 @@
 set -eu
 
 APP_NAME="Aero P2P Chat"
-APP_ID="de.zorblock.aerop2pchat"
+APP_ID="de.jonasgrimm.aerop2pchat"
 APP_SLUG="aero-p2p-chat"
 CLI_COMMAND_NAME="aerop2p"
-EXECUTABLE_RELEASE_NAME="Aero-P2P-Chat-Linux.x86_64"
-EXECUTABLE_INSTALL_NAME="Aero-P2P-Chat-Linux"
+APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
+APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
+DEB_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.deb"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
 PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
-EXECUTABLE_URL="${RELEASE_BASE}/${EXECUTABLE_RELEASE_NAME}"
+APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
+DEB_URL="${RELEASE_BASE}/${DEB_RELEASE_NAME}"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
 INSTALLER_URL="${PAGES_BASE}/install.sh"
 ICON_URL="${PAGES_BASE}/logo.png"
@@ -26,7 +28,7 @@ ICON_DIR="${DATA_HOME}/icons/hicolor/${ICON_SIZE}/apps"
 OLD_ICON_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 APP_DATA_DIR="${CONFIG_HOME}/Aero P2P Chat"
 
-EXECUTABLE_PATH="$INSTALL_DIR/${EXECUTABLE_INSTALL_NAME}"
+APPIMAGE_PATH="$INSTALL_DIR/${APPIMAGE_INSTALL_NAME}"
 VERSION_PATH="$INSTALL_DIR/version"
 BIN_PATH="$BIN_DIR/${APP_SLUG}"
 CLI_PATH="$BIN_DIR/${CLI_COMMAND_NAME}"
@@ -116,20 +118,25 @@ read_manifest_value() {
     sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -n 1 | sed 's/^"//; s/"$//'
 }
 
-get_manifest_executable_url() {
+get_manifest_appimage_url() {
     manifest="$1"
     url="$(read_manifest_value "linuxUrl" "$manifest")"
     if [ -z "$url" ]; then
-        url="$(read_manifest_value "linuxExecutableUrl" "$manifest")"
+        url="$(read_manifest_value "linuxX64AppImageUrl" "$manifest")"
     fi
     if [ -z "$url" ]; then
-        url="$EXECUTABLE_URL"
+        url="$APPIMAGE_URL"
     fi
     printf '%s' "$url"
 }
 
 get_manifest_deb_url() {
-    printf ''
+    manifest="$1"
+    url="$(read_manifest_value "linuxX64DebUrl" "$manifest")"
+    if [ -z "$url" ]; then
+        url="$DEB_URL"
+    fi
+    printf '%s' "$url"
 }
 
 verify_sha256() {
@@ -183,7 +190,7 @@ get_installed_version() {
 }
 
 is_installed() {
-    is_deb_installed || { [ -f "$EXECUTABLE_PATH" ] && [ -x "$EXECUTABLE_PATH" ]; }
+    is_deb_installed || { [ -f "$APPIMAGE_PATH" ] && [ -x "$APPIMAGE_PATH" ]; }
 }
 
 is_deb_capable() {
@@ -244,8 +251,8 @@ fi
 if [ -x "/opt/$APP_NAME/$APP_SLUG" ]; then
     exec "/opt/$APP_NAME/$APP_SLUG" "\$@"
 fi
-if [ -x "$EXECUTABLE_PATH" ]; then
-    exec "$EXECUTABLE_PATH" "\$@"
+if [ -x "$APPIMAGE_PATH" ]; then
+    exec "$APPIMAGE_PATH" "\$@"
 fi
 if command -v gtk-launch >/dev/null 2>&1; then
     exec gtk-launch "$APP_ID"
@@ -332,7 +339,7 @@ write_desktop_entry() {
 Type=Application
 Name=${APP_NAME}
 Comment=Peer-to-peer chat client
-Exec=${EXECUTABLE_PATH} %U
+Exec=${APPIMAGE_PATH} %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
@@ -362,7 +369,7 @@ print_paths() {
     if is_deb_installed; then
         printf '%s %s\n' "$(color dim 'Package ')" "$APP_SLUG"
     fi
-    printf '%s %s\n' "$(color dim 'Exec    ')" "$EXECUTABLE_PATH"
+    printf '%s %s\n' "$(color dim 'AppImage')" "$APPIMAGE_PATH"
     printf '%s %s\n' "$(color dim 'App cmd ')" "$BIN_PATH"
     printf '%s %s\n' "$(color dim 'CLI cmd ')" "$CLI_PATH"
     printf '%s %s\n' "$(color dim 'Launcher')" "$DESKTOP_PATH"
@@ -395,7 +402,7 @@ confirm_keep_user_data() {
 find_running_app_pids() {
     ps -eo pid=,args= 2>/dev/null | awk \
     -v self="$$" \
-    -v executable="$EXECUTABLE_PATH" \
+    -v appimage="$APPIMAGE_PATH" \
     -v bin="$BIN_PATH" \
     -v app_id="$APP_ID" \
     -v app_name="$APP_NAME" \
@@ -412,7 +419,7 @@ find_running_app_pids() {
           next
         }
 
-        if (index(line, executable) > 0 || index(line, bin) > 0 || index(line, app_id) > 0 || index(line, app_name) > 0 || index(line, app_slug) > 0) {
+        if (index(line, appimage) > 0 || index(line, bin) > 0 || index(line, app_id) > 0 || index(line, app_name) > 0 || index(line, app_slug) > 0) {
           print pid
         }
       }
@@ -504,37 +511,23 @@ show_menu() {
     esac
 }
 
-install_dependencies() {
-    info "Installing system dependencies for Audio/Video (WebRTC) and WebKit..."
-    if command -v apt-get >/dev/null 2>&1; then
-        run_privileged apt-get update --yes || true
-        run_privileged apt-get install --yes libwebkit2gtk-4.1-0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav curl
-    elif command -v pacman >/dev/null 2>&1; then
-        run_privileged pacman -Sy --noconfirm --needed webkit2gtk gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav curl
-    elif command -v dnf >/dev/null 2>&1; then
-        run_privileged dnf install -y webkit2gtk4.1 gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly-free gstreamer1-libav curl
-    elif command -v zypper >/dev/null 2>&1; then
-        run_privileged zypper install -y webkit2gtk-4_1 gstreamer-plugins-good gstreamer-plugins-bad gstreamer-plugins-ugly gstreamer-plugins-libav curl
-    else
-        warn "Unsupported package manager. Please install WebKit2GTK and GStreamer plugins manually."
-    fi
-}
-
 install_app() {
     title
     mkdir -p "$INSTALL_DIR"
     
     tmp_manifest="$(mktemp)"
-    tmp_executable="$(mktemp)"
-    trap 'rm -f "$tmp_manifest" "$tmp_executable"' EXIT
+    tmp_appimage="$(mktemp)"
+    trap 'rm -f "$tmp_manifest" "$tmp_appimage"' EXIT
     
     fetch_manifest "$tmp_manifest"
     latest_version="$(get_latest_version "$tmp_manifest")"
-    executable_url="$(get_manifest_executable_url "$tmp_manifest")"
-    executable_sha256="$(read_manifest_value "linuxSha256" "$tmp_manifest")"
-    if [ -z "$executable_sha256" ]; then
-        executable_sha256="$(read_manifest_value "linuxExecutableSha256" "$tmp_manifest")"
+    appimage_url="$(get_manifest_appimage_url "$tmp_manifest")"
+    deb_url="$(get_manifest_deb_url "$tmp_manifest")"
+    appimage_sha256="$(read_manifest_value "linuxSha256" "$tmp_manifest")"
+    if [ -z "$appimage_sha256" ]; then
+        appimage_sha256="$(read_manifest_value "linuxX64AppImageSha256" "$tmp_manifest")"
     fi
+    deb_sha256="$(read_manifest_value "linuxX64DebSha256" "$tmp_manifest")"
     installed_version="$(get_installed_version)"
     
     if is_installed; then
@@ -552,12 +545,35 @@ install_app() {
         info "Installing ${latest_version}..."
     fi
 
-    install_dependencies
+    if is_deb_capable && [ -n "$deb_url" ]; then
+        tmp_deb="$(mktemp --suffix=.deb 2>/dev/null || mktemp)"
+        trap 'rm -f "$tmp_manifest" "$tmp_appimage" "$tmp_deb"' EXIT
 
-    download "$executable_url" "$tmp_executable"
-    verify_sha256 "$tmp_executable" "$executable_sha256" "Executable"
-    chmod +x "$tmp_executable"
-    mv "$tmp_executable" "$EXECUTABLE_PATH"
+        info "Debian package support detected. Installing .deb package..."
+        if download "$deb_url" "$tmp_deb"; then
+            verify_sha256 "$tmp_deb" "$deb_sha256" "Debian package"
+            if install_deb_package "$tmp_deb"; then
+                rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
+                rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
+                write_launcher
+                write_terminal_command
+                ok "${APP_NAME} ${latest_version} installed from Debian package."
+                print_paths
+                if ! printf '%s' ":$PATH:" | grep -q ":$BIN_DIR:"; then
+                    warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: $CLI_COMMAND_NAME update"
+                fi
+                return
+            fi
+            warn "Debian package install failed or was cancelled. Falling back to AppImage."
+        else
+            warn "Debian package download failed. Falling back to AppImage."
+        fi
+    fi
+    
+    download "$appimage_url" "$tmp_appimage"
+    verify_sha256 "$tmp_appimage" "$appimage_sha256" "AppImage"
+    chmod +x "$tmp_appimage"
+    mv "$tmp_appimage" "$APPIMAGE_PATH"
     printf '%s\n' "$latest_version" > "$VERSION_PATH"
     
     write_launcher
@@ -622,7 +638,7 @@ uninstall_app() {
             warn "Could not remove Debian package automatically."
         fi
     fi
-    rm -f "$EXECUTABLE_PATH" "$VERSION_PATH" "$BIN_PATH" "$CLI_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
+    rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$CLI_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
     rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
     
     if command -v update-desktop-database >/dev/null 2>&1; then
@@ -662,9 +678,8 @@ Installer URL:
   ${INSTALLER_URL}
 
 Examples:
-  bash <(curl -sSL <installer-url>)
-  bash <(curl -sSL <installer-url>) status
-  curl -fsSL <installer-url> | sh -s -- update
+  curl -fsSL <installer-url> | sh
+  curl -fsSL <installer-url> | sh -s -- status
 EOF
 }
 
