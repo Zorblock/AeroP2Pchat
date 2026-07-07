@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
@@ -21,6 +21,13 @@ const AeroBadge = ({ label, value, color }: { label: string, value: string, colo
 );
 
 function App() {
+  const { scrollYProgress } = useScroll();
+  const cloudY1 = useTransform(scrollYProgress, [0, 1], [0, -300]);
+  const cloudY2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
+  const cloudY3 = useTransform(scrollYProgress, [0, 1], [0, -450]);
+  const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const cloudY5 = useTransform(scrollYProgress, [0, 1], [0, -700]);
+
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [installedVersion, setInstalledVersion] = useState<string>('v1.1.0');
@@ -110,53 +117,53 @@ function App() {
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {/* Decorative scattered clouds across the entire scrollable height */}
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '10%', left: '-10%', width: '500px', zIndex: -1, opacity: 0.7, pointerEvents: 'none', transform: 'rotate(-5deg)' }}
+          style={{ position: 'absolute', top: '10%', left: '-10%', width: '500px', zIndex: -1, opacity: 0.7, pointerEvents: 'none', transform: 'rotate(-5deg)', y: cloudY1 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '30%', right: '-5%', width: '400px', zIndex: -1, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(10deg)' }}
+          style={{ position: 'absolute', top: '30%', right: '-5%', width: '400px', zIndex: -1, opacity: 0.5, pointerEvents: 'none', transform: 'scaleX(-1) rotate(10deg)', y: cloudY2 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '55%', left: '2%', width: '300px', zIndex: -1, opacity: 0.6, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-15deg)' }}
+          style={{ position: 'absolute', top: '55%', left: '2%', width: '300px', zIndex: -1, opacity: 0.6, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-15deg)', y: cloudY3 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '80%', right: '10%', width: '600px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(5deg)' }}
+          style={{ position: 'absolute', top: '80%', right: '10%', width: '600px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(5deg)', y: cloudY1 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '95%', left: '-15%', width: '700px', zIndex: -1, opacity: 0.4, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-8deg)' }}
+          style={{ position: 'absolute', top: '95%', left: '-15%', width: '700px', zIndex: -1, opacity: 0.4, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-8deg)', y: cloudY4 }}
           alt=""
         />
 
         {/* Decorative background bubbles */}
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/bubbles_37.png`}
-          style={{ position: 'absolute', top: '45%', right: '-5%', width: '500px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(-15deg)' }}
+          style={{ position: 'absolute', top: '45%', right: '-5%', width: '500px', zIndex: -1, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(-15deg)', y: cloudY2 }}
           alt=""
         />
 
         {/* Foreground overlapping clouds for 3D depth effect */}
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '25%', left: '-15%', width: '450px', zIndex: 50, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          style={{ position: 'absolute', top: '25%', left: '-15%', width: '450px', zIndex: 50, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '65%', right: '-10%', width: '550px', zIndex: 50, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          style={{ position: 'absolute', top: '65%', right: '-10%', width: '550px', zIndex: 50, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY3 }}
           alt=""
         />
-        <img
+        <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
-          style={{ position: 'absolute', top: '85%', left: '-10%', width: '400px', zIndex: 50, opacity: 0.85, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          style={{ position: 'absolute', top: '85%', left: '-10%', width: '400px', zIndex: 50, opacity: 0.85, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))', y: cloudY5 }}
           alt=""
         />
 
