@@ -38,7 +38,7 @@ irm https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex
 ### 🐧 Linux (Bash)
 Open your terminal and run:
 ```bash
-curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
+bash <(curl -s https://zorblock.github.io/AeroP2Pchat/install.sh)
 ```
 
 > **Note:** If you prefer downloading the installer manually, you can grab the `.exe` (Windows) or `.AppImage` (Linux) directly from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the [Official Website](https://zorblock.github.io/AeroP2Pchat).

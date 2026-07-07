@@ -76,7 +76,7 @@ function App() {
 
   const installCommands = {
     windows: "irm https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex",
-    linux: "curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash"
+    linux: "bash <(curl -s https://zorblock.github.io/AeroP2Pchat/install.sh)"
   };
 
   return (
