@@ -9,16 +9,19 @@ import App from './App.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Toaster 
-      theme="dark" 
-      position="bottom-left" 
+      theme="light" 
+      position="bottom-center" 
       toastOptions={{
         style: {
-          background: 'rgba(255, 255, 255, 0.04)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          color: '#fafafa',
-          borderRadius: '12px',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.8)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8)',
+          color: '#0f172a',
+          borderRadius: '16px',
+          fontWeight: 600,
+          fontFamily: 'sans-serif'
         }
       }} 
     />

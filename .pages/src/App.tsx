@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
@@ -218,21 +218,32 @@ function App() {
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
               <button
                 onClick={() => setInstallOs('windows')}
-                style={{ background: installOs === 'windows' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', color: installOs === 'windows' ? '#0f172a' : '#475569', border: '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.2rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: installOs === 'windows' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none' }}
+                style={{ background: installOs === 'windows' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'windows' ? '#0369a1' : '#475569', border: installOs === 'windows' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'windows' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
               >
                 Windows
               </button>
               <button
                 onClick={() => setInstallOs('linux')}
-                style={{ background: installOs === 'linux' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', color: installOs === 'linux' ? '#0f172a' : '#475569', border: '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.2rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: installOs === 'linux' ? '0 4px 10px rgba(0,0,0,0.05)' : 'none' }}
+                style={{ background: installOs === 'linux' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'linux' ? '#0369a1' : '#475569', border: installOs === 'linux' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'linux' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
               >
                 Linux
               </button>
             </div>
             <div className="aero-glass" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
-              <code style={{ color: '#0369a1', fontFamily: 'monospace', flex: 1, fontSize: '0.95rem', overflowX: 'auto', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 600 }}>
-                {installCommands[installOs]}
-              </code>
+              <div style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
+                <AnimatePresence mode="wait">
+                  <motion.code 
+                    key={installOs}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ color: '#0369a1', fontFamily: 'monospace', fontSize: '0.95rem', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 600, display: 'inline-block' }}
+                  >
+                    {installCommands[installOs]}
+                  </motion.code>
+                </AnimatePresence>
+              </div>
               <motion.button
                 whileHover={{ scale: 1.05, backgroundColor: '#bae6fd', boxShadow: '0 0 15px rgba(56,189,248,0.6)', color: '#0369a1' }}
                 whileTap={{ scale: 0.95, backgroundColor: '#7dd3fc' }}
