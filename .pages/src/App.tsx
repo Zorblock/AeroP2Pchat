@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles';
+import { DownloadButton } from './DownloadButton';
 import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay } from 'lucide-react';
 import { Terminal } from './Terminal';
 import './reset.css';
@@ -28,7 +29,7 @@ function App() {
   const cloudY1 = useTransform(scrollYProgress, [0, 1], [0, -300]);
   const cloudY2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
   const cloudY3 = useTransform(scrollYProgress, [0, 1], [0, -450]);
-  const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const cloudY5 = useTransform(scrollYProgress, [0, 1], [0, -700]);
   const insectY = useTransform(scrollYProgress, [0, 1], [0, -250]); /* Increased parallax */
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
@@ -232,27 +233,22 @@ function App() {
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '800px' }}
         >
           <div className="mobile-stack-buttons" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <motion.a
-              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
-              whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
-              whileTap={{ scale: 0.95 }}
+            <DownloadButton
+              url="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
+              filename="Aero-P2P-Chat-Windows-x64-Setup.exe"
+              text="Windows Setup (.exe)"
+              icon={<Download size={22} />}
               onClick={triggerConfetti}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'linear-gradient(180deg, rgba(135,206,235,0.9) 0%, rgba(56,189,248,0.9) 49%, rgba(2,132,199,0.9) 50%, rgba(14,165,233,0.9) 100%)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 700, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.9)', boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.8), 0 8px 20px rgba(2,132,199,0.3)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-            >
-              <Download size={22} />
-              Windows Setup (.exe)
-            </motion.a>
+            />
 
-            <motion.a
-              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
-              whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }}
-              whileTap={{ scale: 0.95 }}
+            <DownloadButton
+              url="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
+              filename="Aero-P2P-Chat-Linux-x64.AppImage"
+              text="Linux (.AppImage)"
+              icon={<Download size={22} />}
+              colorTheme="green"
               onClick={triggerConfetti}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'linear-gradient(180deg, rgba(167,243,208,0.9) 0%, rgba(52,211,153,0.9) 49%, rgba(5,150,105,0.9) 50%, rgba(16,185,129,0.9) 100%)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 700, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.9)', boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.8), 0 8px 20px rgba(5,150,105,0.3)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-            >
-              <Download size={22} />
-              Linux (.AppImage)
-            </motion.a>
+            />
           </div>
 
           <div style={{ marginTop: '2rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -494,7 +490,7 @@ function App() {
         {/* Decorative bubbles overlay at the bottom left */}
         <img
           src={`${import.meta.env.BASE_URL}img/bubbles_39.png`}
-          style={{ position: 'absolute', bottom: '-5%', left: '-5%', width: '450px', zIndex: 5, opacity: 0.8, pointerEvents: 'none', mixBlendMode: 'screen', transform: 'rotate(10deg)' }}
+          style={{ position: 'absolute', bottom: 0, left: '-5%', width: '450px', zIndex: 5, opacity: 0.8, pointerEvents: 'none', mixBlendMode: 'screen', transform: 'rotate(10deg)' }}
           alt=""
         />
       </main>
