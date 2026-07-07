@@ -1,19 +1,22 @@
 :root {
   color-scheme: light;
-  font-family: "Segoe UI", "Inter", system-ui, sans-serif;
-  color: #0d2f43;
-  background:
-    radial-gradient(
-      circle at 14% 10%,
-      rgba(255, 255, 255, 0.9),
-      transparent 11rem
-    ),
-    radial-gradient(
-      circle at 84% 4%,
-      rgba(81, 215, 245, 0.58),
-      transparent 14rem
-    ),
-    linear-gradient(145deg, #99def5 0%, #e4fff7 47%, #6dbce5 100%);
+  font-family: "Segoe UI", "Inter", "Outfit", system-ui, sans-serif;
+  color: #0f172a;
+  
+  /* Frutiger Aero Liquid Glass Variables */
+  --bg-canvas: #e0f2fe;
+  --text: #0f172a;
+  --muted: #475569;
+  --faint: #94a3b8;
+  --panel: rgba(255, 255, 255, 0.3);
+  --panel-hover: rgba(255, 255, 255, 0.5);
+  --border: rgba(255, 255, 255, 0.6);
+  --border-strong: rgba(255, 255, 255, 1);
+  --glass-blur: blur(24px);
+  --accent-1: #0284c7;
+  --accent-2: #38bdf8;
+
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8, #e0f2fe);
 }
 
 * {
@@ -26,18 +29,9 @@ body {
   min-height: 100vh;
   overflow: hidden;
   user-select: none;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(64, 166, 214, 0.28),
-      rgba(255, 255, 255, 0.36)
-    ),
-    radial-gradient(
-      circle at 20% 8%,
-      rgba(255, 255, 255, 0.9),
-      transparent 14rem
-    ),
-    #83cbe9;
+  background: radial-gradient(circle at top left, #38bdf8, transparent 80%),
+              radial-gradient(circle at bottom right, #e0f2fe, #bae6fd);
+  color: var(--text);
 }
 
 button,
@@ -64,24 +58,22 @@ button {
   grid-template-rows: 36px minmax(0, 1fr);
   height: 100vh;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 8px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.7),
-      rgba(132, 218, 242, 0.36) 42%,
-      rgba(87, 183, 225, 0.34)
-    ),
-    linear-gradient(145deg, #99def5 0%, #e4fff7 47%, #6dbce5 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.94),
-    inset 0 -1px 0 rgba(0, 88, 132, 0.22),
-    0 16px 34px rgba(3, 43, 68, 0.32);
+  
+  /* Liquid Glass Base */
+  background: linear-gradient(120deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.1) 100%);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
+  box-shadow: 
+    inset 0 2px 6px rgba(255,255,255,1), 
+    inset 0 -4px 12px rgba(14, 165, 233, 0.15),
+    0 10px 40px rgba(2, 132, 199, 0.25),
+    0 4px 12px rgba(0,0,0,0.1);
+  
   opacity: 1;
-  transition:
-    opacity 420ms ease,
-    filter 420ms ease;
+  transition: opacity 420ms ease, filter 420ms ease;
 }
 
 body.app-loading:not(.app-boot-finish) .window-frame {
@@ -102,18 +94,8 @@ body.app-boot-finish .window-frame {
   min-width: 0;
   padding: 5px 6px 5px 9px;
   overflow: hidden;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(132, 224, 246, 0.88),
-      rgba(78, 188, 226, 0.86) 54%,
-      rgba(34, 145, 199, 0.82)
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.12) 0 1px,
-      transparent 1px 46px
-    );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.3);
   -webkit-app-region: drag;
 }
 
@@ -373,33 +355,22 @@ body.app-boot-finish .window-frame {
   height: 100%;
   min-height: 0;
   padding: 8px;
-  background:
-    linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.58)
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.14) 0 1px,
-      transparent 1px 58px
-    );
+  background: transparent;
 }
 
 .connection-panel,
 .chat-panel {
   min-height: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 7px;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.66),
-    rgba(183, 239, 252, 0.55)
-  );
+  border: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  background: var(--panel);
   box-shadow:
-    0 12px 30px rgba(10, 76, 115, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
+    0 12px 30px rgba(2, 132, 199, 0.18),
+    inset 0 2px 6px rgba(255, 255, 255, 0.6);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .connection-panel {
@@ -488,11 +459,15 @@ h2 {
 .id-card,
 .update-card,
 .peers-card {
-  border: 1px solid rgba(255, 255, 255, 0.66);
-  border-radius: 6px;
-  padding: 7px;
-  background: rgba(255, 255, 255, 0.43);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: 
+    inset 0 1px 4px rgba(255,255,255,1),
+    0 4px 12px rgba(2, 132, 199, 0.1);
 }
 
 .update-card.hidden {
@@ -552,16 +527,17 @@ code {
   align-items: center;
   justify-content: center;
   min-width: 0;
-  height: 26px;
+  height: 28px;
   flex: 1;
   overflow: hidden;
-  border: 1px solid rgba(85, 162, 188, 0.24);
-  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
   padding: 0 7px;
-  background: rgba(245, 254, 255, 0.82);
-  color: #06344b;
+  background: rgba(255, 255, 255, 0.3);
+  color: #0f172a;
   font-size: 11px;
   white-space: nowrap;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .auto-fit-text {
@@ -576,14 +552,65 @@ code {
 .header-update-button,
 #copy-update-command,
 #connect-button,
-#send-button {
-  border: 1px solid rgba(0, 117, 157, 0.25);
-  border-radius: 5px;
-  color: #05384f;
+#send-button,
+#update-button,
+#update-ignore-button {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  color: #fff;
   font-weight: 800;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 5px 10px rgba(0, 104, 148, 0.1);
+    0 4px 10px rgba(2, 132, 199, 0.3);
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+
+.icon-button::before,
+.ghost-button::before,
+.header-update-button::before,
+#copy-update-command::before,
+#connect-button::before,
+#send-button::before,
+#update-button::before,
+#update-ignore-button::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.icon-button:hover::before,
+.ghost-button:hover::before,
+.header-update-button:hover::before,
+#copy-update-command:hover::before,
+#connect-button:hover::before,
+#send-button:hover::before,
+#update-button:hover::before,
+#update-ignore-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.icon-button:hover,
+.ghost-button:hover,
+.header-update-button:hover,
+#copy-update-command:hover,
+#connect-button:hover,
+#send-button:hover,
+#update-button:hover,
+#update-ignore-button:hover {
+  box-shadow: 
+    inset 0 4px 12px rgba(255,255,255,1),
+    0 0 15px rgba(56, 189, 248, 0.6);
 }
 
 .icon-button {
@@ -591,13 +618,12 @@ code {
   place-items: center;
   width: 32px;
   flex: 0 0 auto;
-  background: linear-gradient(#ffffff, #a9eefb 48%, #5fc6ed);
   font-size: 12px;
 }
 
 .icon-button.copied {
-  background: linear-gradient(#f8fff6, #a6f0c3 48%, #45c87d);
-  color: #0b5f33;
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.6);
 }
 
 .header-update-button {
@@ -622,15 +648,22 @@ code {
 
 input {
   min-width: 0;
-  height: 28px;
-  border: 1px solid rgba(68, 151, 181, 0.35);
-  border-radius: 5px;
-  padding: 0 8px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  padding: 0 10px;
   outline: none;
-  background: rgba(255, 255, 255, 0.84);
-  color: #0c3143;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: inset 0 2px 5px rgba(18, 102, 133, 0.08);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), 0 0 10px rgba(56, 189, 248, 0.5);
+  border-color: #38bdf8;
 }
 
 select {
@@ -1693,18 +1726,38 @@ input:disabled {
   align-items: end;
   gap: 4px 8px;
   max-width: 82%;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 6px;
-  padding: 6px 7px 5px 8px;
-  box-shadow: 0 6px 12px rgba(25, 112, 145, 0.1);
+  border: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  padding: 8px 10px 7px 10px;
+  box-shadow: 
+    inset 0 1px 4px rgba(255,255,255,1),
+    0 4px 12px rgba(2, 132, 199, 0.1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .mine .bubble {
-  background: linear-gradient(#faffff, #b9f6ff 55%, #84d8ef);
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  color: white;
+  border-color: rgba(255,255,255,0.8);
+  box-shadow: 
+    inset 0 2px 6px rgba(255,255,255,0.8),
+    0 4px 15px rgba(56, 189, 248, 0.4);
+}
+
+.mine .bubble p {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.mine .bubble .bubble-footer {
+  color: rgba(255,255,255,0.8);
 }
 
 .theirs .bubble {
-  background: rgba(255, 255, 255, 0.76);
+  background: var(--panel);
 }
 
 .bubble-footer {
@@ -1771,7 +1824,8 @@ input:disabled {
   gap: 6px;
   padding: 7px 8px 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.68);
-  background: rgba(232, 252, 255, 0.72);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
 }
 
 .typing-indicator {
