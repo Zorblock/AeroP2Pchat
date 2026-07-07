@@ -4618,3 +4618,126 @@ body[data-theme="dark"] .settings-choice input:checked {
 ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.6); border-radius: 10px; border: 2px solid rgba(255,255,255,0.4); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(2, 132, 199, 0.8); }
+/* Incoming Call Screen */
+.incoming-call-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+html[data-theme="dark"] .incoming-call-screen {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.incoming-call-screen.hidden {
+  display: none;
+}
+
+.incoming-call-content {
+  background: var(--boot-panel);
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid var(--boot-line);
+  min-width: 320px;
+  animation: pulse-ring 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.98); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(22, 125, 170, 0.3); }
+  70% { transform: scale(1.02); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 20px rgba(22, 125, 170, 0); }
+  100% { transform: scale(0.98); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(22, 125, 170, 0); }
+}
+
+.incoming-call-name {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--boot-text);
+}
+
+.incoming-call-subtitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--boot-muted);
+}
+
+.incoming-call-actions {
+  display: flex;
+  gap: 40px;
+  margin-top: 25px;
+}
+
+.screen-call-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: var(--boot-text);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease-out;
+  padding: 0;
+}
+
+.screen-call-action:hover {
+  transform: scale(1.1);
+}
+
+.screen-call-action .icon-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  color: white;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+html:not([data-theme="dark"]) .screen-call-action .icon-circle {
+  color: black;
+}
+
+.screen-call-action.accept .icon-circle {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.screen-call-action.accept:hover .icon-circle {
+  background: linear-gradient(135deg, #2ec451, #1e7e34);
+}
+
+.screen-call-action.ignore .icon-circle {
+  background: linear-gradient(135deg, #6c757d, #343a40);
+}
+
+.screen-call-action.ignore:hover .icon-circle {
+  background: linear-gradient(135deg, #828c95, #343a40);
+}
+
+.screen-call-action.decline .icon-circle {
+  background: linear-gradient(135deg, #dc3545, #a71d2a);
+}
+
+.screen-call-action.decline:hover .icon-circle {
+  background: linear-gradient(135deg, #e84555, #a71d2a);
+}

@@ -2,6 +2,7 @@ const {
   app,
   BrowserWindow,
   Menu,
+  nativeImage,
   Notification,
   Tray,
   clipboard,
@@ -21,10 +22,11 @@ const { basename, dirname, join } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
 const projectConfig = __PROJECT_CONFIG__;
 
-const windowIcon =
+const windowIcon = nativeImage.createFromPath(
   process.platform === "win32"
     ? join(__dirname, "../../assets/app.ico")
-    : join(__dirname, "../../assets/linux-icons/512x512.png");
+    : join(__dirname, "../../assets/linux-icons/512x512.png")
+);
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
@@ -306,7 +308,7 @@ function updateTrayMenu() {
   }
 
   const { nativeImage } = require("electron");
-  const menuIcon = nativeImage.createFromPath(windowIcon).resize({ width: 16, height: 16 });
+  const menuIcon = windowIcon.resize({ width: 16, height: 16 });
 
   const sendTrayAction = (action, value) => {
     if (mainWindow && !mainWindow.isDestroyed()) {

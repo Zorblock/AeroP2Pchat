@@ -31,6 +31,12 @@ const callChat = document.querySelector("#call-chat");
 const clearChat = document.querySelector("#clear-chat");
 const disconnectChat = document.querySelector("#disconnect-chat");
 const callBanner = document.querySelector("#call-banner");
+const incomingCallScreen = document.querySelector("#incoming-call-screen");
+const incomingCallName = document.querySelector("#incoming-call-name");
+const screenCallAccept = document.querySelector("#screen-call-accept");
+const screenCallDecline = document.querySelector("#screen-call-decline");
+const screenCallIgnore = document.querySelector("#screen-call-ignore");
+let incomingCallIgnored = false;
 const callText = document.querySelector("#call-text");
 const callPeerName = document.querySelector("#call-peer-name");
 const callPeerStatus = document.querySelector("#call-peer-status");
@@ -2811,8 +2817,13 @@ function notifyIncomingCall(peerId, callId) {
     return;
   }
 
+  playLocalRingtone();
+
+  if (document.hasFocus()) {
+    return;
+  }
+
   if (!appConfig.notificationSettings.calls) {
-    playLocalRingtone();
     return;
   }
 
@@ -2824,7 +2835,7 @@ function notifyIncomingCall(peerId, callId) {
     callId,
     title: "Incoming voice call",
     body: `${getPeerLabel(peerId, conn)} is calling`,
-    silent: !isSoundEnabled("ringtone"),
+    silent: true,
   });
 }
 
@@ -3598,6 +3609,11 @@ function refreshCallUi() {
   callPeerStatus.textContent = "";
   callPeerStatus.classList.add("hidden");
   setCallHealthUi({ visible: false });
+
+  incomingCallScreen?.classList.toggle("hidden", callState.status !== "incoming");
+  if (callState.status === "incoming" && incomingCallName) {
+    incomingCallName.textContent = getActiveCallLabel() || "Peer";
+  }
 
   if (callState.status === "idle") {
     callBanner.classList.add("hidden");
@@ -7151,6 +7167,20 @@ callChat.addEventListener("click", () => {
     return;
   }
   startVoiceCall();
+});
+
+screenCallAccept.addEventListener("click", () => {
+  acceptVoiceCall();
+});
+
+screenCallIgnore.addEventListener("click", () => {
+  incomingCallIgnored = true;
+  incomingCallScreen?.classList.add("hidden");
+  stopLocalRingtone();
+});
+
+screenCallDecline.addEventListener("click", () => {
+  declineVoiceCall();
 });
 
 callAccept.addEventListener("click", () => {
