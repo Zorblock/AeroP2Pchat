@@ -10,7 +10,9 @@ import './reset.css';
 import './index.css';
 
 function App() {
-  const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
+  const [installOs, setInstallOs] = useState<'windows' | 'linux'>(
+    typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('windows') ? 'windows' : 'linux'
+  );
 
   useEffect(() => {
     const lenis = new Lenis({
