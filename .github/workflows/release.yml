@@ -47,7 +47,7 @@ jobs:
         run: npm ci
 
       - name: Install Tauri Linux dependencies
-        run: sudo apt-get update --yes && sudo apt-get install --yes libwebkit2gtk-4.1-dev build-essential libxdo-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        run: sudo apt-get update --yes && sudo apt-get install --yes --no-install-recommends libwebkit2gtk-4.1-dev build-essential libxdo-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Check frontend and scripts
         run: npm run build && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs
