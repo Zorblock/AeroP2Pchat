@@ -126,6 +126,23 @@ function App() {
           alt=""
         />
 
+        {/* Foreground overlapping clouds for 3D depth effect */}
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '25%', left: '-15%', width: '450px', zIndex: 50, opacity: 0.8, pointerEvents: 'none', transform: 'rotate(10deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '65%', right: '-10%', width: '550px', zIndex: 50, opacity: 0.9, pointerEvents: 'none', transform: 'scaleX(-1) rotate(-5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          alt=""
+        />
+        <img 
+          src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
+          style={{ position: 'absolute', top: '85%', left: '-10%', width: '400px', zIndex: 50, opacity: 0.85, pointerEvents: 'none', transform: 'rotate(15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' }}
+          alt=""
+        />
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
