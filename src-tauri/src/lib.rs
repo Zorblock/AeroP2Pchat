@@ -29,11 +29,15 @@ struct CommandOk {
     ok: bool,
 }
 
+#[allow(unused_variables)]
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     #[cfg(target_os = "windows")]
     let dir = {
         let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-        exe_path.parent().ok_or("No parent directory")?.to_path_buf()
+        exe_path
+            .parent()
+            .ok_or("No parent directory")?
+            .to_path_buf()
     };
 
     #[cfg(not(target_os = "windows"))]
