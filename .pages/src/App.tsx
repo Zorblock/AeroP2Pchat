@@ -27,7 +27,7 @@ function App() {
   const cloudY3 = useTransform(scrollYProgress, [0, 1], [0, -450]);
   const cloudY4 = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const cloudY5 = useTransform(scrollYProgress, [0, 1], [0, -700]);
-  const insectY = useTransform(scrollYProgress, [0, 1], [0, -40]); /* Very subtle parallax */
+  const insectY = useTransform(scrollYProgress, [0, 1], [0, -250]); /* Increased parallax */
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
   const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
