@@ -292,27 +292,93 @@ function updateTrayMenu() {
     return;
   }
 
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      {
-        label: `${appDisplayName} v${app.getVersion()}`,
-        enabled: false,
+  const menuTemplate = [
+    {
+      label: `${appDisplayName} v${app.getVersion()}`,
+      enabled: false,
+    },
+    { type: "separator" },
+    {
+      label: "Open Aero P2P Chat",
+      click: showMainWindow,
+    },
+    {
+      label: "Check for Updates",
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("check-for-updates");
+        }
       },
+    },
+    {
+      label: "Hide to Tray",
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+        }
+      },
+    },
+  ];
+
+  if (!app.isPackaged) {
+    menuTemplate.push(
       { type: "separator" },
       {
-        label: "Open Aero P2P Chat",
-        click: showMainWindow,
+        label: "Debug",
+        submenu: [
+          {
+            label: "Toggle Developer Tools",
+            click: () => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.toggleDevTools();
+              }
+            },
+          },
+          {
+            label: "Restart App",
+            click: () => {
+              app.relaunch();
+              app.quit();
+            },
+          },
+          {
+            label: "Clear App Data & Restart",
+            click: () => {
+              const { dialog } = require("electron");
+              const response = dialog.showMessageBoxSync({
+                type: "warning",
+                buttons: ["Yes, Clear Data", "Cancel"],
+                defaultId: 1,
+                title: "Clear App Data?",
+                message:
+                  "Are you sure you want to completely clear all app settings and data? This cannot be undone.",
+              });
+
+              if (response === 0) {
+                session.defaultSession.clearStorageData().then(() => {
+                  app.relaunch();
+                  app.quit();
+                });
+              }
+            },
+          },
+        ],
       },
-      { type: "separator" },
-      {
-        label: "Quit",
-        click: () => {
-          forceQuit = true;
-          app.quit();
-        },
+    );
+  }
+
+  menuTemplate.push(
+    { type: "separator" },
+    {
+      label: "Quit",
+      click: () => {
+        forceQuit = true;
+        app.quit();
       },
-    ]),
+    },
   );
+
+  tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
 }
 
 function createTray() {

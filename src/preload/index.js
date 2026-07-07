@@ -11,6 +11,13 @@ contextBridge.exposeInMainWorld("aeroChat", {
     };
   },
   fetchUpdateManifest: (url) => ipcRenderer.invoke("fetch-update-manifest", url),
+  onCheckForUpdates: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("check-for-updates", listener);
+    return () => {
+      ipcRenderer.removeListener("check-for-updates", listener);
+    };
+  },
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
