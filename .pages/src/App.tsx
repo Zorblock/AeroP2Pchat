@@ -424,21 +424,20 @@ function App() {
             dragSnapToOrigin={true}
             dragElastic={0.5}
           >
-            <div 
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.6)', cursor: 'grab' }}
-              onPointerDown={(e) => dragControls.start(e)}
-              title="Drag me!"
-            >
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', textShadow: '0 1px 1px #fff' }}>Administrator: Command Prompt</div>
-              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                <div style={{ width: '26px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 49%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 100%)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 0 2px rgba(255,255,255,0.5)', cursor: 'default' }}>
-                  <div style={{ width: '8px', height: '2px', background: '#334155', marginTop: '4px' }}></div>
-                </div>
-                <div style={{ width: '26px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 49%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 100%)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 0 2px rgba(255,255,255,0.5)', cursor: 'default' }}>
-                  <div style={{ width: '8px', height: '8px', border: '1px solid #334155' }}></div>
-                </div>
-                <div style={{ width: '40px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', background: 'linear-gradient(180deg, #fca5a5 0%, #ef4444 49%, #dc2626 50%, #b91c1c 100%)', border: '1px solid #7f1d1d', boxShadow: 'inset 0 0 4px rgba(255,255,255,0.6), 0 0 4px rgba(239,68,68,0.4)', cursor: 'default', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>
-                  ✕
+            <div className="win7">
+              <div className="window active" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none', borderRadius: 0 }}>
+                <div 
+                  className="title-bar"
+                  onPointerDown={(e) => dragControls.start(e)}
+                  style={{ cursor: 'grab', borderBottom: '1px solid rgba(255,255,255,0.6)' }}
+                  title="Drag me!"
+                >
+                  <div className="title-bar-text">Administrator: Command Prompt</div>
+                  <div className="title-bar-controls">
+                    <button aria-label="Minimize" onClick={(e) => e.preventDefault()}></button>
+                    <button aria-label="Maximize" onClick={(e) => e.preventDefault()}></button>
+                    <button aria-label="Close" onClick={(e) => e.preventDefault()}></button>
+                  </div>
                 </div>
               </div>
             </div>
