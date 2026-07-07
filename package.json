@@ -13,19 +13,18 @@
     "dev:2": "node scripts/dev-two.cjs",
     "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/ci-append-linux-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
     "build": "node scripts/build-win.cjs",
+    "build:linux": "node scripts/ci-build-release.cjs --platform=linux",
     "setup": "npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
     "pages": "node scripts/deploy-pages.cjs"
   },
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.2.0",
-    "peerjs": "^1.5.5"
-  },
   "devDependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "electron": "^42.4.1",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "peerjs": "^1.5.5",
     "vite": "^7.3.5"
   },
   "overrides": {

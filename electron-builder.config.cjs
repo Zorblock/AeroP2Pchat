@@ -17,5 +17,6 @@ module.exports = {
     category: "Network",
     syncDesktopName: true,
   },
+  electronLanguages: ["en-US"],
   asar: true,
 };
