@@ -1040,6 +1040,15 @@
         <i class="fa-solid fa-gear" aria-hidden="true"></i>
         <span>Settings</span>
       </button>
+      <button
+        id="app-menu-open-web"
+        type="button"
+        role="menuitem"
+        onclick="window.__TAURI__ ? window.__TAURI__.core.invoke('plugin:opener|open', { path: window.location.href }) : window.open(window.location.href, '_blank')"
+      >
+        <i class="fa-solid fa-globe" aria-hidden="true"></i>
+        <span>Open Web</span>
+      </button>
     </div>
 
     <div id="contact-menu" class="context-menu hidden" role="menu">
