@@ -81,6 +81,54 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
     printMenu();
   };
 
+  const simulateDirS = async () => {
+    setTermState('installing');
+    setTermLines(prev => [...prev, 
+      { text: ` Volume in drive C has no label.`, color: '#cccccc' },
+      { text: ` Volume Serial Number is 1234-5678`, color: '#cccccc' }
+    ]);
+
+    const dirs = [
+      'C:\\Windows\\System32', 
+      'C:\\Windows\\System32\\drivers',
+      'C:\\Users\\Admin\\AppData\\Roaming\\AeroP2P', 
+      'C:\\Users\\Admin\\Downloads',
+      'C:\\Program Files\\Common Files'
+    ];
+    const files = ['kernel32.dll', 'user32.dll', 'hal.dll', 'config.json', 'install.ps1', 'aerop2p.exe', 'libcrypto.dll', 'sqlite3.dll'];
+    
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 40));
+      const dir = dirs[Math.floor(Math.random() * dirs.length)];
+      
+      const chunk = [
+        { text: `\n Directory of ${dir}`, color: '#cccccc' }
+      ];
+      
+      const numFiles = Math.floor(Math.random() * 5) + 2;
+      for (let j = 0; j < numFiles; j++) {
+        const file = files[Math.floor(Math.random() * files.length)];
+        const size = Math.floor(Math.random() * 90000) + 1000;
+        const date = `10/24/2023  ${10 + Math.floor(Math.random()*2)}:${10 + Math.floor(Math.random()*50)} AM`;
+        chunk.push({ text: `${date}    ${size.toLocaleString()} ${file}`, color: '#cccccc' });
+      }
+      
+      setTermLines(prev => {
+        const next = [...prev, ...chunk];
+        return next.length > 200 ? next.slice(next.length - 200) : next;
+      });
+    }
+
+    setTermLines(prev => [
+      ...prev,
+      { text: ``, color: '#cccccc' },
+      { text: `     Total Files Listed:`, color: '#cccccc' },
+      { text: `            142 File(s)     12,345,678 bytes`, color: '#cccccc' },
+      { text: `             24 Dir(s)  123,456,789,012 bytes free`, color: '#cccccc' }
+    ]);
+    setTermState('idle');
+  };
+
   const handleTerminalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (termState === 'installing' || termState === 'status') return;
@@ -111,6 +159,8 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
           { text: `VER            Displays the Windows version.`, color: '#cccccc' },
           { text: `AEROP2P        Aero P2P Chat CLI utility.`, color: '#00ffff' },
         ]);
+      } else if (lowerInput === 'dir /s') {
+        await simulateDirS();
       } else if (lowerInput === 'dir' || lowerInput === 'ls') {
         setTermLines(prev => [
           ...prev,
@@ -238,7 +288,7 @@ export const CMD: React.FC<CMDProps> = ({ latestVersion, dragControls }) => {
         {termState !== 'installing' && (
           <form onSubmit={handleTerminalSubmit} style={{ display: 'flex' }}>
             {termState === 'idle' ? (
-              <span style={{ marginRight: '0.5rem' }}>C:\Users\Admin&gt;</span>
+              <span style={{ marginRight: '0.5rem' }}>C:\Windows\System32&gt;</span>
             ) : termState === 'menu' ? (
               <span style={{ marginRight: '0.5rem' }}>Select an option [1-3]:</span>
             ) : null}
