@@ -441,7 +441,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1 }}
-          style={{ position: 'absolute', bottom: '150px', right: '5%', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
+          style={{ position: 'absolute', bottom: '10px', right: '10px', width: '120px', height: '120px', zIndex: 5, borderRadius: '50%', filter: 'drop-shadow(0 4px 20px rgba(2,132,199,0.5))' }}
         />
 
         <img
