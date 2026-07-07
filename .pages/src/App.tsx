@@ -241,6 +241,84 @@ function App() {
           ))}
         </motion.div>
 
+        {/* How It Works Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+          style={{ width: '100%', maxWidth: '1000px', marginTop: '6rem', padding: '3rem', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>How It Works</h2>
+            <p style={{ color: '#9db0bb', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+              Aero P2P Chat cuts out the middleman. By utilizing WebRTC, data streams directly between you and your friend.
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+              <div style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold' }}>1</div>
+              <h4 style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Open the App</h4>
+              <p style={{ color: '#9db0bb', fontSize: '0.95rem' }}>Launch Aero P2P Chat and instantly get your unique, randomized Peer ID.</p>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)' }}>➜</div>
+            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+              <div style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold' }}>2</div>
+              <h4 style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Share ID</h4>
+              <p style={{ color: '#9db0bb', fontSize: '0.95rem' }}>Send your Peer ID to a friend through any secure channel.</p>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.2)' }}>➜</div>
+            <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
+              <div style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold' }}>3</div>
+              <h4 style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Connect directly</h4>
+              <p style={{ color: '#9db0bb', fontSize: '0.95rem' }}>They paste it in, hit connect, and the peer-to-peer tunnel is established!</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* CLI Showcase Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', width: '100%', maxWidth: '1000px', marginTop: '6rem', alignItems: 'center' }}
+        >
+          <div>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#fff', marginBottom: '1rem' }}>Powerful CLI Integration</h2>
+            <p style={{ color: '#9db0bb', fontSize: '1.1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              We know developers love the terminal. That's why Aero P2P Chat installs an intelligent <code style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.4rem', borderRadius: '4px', color: '#38bdf8' }}>aerop2p</code> command globally on both Windows and Linux.
+            </p>
+            <ul style={{ color: '#9db0bb', listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ color: '#38bdf8' }}>✓</span> Interactive update menu</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ color: '#38bdf8' }}>✓</span> Real-time version checking</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ color: '#38bdf8' }}>✓</span> Clean background uninstallation</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ color: '#38bdf8' }}>✓</span> Fast application launching</li>
+            </ul>
+          </div>
+          
+          <div style={{ background: '#0a0f14', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+            <div style={{ background: '#131c26', padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }}></div>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }}></div>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }}></div>
+            </div>
+            <div style={{ padding: '1.5rem', fontFamily: 'monospace', fontSize: '0.9rem', color: '#e2e8f0', lineHeight: 1.6 }}>
+              <div style={{ marginBottom: '0.5rem' }}><span style={{ color: '#38bdf8' }}>$</span> aerop2p menu</div>
+              <div style={{ color: '#9db0bb', marginBottom: '1rem' }}>
+                <div style={{ color: '#a3e635' }}>Status: Installed (v26.27.0)</div>
+                <div style={{ color: '#facc15' }}>Latest: v26.28.0 (Update available!)</div>
+              </div>
+              <div style={{ marginBottom: '0.2rem' }}>1 - <span style={{ fontWeight: 'bold' }}>Update to v26.28.0</span></div>
+              <div style={{ marginBottom: '0.2rem', color: '#f87171' }}>2 - Uninstall</div>
+              <div style={{ marginBottom: '0.2rem', color: '#22d3ee' }}>3 - Check status details</div>
+              <div style={{ marginBottom: '1rem', color: '#64748b' }}>4 - Exit</div>
+              <div><span style={{ color: '#38bdf8' }}>Choose an option [1-4]:</span> 1</div>
+            </div>
+          </div>
+        </motion.div>
+
         <motion.footer
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
