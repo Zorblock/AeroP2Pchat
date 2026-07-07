@@ -135,6 +135,13 @@ function App() {
       <DustParticles />
 
       <main style={{ position: 'relative', zIndex: 10, padding: '4rem 2rem', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Decorative insect at the top right */}
+        <motion.img
+          src={`${import.meta.env.BASE_URL}img/insects_8.png`}
+          style={{ position: 'absolute', top: '35%', right: '2%', width: '450px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: cloudY4 }}
+          alt=""
+        />
+
         {/* Decorative scattered clouds across the entire scrollable height */}
         <motion.img
           src={`${import.meta.env.BASE_URL}img/clouds_21.png`}
