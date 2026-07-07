@@ -105,28 +105,56 @@ function App() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '600px' }}
         >
-          <motion.a 
-            href="https://github.com/Zorblock/AeroP2Pchat/releases/latest"
-            target="_blank"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(14,165,233,0.5)' }}
-            whileTap={{ scale: 0.95 }}
-            onClick={triggerConfetti}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
-          >
-            <Download size={20} />
-            Download Latest
-          </motion.a>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <motion.a 
+              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe"
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(14,165,233,0.5)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={triggerConfetti}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <Download size={20} />
+              Windows Setup (.exe)
+            </motion.a>
+            
+            <motion.a 
+              href="https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage"
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(14,165,233,0.5)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={triggerConfetti}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <Download size={20} />
+              Linux (.AppImage)
+            </motion.a>
+          </div>
+
+          <div style={{ marginTop: '1rem', width: '100%' }}>
+            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <code style={{ color: '#a3e635', fontFamily: 'monospace', flex: 1, fontSize: '0.9rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
+              </code>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText("curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash");
+                }}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
           
           <motion.a 
             href="https://github.com/Zorblock/AeroP2Pchat"
             target="_blank"
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
             whileTap={{ scale: 0.95 }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', color: 'white', padding: '1rem 2rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '100px', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            View on GitHub
+            View Source on GitHub
           </motion.a>
         </motion.div>
 
