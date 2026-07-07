@@ -34,7 +34,7 @@ function App() {
         if (releases && releases.length > 0) {
           const latest = releases[0];
           setLatestVersion(latest.tag_name);
-          
+
           // Calculate an artificial 'installed' version (e.g. decrement patch or minor)
           let versionParts = latest.tag_name.replace('v', '').split('.');
           if (versionParts.length === 3) {
@@ -94,7 +94,7 @@ function App() {
       {/* Static Overlays as requested */}
       <img
         src={`${import.meta.env.BASE_URL}img/bubbles.png`}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '800px', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '800px', zIndex: 0, opacity: 0.8, pointerEvents: 'none', transform: 'scaleX(-1) scaleY(-1)', WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)' }}
         alt=""
       />
 
@@ -167,7 +167,10 @@ function App() {
           style={{ marginBottom: '4rem', textAlign: 'center' }}
         >
           <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05} transitionSpeed={2000}>
-            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
+              <img src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 10, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }} alt="" />
+            </div>
           </Tilt>
           <h1 style={{ fontSize: '4.5rem', fontWeight: 800, color: '#ffffff', marginTop: '1.5rem', letterSpacing: '-0.03em', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.5))' }}>
             Aero P2P Chat
@@ -232,7 +235,7 @@ function App() {
             <div className="aero-glass" style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)' }}>
               <div style={{ flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center' }}>
                 <AnimatePresence mode="wait">
-                  <motion.code 
+                  <motion.code
                     key={installOs}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -304,7 +307,7 @@ function App() {
           {/* Inner overlay flare */}
           <img
             src={`${import.meta.env.BASE_URL}img/flares_12.png`}
-            style={{ position: 'absolute', top: '-50%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 0.4, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 0 }}
+            style={{ position: 'absolute', top: '-60%', left: '-20%', width: '140%', height: '200%', objectFit: 'cover', opacity: 1, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 9999999 }}
             alt=""
           />
 
