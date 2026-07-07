@@ -410,8 +410,7 @@
           </div>
           <div class="command-box">
             <code id="install-command"
-              >curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" |
-              sh</code
+              >bash &lt;(curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh)</code
             >
             <button id="copy-install" type="button">Copy</button>
           </div>
@@ -459,7 +458,7 @@
     <script src="https://unpkg.com/lenis@1.3.25/dist/lenis.min.js"></script>
     <script>
       const installCommand =
-        'curl -fsSL "https://zorblock.github.io/AeroP2Pchat/install.sh" | sh';
+        'bash <(curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh)';
       const copyButton = document.getElementById("copy-install");
       const commandElement = document.getElementById("install-command");
       const yearElement = document.getElementById("year");

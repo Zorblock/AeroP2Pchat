@@ -662,8 +662,9 @@ Installer URL:
   ${INSTALLER_URL}
 
 Examples:
-  curl -fsSL <installer-url> | sh
-  curl -fsSL <installer-url> | sh -s -- status
+  bash <(curl -sSL <installer-url>)
+  bash <(curl -sSL <installer-url>) status
+  curl -fsSL <installer-url> | sh -s -- update
 EOF
 }
 
