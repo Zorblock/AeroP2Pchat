@@ -1,7 +1,7 @@
 {
   "repo": "Zorblock/AeroP2Pchat",
   "branch": "main",
-  "pagesBaseUrl": "https://zorblock.github.io/AeroP2Pchat",
+  "pagesBaseUrl": "https://aero.zorblock.de",
   "app": {
     "name": "Aero P2P Chat",
     "id": "de.zorblock.aerop2pchat",

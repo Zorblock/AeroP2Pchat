@@ -9,7 +9,8 @@ APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
 APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
-PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
+PAGES_BASE="https://aero.zorblock.de"
+FALLBACK_PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
 APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"
 MANIFEST_URL="${RELEASE_BASE}/latest.yml"
@@ -233,9 +234,9 @@ case "\$command" in
     ;;
     install|update|status|uninstall|remove|menu)
         if command -v curl >/dev/null 2>&1; then
-            curl -fsSL "$INSTALLER_URL" | sh -s -- "\$command"
+            curl -fsSL "$INSTALLER_URL" | sh -s -- "\$command" || curl -fsSL "${FALLBACK_PAGES_BASE}/install.sh" | sh -s -- "\$command"
         elif command -v wget >/dev/null 2>&1; then
-            wget -qO- "$INSTALLER_URL" | sh -s -- "\$command"
+            wget -qO- "$INSTALLER_URL" | sh -s -- "\$command" || wget -qO- "${FALLBACK_PAGES_BASE}/install.sh" | sh -s -- "\$command"
         else
             printf '%s\n' "Install curl or wget first." >&2
             exit 1

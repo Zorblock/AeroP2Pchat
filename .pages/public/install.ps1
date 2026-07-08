@@ -12,7 +12,8 @@ $ReleaseBase = "https://github.com/$Repo/releases/latest/download"
 $ManifestUrl = "$ReleaseBase/latest.yml"
 $SetupAsset = "Aero-P2P-Chat-Windows-x64-Setup.exe"
 $SetupUrl = "$ReleaseBase/$SetupAsset"
-$InstallUrl = "https://zorblock.github.io/AeroP2Pchat/install.ps1"
+$InstallUrl = "https://aero.zorblock.de/install.ps1"
+$FallbackInstallUrl = "https://zorblock.github.io/AeroP2Pchat/install.ps1"
 
 $InstallDir = "$env:LOCALAPPDATA\Programs\$AppSlug"
 $ExePath = "$InstallDir\$AppName.exe"
@@ -78,11 +79,11 @@ if "%action%"=="help" goto help
 if "%action%"=="--help" goto help
 if "%action%"=="-h" goto help
 
-powershell -NoProfile -Command "Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$InstallUrl'))) -ArgumentList '%action%'"
+powershell -NoProfile -Command "try { Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$InstallUrl'))) -ArgumentList '%action%' } catch { Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$FallbackInstallUrl'))) -ArgumentList '%action%' }"
 exit /b %ERRORLEVEL%
 
 :menu
-powershell -NoProfile -Command "Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$InstallUrl'))) -ArgumentList 'menu'"
+powershell -NoProfile -Command "try { Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$InstallUrl'))) -ArgumentList 'menu' } catch { Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-RestMethod '$FallbackInstallUrl'))) -ArgumentList 'menu' }"
 exit /b %ERRORLEVEL%
 
 :help

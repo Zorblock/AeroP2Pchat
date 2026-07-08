@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://zorblock.de/AeroP2Pchat/logo.png" alt="Aero P2P Chat Logo" width="150" height="150" />
+  <img src="https://aero.zorblock.de/logo.png" alt="Aero P2P Chat Logo" width="150" height="150" />
 
   <h1>Aero P2P Chat</h1>
   <p><strong>Direct desktop messaging without the middleman. Secure, fast, and completely peer-to-peer.</strong></p>
@@ -32,18 +32,18 @@ Installing Aero P2P Chat is as simple as running a single command in your termin
 ### 🪟 Windows (PowerShell)
 Open PowerShell as Administrator (or just standard user) and run:
 ```powershell
-iwr -useb https://zorblock.de/AeroP2Pchat/install.ps1 | iex
+iwr -useb https://aero.zorblock.de/install.ps1 | iex
 ```
-*(Alternative mirror if blocked: replace `zorblock.de` with `zorblock.github.io`)*
+*(Alternative mirror if blocked: replace `aero.zorblock.de` with `zorblock.github.io/AeroP2Pchat`)*
 
 ### 🐧 Linux (Bash)
 Open your terminal and run:
 ```bash
-curl -sSL https://zorblock.de/AeroP2Pchat/install.sh | bash
+curl -sSL https://aero.zorblock.de/install.sh | bash
 ```
-*(Alternative mirror if blocked: replace `zorblock.de` with `zorblock.github.io`)*
+*(Alternative mirror if blocked: replace `aero.zorblock.de` with `zorblock.github.io/AeroP2Pchat`)*
 
-> **Note:** If you prefer downloading the installer manually, you can grab the `.exe` (Windows) or `.AppImage` (Linux) directly from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the [Official Website](https://zorblock.de/AeroP2Pchat).
+> **Note:** If you prefer downloading the installer manually, you can grab the `.exe` (Windows) or `.AppImage` (Linux) directly from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the [Official Website](https://aero.zorblock.de).
 
 ---
 

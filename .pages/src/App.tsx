@@ -89,10 +89,10 @@ function App() {
     { icon: <TerminalIcon size={24} />, title: 'CLI Tools', desc: 'Launch directly from your terminal using aerop2p commands.' },
   ];
 
-  const domain = useFallbackDomain ? 'zorblock.github.io' : 'zorblock.de';
+  const baseUrl = useFallbackDomain ? 'https://zorblock.github.io/AeroP2Pchat' : 'https://aero.zorblock.de';
   const installCommands = {
-    windows: `iwr -useb https://${domain}/AeroP2Pchat/install.ps1 | iex`,
-    linux: `curl -sSL https://${domain}/AeroP2Pchat/install.sh | bash`
+    windows: `iwr -useb ${baseUrl}/install.ps1 | iex`,
+    linux: `curl -sSL ${baseUrl}/install.sh | bash`
   };
 
   return (
