@@ -1,6 +1,6 @@
 {
   "name": "aero-p2p-chat",
-  "version": "26.32.1",
+  "version": "26.33.0",
   "description": "A clean peer-to-peer chat client for Windows, Linux, and Android.",
   "author": {
     "name": "Zorblock",
@@ -43,6 +43,7 @@
     "esbuild@0.28.1": true
   },
   "dependencies": {
+    "@anuradev/capacitor-background-mode": "^7.2.1",
     "@capacitor-community/file-opener": "^8.0.1",
     "@capacitor/app": "^8.1.0",
     "@capacitor/clipboard": "^8.0.1",

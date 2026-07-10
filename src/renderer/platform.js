@@ -7,6 +7,7 @@ import { FileOpener } from "@capacitor-community/file-opener";
 import { App } from "@capacitor/app";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { BackgroundMode } from "@anuradev/capacitor-background-mode";
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 
@@ -156,6 +157,7 @@ export function createPlatformApi() {
               body: details.body || "",
               schedule: { at: new Date(Date.now() + 100) },
               sound: details.silent ? undefined : "default",
+              extra: details.extra || null
             },
           ],
         });
@@ -348,6 +350,45 @@ export function createPlatformApi() {
         if (isAndroid) {
           await StatusBar.setBackgroundColor({ color: "#09090b" });
         }
+        
+        LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
+          const extra = notificationAction.notification.extra;
+          if (extra && extra.peerId) {
+            window.dispatchEvent(new CustomEvent('aero:open-chat', { detail: { peerId: extra.peerId } }));
+          }
+        });
+      } catch (e) {}
+    },
+
+    async enableBackgroundMode(activeConnections = 0) {
+      if (!isNativeCapacitor()) return;
+      try {
+        await BackgroundMode.enable({
+          title: "Aero P2P Chat",
+          text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
+          hidden: false,
+          silent: true,
+          allowClose: true,
+          closeTitle: "Beenden",
+          disableWebViewOptimization: true
+        });
+      } catch (e) {}
+    },
+
+    async disableBackgroundMode() {
+      if (!isNativeCapacitor()) return;
+      try {
+        await BackgroundMode.disable();
+      } catch (e) {}
+    },
+
+    async updateBackgroundNotification(activeConnections = 0) {
+      if (!isNativeCapacitor()) return;
+      try {
+        await BackgroundMode.updateNotification({
+          title: "Aero P2P Chat",
+          text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
+        });
       } catch (e) {}
     }
   };

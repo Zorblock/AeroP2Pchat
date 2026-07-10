@@ -8127,3 +8127,22 @@ platformApi.onBackButton(() => {
     platformApi.minimizeApp();
   }
 });
+
+function syncBackgroundMode() {
+  const activeCount = Array.from(connections.values()).filter(c => c?.open).length;
+  if (activeCount > 0) {
+    platformApi.enableBackgroundMode(activeCount);
+    platformApi.updateBackgroundNotification(activeCount);
+  } else {
+    platformApi.disableBackgroundMode();
+  }
+}
+setInterval(syncBackgroundMode, 3000);
+
+window.addEventListener("aero:open-chat", (e) => {
+  if (e.detail && e.detail.peerId) {
+    if (activePeerId !== e.detail.peerId) {
+      setActiveChat(e.detail.peerId);
+    }
+  }
+});
