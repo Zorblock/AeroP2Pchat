@@ -21,7 +21,6 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background-color: transparent;
   color: var(--text);
   font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
@@ -30,6 +29,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
   -webkit-user-select: none;
+}
+
+html {
+  background-color: #075bb5;
+}
+
+body {
+  background-color: transparent;
 }
 
 body::before,
@@ -193,6 +200,16 @@ html {
 }
 
 @media (max-width: 620px) {
+  body::after {
+    height: 44px;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 55%,
+      rgba(255, 255, 255, 0.34) 100%
+    );
+  }
+
   .site-header {
     padding-inline: 0.75rem;
   }

@@ -146,6 +146,7 @@ function App() {
 
       {/* Dynamic Parallax Background */}
       <motion.div
+        className="parallax-background"
         style={{
           position: 'fixed',
           top: 0,
