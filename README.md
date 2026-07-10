@@ -1,6 +1,6 @@
 # Aero P2P Chat
 
-![Aero P2P Chat Logo](https://aero.zorblock.de/logo.png)
+<img src="./assets/app.png" width="250" alt="Aero P2P Chat Logo">
 
 **Direct messaging without the middleman. Secure, fast, and completely peer-to-peer.**
 
