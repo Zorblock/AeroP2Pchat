@@ -156,6 +156,15 @@ if (connectedDevices.length === 0) {
   process.exit(1);
 }
 
+const isUninstall = process.argv.includes('--uninstall');
+if (isUninstall) {
+  console.log("Uninstalling app from device...");
+  const uninstallResult = adb(["uninstall", "de.zorblock.aerop2pchat"], { ignoreError: true, stdio: "pipe", encoding: "utf8" });
+  if (uninstallResult.stdout) console.log(uninstallResult.stdout.trim());
+  if (uninstallResult.stderr) console.error(uninstallResult.stderr.trim());
+  process.exit(0);
+}
+
 run("npx", ["vite", "build"]);
 run("npx", ["cap", "sync", "android"]);
 run(
