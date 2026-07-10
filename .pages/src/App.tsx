@@ -76,6 +76,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const prefersNativeScroll = globalThis.matchMedia(
+      '(max-width: 768px), (pointer: coarse)',
+    ).matches;
+    if (prefersNativeScroll) return;
+
     const lenis = new Lenis({
       autoRaf: true,
     });

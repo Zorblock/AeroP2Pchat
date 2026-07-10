@@ -200,14 +200,15 @@ html {
 }
 
 @media (max-width: 620px) {
+  .parallax-background {
+    top: -20svh !important;
+    height: 180svh !important;
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+
   body::after {
-    height: 44px;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.08) 55%,
-      rgba(255, 255, 255, 0.34) 100%
-    );
+    display: none;
   }
 
   .site-header {
