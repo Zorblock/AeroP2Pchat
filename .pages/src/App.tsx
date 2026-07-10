@@ -23,6 +23,15 @@ const AeroBadge = ({ label, value, color }: { label: string, value: string, colo
   </div>
 );
 
+const StepNumber = ({ children }: { children: string }) => (
+  <div style={{ position: 'relative', width: '68px', height: '68px', margin: '0 auto 1rem', display: 'grid', placeItems: 'center' }}>
+    <div style={{ position: 'relative', zIndex: 1, background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+      {children}
+    </div>
+    <img src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} alt="" aria-hidden="true" style={{ position: 'absolute', inset: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.95 }} />
+  </div>
+);
+
 interface GitHubReleaseAsset {
   download_count?: number;
 }
@@ -459,19 +468,19 @@ function App() {
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>1</div>
+                <StepNumber>1</StepNumber>
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Open the App</h4>
                 <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Launch Aero P2P Chat and instantly get your unique, randomized Peer ID.</p>
               </div>
               <div className="hide-on-mobile" style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>2</div>
+                <StepNumber>2</StepNumber>
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Share ID</h4>
                 <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>Send your Peer ID to a friend through any secure channel.</p>
               </div>
               <div className="hide-on-mobile" style={{ color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold' }}>➜</div>
               <div style={{ flex: '1 1 250px', textAlign: 'center', padding: '1rem' }}>
-                <div style={{ background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)', color: '#0284c7', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>3</div>
+                <StepNumber>3</StepNumber>
                 <h4 style={{ color: '#0f172a', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Connect directly</h4>
                 <p style={{ color: '#475569', fontSize: '1rem', fontWeight: 500 }}>They paste it in, hit connect, and the peer-to-peer tunnel is established!</p>
               </div>
