@@ -3849,6 +3849,67 @@ body[data-theme="dark"] .app-dialog-actions button.danger {
   }
 }
 
+body:not(.platform-electron) {
+  min-width: 0;
+}
+
+body:not(.platform-electron) .window-frame {
+  width: 100vw;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+}
+
+body:not(.platform-electron) .titlebar {
+  -webkit-app-region: no-drag;
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+
+body:not(.platform-electron) .window-controls,
+body:not(.platform-electron) .sidebar-resizer {
+  display: none !important;
+}
+
+body:not(.platform-electron) .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(170px, 34dvh) minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+
+body:not(.platform-electron) .connection-panel,
+body:not(.platform-electron) .chat-panel {
+  border-radius: 8px;
+}
+
+body:not(.platform-electron) .connection-panel {
+  overflow: auto;
+}
+
+body:not(.platform-electron) .peers-card {
+  min-height: 120px;
+}
+
+body.platform-android .call-action.stream {
+  display: none !important;
+}
+
+@media (max-width: 520px) {
+  body:not(.platform-electron) .app-shell {
+    grid-template-rows: minmax(160px, 30dvh) minmax(0, 1fr);
+  }
+
+  body:not(.platform-electron) .chat-header,
+  body:not(.platform-electron) .message-form {
+    gap: 6px;
+  }
+
+  body:not(.platform-electron) .chat-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 /* Minimal interface pass: keep layout, remove decorative glow/gradient noise. */
 :root {
   --ui-bg: #eef4f7;

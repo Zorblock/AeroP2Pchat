@@ -2,6 +2,7 @@ import Peer, { util } from "peerjs";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json";
+import { createPlatformApi } from "./platform.js";
 import "./styles.css";
 
 const projectConfig = __PROJECT_CONFIG__;
@@ -501,7 +502,8 @@ const githubRepoUrl = `https://github.com/${githubRepo}`;
 const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
-const platform = window.aeroChat?.platform ?? "browser";
+const platformApi = createPlatformApi();
+const platform = platformApi.platform;
 
 document.title = appDisplayName;
 document.querySelectorAll("[data-app-name]").forEach((element) => {
@@ -520,6 +522,30 @@ document.querySelectorAll("[data-app-aria-template]").forEach((element) => {
   );
 });
 
+function applyPlatformUi() {
+  document.body.dataset.platform = platform;
+  document.body.classList.toggle("platform-android", platformApi.isAndroid);
+  document.body.classList.toggle("platform-electron", platformApi.isElectron);
+
+  document
+    .querySelector(".window-controls")
+    ?.classList.toggle("hidden", !platformApi.hasNativeWindowControls);
+
+  for (const element of [
+    autostartToggle?.closest(".settings-check"),
+    autostartModeGroup,
+    closeToTrayToggle?.closest(".settings-check"),
+  ]) {
+    element?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
+  }
+
+  if (!platformApi.hasDesktopIntegration) {
+    appMenuUpdate.querySelector("span").textContent = "Open latest release";
+  }
+}
+
+applyPlatformUi();
+
 const peerConnectionConfig = {
   iceServers: [
     // Keep the ICE list simple and avoid Twilio's default STUN host, which can
@@ -536,18 +562,11 @@ const peerConnectionConfig = {
 let appConfig = {};
 
 async function loadAppConfig() {
-  if (window.aeroChat?.loadConfig) {
-    const loaded = await window.aeroChat.loadConfig();
-    return loaded && typeof loaded === "object" ? loaded : {};
-  }
-
-  return {};
+  return platformApi.loadConfig();
 }
 
 function saveAppConfig() {
-  if (window.aeroChat?.saveConfig) {
-    window.aeroChat.saveConfig(appConfig).catch(() => {});
-  }
+  platformApi.saveConfig(appConfig).catch(() => {});
 }
 
 function createIdentityId() {
@@ -662,12 +681,7 @@ function getKnownPreviousIdentityIds(value, ownId = "") {
 }
 
 async function writeClipboardText(text) {
-  if (window.aeroChat?.writeClipboard) {
-    await window.aeroChat.writeClipboard(text);
-    return;
-  }
-
-  await navigator.clipboard.writeText(text);
+  await platformApi.writeClipboard(text);
 }
 
 function showAppDialog({
@@ -1254,6 +1268,13 @@ function applyAppTheme(theme = DEFAULT_THEME) {
 
 function renderAppSettings() {
   normalizeAppSettings();
+  if (!platformApi.supportsAutostart) {
+    appConfig.appSettings.autostart = false;
+    appConfig.appSettings.startHidden = false;
+  }
+  if (!platformApi.supportsCloseToTray) {
+    appConfig.appSettings.closeToTray = false;
+  }
   applyAppTheme(appConfig.appSettings.theme);
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
@@ -2450,8 +2471,11 @@ function syncAvailableUpdateUi() {
   const isIgnored = ignoredUpdateVersion === availableUpdate.version;
   updateTitle.textContent = "Update available";
   updateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
-  updateButton.textContent =
-    platform === "win32" ? "Install update" : "Show command";
+  updateButton.textContent = platformApi.supportsNativeUpdateInstall
+    ? "Install update"
+    : platform === "linux"
+      ? "Show command"
+      : "Open release";
   updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
   updateIgnoreButton.disabled = isIgnored;
   headerUpdateButton.classList.add("hidden");
@@ -2462,10 +2486,14 @@ function syncAvailableUpdateUi() {
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
   appMenuUpdate.querySelector("i").className =
-    platform === "win32" ? "fa-solid fa-download" : "fa-solid fa-terminal";
+    platformApi.supportsNativeUpdateInstall
+      ? "fa-solid fa-download"
+      : platform === "linux"
+        ? "fa-solid fa-terminal"
+        : "fa-solid fa-arrow-up-right-from-square";
   appMenuUpdateIgnore.classList.remove("hidden");
   appMenuUpdate.querySelector("span").textContent =
-    platform === "win32"
+    platformApi.supportsNativeUpdateInstall
       ? `Install ${availableUpdate.version}`
       : `Update ${availableUpdate.version}`;
   appMenuUpdateIgnore.querySelector("span").textContent = isIgnored
@@ -2516,27 +2544,16 @@ async function checkForUpdates({ manual = false } = {}) {
 
   try {
     let manifestText = "";
-    if (window.aeroChat?.fetchUpdateManifest) {
-      const manifestResult =
-        await window.aeroChat.fetchUpdateManifest(latestManifestUrl);
-      if (typeof manifestResult === "string") {
-        manifestText = manifestResult;
-      } else if (manifestResult?.ok && typeof manifestResult.text === "string") {
-        manifestText = manifestResult.text;
-      } else {
-        throw new Error(
-          manifestResult?.error || "Update manifest request failed.",
-        );
-      }
+    const manifestResult =
+      await platformApi.fetchUpdateManifest(latestManifestUrl);
+    if (typeof manifestResult === "string") {
+      manifestText = manifestResult;
+    } else if (manifestResult?.ok && typeof manifestResult.text === "string") {
+      manifestText = manifestResult.text;
     } else {
-      manifestText = await fetch(`${latestManifestUrl}?t=${Date.now()}`, {
-        cache: "no-store",
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return response.text();
-      });
+      throw new Error(
+        manifestResult?.error || "Update manifest request failed.",
+      );
     }
 
     const manifest = parseManifest(manifestText);
@@ -2663,8 +2680,8 @@ function showAppNotification(details) {
     return false;
   }
 
-  window.aeroChat
-    ?.showNotification?.({
+  platformApi
+    .showNotification({
       ...details,
       theme: appConfig.appSettings.theme,
       showWhenFocused: appConfig.notificationSettings.showWhenFocused,
@@ -2690,7 +2707,7 @@ async function shouldPlaySound(key) {
   }
 
   try {
-    const state = await window.aeroChat?.getNotificationState?.();
+    const state = await platformApi.getNotificationState();
     if (state && typeof state === "object") {
       notificationState = {
         appFocused: Boolean(state.appFocused),
@@ -2719,8 +2736,8 @@ function isAppFocused() {
 
 function refreshNotificationState() {
   notificationState.appFocused = isAppFocused();
-  window.aeroChat
-    ?.getNotificationState?.()
+  platformApi
+    .getNotificationState()
     .then((state) => {
       if (!state || typeof state !== "object") {
         return;
@@ -2757,7 +2774,7 @@ function closeAppNotification(id) {
     return;
   }
 
-  window.aeroChat?.closeNotification?.(id).catch(() => {});
+  platformApi.closeNotification(id).catch(() => {});
 }
 
 function getCallNotificationId(callId) {
@@ -5039,6 +5056,13 @@ function startScreenQualityMonitor() {
 }
 
 async function getScreenCaptureStream(sourceId, options) {
+  if (sourceId === "display-media") {
+    return platformApi.getDisplayMedia({
+      ...options,
+      profile: SCREEN_STREAM_PROFILES[normalizeScreenQuality(options?.quality)],
+    });
+  }
+
   const constraints = getScreenStreamConstraints(sourceId, options);
   try {
     return await navigator.mediaDevices.getUserMedia(constraints);
@@ -5997,7 +6021,7 @@ async function openStreamSetup({ reuseCurrent = false } = {}) {
   streamStartButton.disabled = true;
 
   try {
-    const sources = (await window.aeroChat?.getScreenSources?.()) || [];
+    const sources = (await platformApi.getScreenSources()) || [];
     if (reuseCurrent && screenShareState.sourceId) {
       const current = sources.find(
         (source) => source.id === screenShareState.sourceId,
@@ -7549,7 +7573,7 @@ navigator.mediaDevices?.addEventListener?.("devicechange", () => {
   refreshAudioDevices();
 });
 
-window.aeroChat?.onNotificationAction?.((action) => {
+platformApi.onNotificationAction((action) => {
   if (!action || typeof action !== "object") {
     return;
   }
@@ -7605,7 +7629,7 @@ function setUpdateButtonText(text) {
 function startUpdateProgressListener() {
   removeUpdateProgressListener?.();
   removeUpdateProgressListener =
-    window.aeroChat?.onUpdateProgress?.((progress) => {
+    platformApi.onUpdateProgress((progress) => {
       if (progress?.phase === "download") {
         const percentText = Number.isFinite(progress.percent)
           ? `${progress.percent}%`
@@ -7639,7 +7663,7 @@ async function installAvailableUpdate() {
     return;
   }
 
-  if (platform === "win32") {
+  if (platformApi.supportsNativeUpdateInstall) {
     updateButton.disabled = true;
     headerUpdateButton.disabled = true;
     startUpdateProgressListener();
@@ -7647,7 +7671,7 @@ async function installAvailableUpdate() {
     setStatus("pending", "Downloading update installer...");
 
     try {
-      await window.aeroChat.installUpdate({
+      await platformApi.installUpdate({
         url: availableUpdate.windowsUrl,
         version: availableUpdate.version,
         sha256: availableUpdate.windowsSha256,
@@ -7671,7 +7695,12 @@ async function installAvailableUpdate() {
     return;
   }
 
-  openLinuxUpdateModal();
+  if (platform === "linux") {
+    openLinuxUpdateModal();
+    return;
+  }
+
+  window.open(latestReleaseUrl, "_blank", "noopener");
 }
 
 headerUpdateButton.addEventListener("click", installAvailableUpdate);
@@ -7706,15 +7735,15 @@ appMenuOffline?.addEventListener("click", () => {
 });
 
 windowMinimize.addEventListener("click", () => {
-  window.aeroChat?.windowControl?.("minimize");
+  platformApi.windowControl("minimize");
 });
 
 windowMaximize.addEventListener("click", () => {
-  window.aeroChat?.windowControl?.("maximize");
+  platformApi.windowControl("maximize");
 });
 
 windowClose.addEventListener("click", () => {
-  window.aeroChat?.windowControl?.("close");
+  platformApi.windowControl("close");
 });
 
 modalClose.addEventListener("click", () => {
@@ -7939,7 +7968,7 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
     pendingConnections.clear();
     peer?.destroy();
     if (deferClose) {
-      window.aeroChat?.realtimeCleanupComplete?.();
+      platformApi.realtimeCleanupComplete();
     }
   };
 
@@ -7950,7 +7979,7 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
   }
 }
 
-window.aeroChat?.onSystemShutdown?.(() => {
+platformApi.onSystemShutdown(() => {
   cleanupRealtimeConnections({ deferClose: true });
 });
 
@@ -7967,11 +7996,11 @@ setBootProgress(90, "Starting peer");
 setBootProgress(90, "Starting peer");
 checkForUpdates();
 setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
-window.aeroChat?.onCheckForUpdates?.(() => checkForUpdates({ manual: true }));
-window.aeroChat?.onDisconnect?.(() => cleanupRealtimeConnections());
+platformApi.onCheckForUpdates(() => checkForUpdates({ manual: true }));
+platformApi.onDisconnect(() => cleanupRealtimeConnections());
 
 function syncTrayState() {
-  window.aeroChat?.updateTrayState?.({
+  platformApi.updateTrayState({
     peerId: callState.peerId || (peer && peer.id) || null,
     isMuted: Boolean(callState.muted),
     isDeafened: Boolean(callState.deafened),
@@ -7984,7 +8013,7 @@ function syncTrayState() {
 
 setInterval(syncTrayState, 1500);
 
-window.aeroChat?.onTrayAction?.(({ action, value }) => {
+platformApi.onTrayAction(({ action, value }) => {
   if (action === "toggle-mute") {
     setCallMuted(!callState.muted);
   } else if (action === "toggle-deafen") {
@@ -7992,7 +8021,7 @@ window.aeroChat?.onTrayAction?.(({ action, value }) => {
   } else if (action === "set-status") {
     appConfig.appSettings.presenceStatus = value;
     renderAppSettings();
-    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+    platformApi.saveConfig(appConfig).catch(() => {});
     
     let label = "Online";
     if (value === "offline") label = "Offline";
@@ -8001,15 +8030,15 @@ window.aeroChat?.onTrayAction?.(({ action, value }) => {
   } else if (action === "toggle-theme") {
     appConfig.appSettings.theme = appConfig.appSettings.theme === "light" ? "dark" : "light";
     renderAppSettings();
-    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+    platformApi.saveConfig(appConfig).catch(() => {});
   } else if (action === "toggle-autostart") {
     appConfig.appSettings.autostart = !appConfig.appSettings.autostart;
     renderAppSettings();
-    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+    platformApi.saveConfig(appConfig).catch(() => {});
   } else if (action === "toggle-close-to-tray") {
     appConfig.appSettings.closeToTray = !appConfig.appSettings.closeToTray;
     renderAppSettings();
-    window.aeroChat?.saveConfig?.(appConfig).catch(() => {});
+    platformApi.saveConfig(appConfig).catch(() => {});
   }
   syncTrayState();
 });

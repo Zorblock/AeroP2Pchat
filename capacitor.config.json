@@ -1,0 +1,9 @@
+{
+  "appId": "de.zorblock.aerop2pchat",
+  "appName": "Aero P2P Chat",
+  "webDir": "dist/renderer",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
