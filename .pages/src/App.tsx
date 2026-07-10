@@ -246,8 +246,11 @@ function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '800px' }}
         >
-          <div style={{ marginTop: '0.5rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div className="install-os-buttons" role="tablist" aria-label="Choose your platform" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', justifyContent: 'center' }}>
+          <div
+            className="aero-glass mobile-p-1"
+            style={{ marginTop: '0.5rem', padding: '1.25rem', width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(224,242,254,0.54))', border: '1px solid rgba(255,255,255,0.9)', borderRadius: '1.5rem', boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.9), 0 18px 45px rgba(2,64,145,0.22)' }}
+          >
+            <div className="install-os-buttons platform-tabs" role="tablist" aria-label="Choose your platform" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', width: '100%', padding: '0.3rem', marginBottom: '1.25rem', background: 'rgba(15, 82, 150, 0.12)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: '1rem', boxShadow: 'inset 0 2px 5px rgba(2,64,145,0.12)' }}>
               {platforms.map((platform) => {
                 const selected = installOs === platform.id;
                 return (
@@ -258,7 +261,7 @@ function App() {
                     aria-selected={selected}
                     className="liquid-btn"
                     onClick={() => setInstallOs(platform.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: selected ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: selected ? '#0369a1' : '#475569', border: selected ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.55rem 1.25rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: selected ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', background: selected ? 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(186,230,253,0.95))' : 'transparent', color: selected ? '#0369a1' : '#475569', border: selected ? '1px solid rgba(255,255,255,0.95)' : '1px solid transparent', padding: '0.7rem 0.8rem', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.25s', boxShadow: selected ? '0 5px 14px rgba(2,132,199,0.2), inset 0 1px 2px white' : 'none' }}
                   >
                     {platform.icon}
                     {platform.label}
@@ -276,50 +279,57 @@ function App() {
                 transition={{ duration: 0.2 }}
                 style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
               >
-              {installOs !== 'android' && <motion.div
-              layout
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="aero-glass mobile-col mobile-p-1"
-              style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden', borderRadius: '1rem' }}
-            >
-              <motion.div layout style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                <motion.code layout style={{ color: '#0369a1', fontFamily: 'monospace', fontSize: '0.95rem', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 600, display: 'inline-block' }}>
-                  {installCommands[installOs]}
-                </motion.code>
-              </motion.div>
-              <motion.button
-                layout
-                className="liquid-btn"
-                whileHover={{ scale: 1.05, backgroundColor: '#bae6fd', boxShadow: '0 0 15px rgba(56,189,248,0.6)', color: '#0369a1' }}
-                whileTap={{ scale: 0.95, backgroundColor: '#7dd3fc' }}
-                onClick={() => {
-                  navigator.clipboard.writeText(installCommands[installOs]);
-                  toast.success("Command copied to clipboard!");
-                }}
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.5))', border: '1px solid rgba(255,255,255,0.9)', color: '#0f172a', padding: '0.6rem 1.2rem', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0, transition: 'background-color 0.2s', boxShadow: '0 4px 10px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.8)' }}
-              >
-                Copy
-              </motion.button>
-            </motion.div>}
-
               <DownloadButton
                 os={installOs}
-                text={installOs === 'windows' ? 'Windows Setup (.exe)' : installOs === 'linux' ? 'Linux (.AppImage)' : 'Android APK herunterladen'}
+                text={installOs === 'windows' ? 'Download for Windows (.exe)' : installOs === 'linux' ? 'Download for Linux (.AppImage)' : 'Download for Android (.apk)'}
                 icon={installOs === 'android' ? <Smartphone size={22} /> : <Download size={22} />}
                 colorTheme={installOs === 'windows' ? 'blue' : 'green'}
                 onClick={triggerConfetti}
               />
 
-              {installOs !== 'android' && <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <label className="subtle-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={useFallbackDomain}
-                  onChange={(e) => setUseFallbackDomain(e.target.checked)}
-                />
-                Use Fallback-Mirror (zorblock.github.io)
-              </label>
-              </div>}
+              {installOs !== 'android' && <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
+                  Or install from the terminal
+                  <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
+                </div>
+
+                <motion.div
+                  layout
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="mobile-col"
+                  style={{ padding: '0.45rem 0.45rem 0.45rem 1rem', width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.68)', border: '1px solid rgba(148,163,184,0.3)', overflow: 'hidden', borderRadius: '0.9rem', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.9)' }}
+                >
+                  <motion.div layout style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', overflowX: 'auto' }}>
+                    <motion.code layout style={{ color: '#075985', fontFamily: 'monospace', fontSize: '0.88rem', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 650, display: 'inline-block' }}>
+                      {installCommands[installOs]}
+                    </motion.code>
+                  </motion.div>
+                  <motion.button
+                    type="button"
+                    layout
+                    className="liquid-btn"
+                    whileHover={{ scale: 1.03, backgroundColor: '#e0f2fe' }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(installCommands[installOs]);
+                      toast.success("Command copied to clipboard!");
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(125,211,252,0.8)', color: '#075985', padding: '0.62rem 1rem', borderRadius: '0.65rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 750, flexShrink: 0, boxShadow: '0 3px 8px rgba(2,132,199,0.12)' }}
+                  >
+                    Copy
+                  </motion.button>
+                </motion.div>
+
+                <label className="subtle-checkbox-label" style={{ alignSelf: 'flex-start', color: '#475569' }}>
+                  <input
+                    type="checkbox"
+                    checked={useFallbackDomain}
+                    onChange={(e) => setUseFallbackDomain(e.target.checked)}
+                  />
+                  Use GitHub mirror
+                </label>
+              </>}
               </motion.div>
             </AnimatePresence>
           </div>

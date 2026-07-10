@@ -9,6 +9,16 @@ interface DownloadButtonProps {
   onClick?: () => void;
 }
 
+interface GitHubReleaseAsset {
+  name: string;
+  browser_download_url: string;
+}
+
+interface GitHubRelease {
+  tag_name: string;
+  assets: GitHubReleaseAsset[];
+}
+
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, colorTheme = 'blue', onClick }) => {
   const [downloading, setDownloading] = useState(false);
   const [statusText, setStatusText] = useState('');
@@ -25,14 +35,14 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
     try {
       const res = await fetch('https://api.github.com/repos/Zorblock/AeroP2Pchat/releases/latest');
       if (!res.ok) throw new Error('API request failed');
-      const release = await res.json();
+      const release = await res.json() as GitHubRelease;
       
       const assetNames = {
         windows: 'Aero-P2P-Chat-Windows-x64-Setup.exe',
         linux: 'Aero-P2P-Chat-Linux-x64.AppImage',
         android: 'Aero-P2P-Chat-Android.apk',
       } as const;
-      const asset = release.assets.find((a: any) => a.name === assetNames[os]);
+      const asset = release.assets.find((asset) => asset.name === assetNames[os]);
 
       if (!asset) {
         setStatusText('File not found!');
@@ -43,7 +53,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
       setStatusText(`Verified ${release.tag_name}. Starting...`);
       
       setTimeout(() => {
-        window.location.href = asset.browser_download_url;
+        globalThis.location.href = asset.browser_download_url;
         setDownloading(false);
       }, 1000);
 
@@ -58,7 +68,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
           android: 'Aero-P2P-Chat-Android.apk',
         } as const;
         const fallbackUrl = `https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/${fallbackAssets[os]}`;
-        window.location.href = fallbackUrl;
+        globalThis.location.href = fallbackUrl;
         setDownloading(false);
       }, 1000);
     }
@@ -66,6 +76,8 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
 
   return (
     <motion.button
+      type="button"
+      aria-label={text}
       onClick={handleDownload}
       whileHover={!downloading ? { scale: 1.05, filter: 'brightness(1.1)' } : {}}
       whileTap={!downloading ? { scale: 0.95 } : {}}
@@ -89,7 +101,9 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
         cursor: downloading ? 'default' : 'pointer',
         fontFamily: 'inherit',
         fontSize: '1rem',
-        minWidth: '240px'
+        width: '100%',
+        maxWidth: '360px',
+        minWidth: 0
       }}
     >
       {downloading && (
