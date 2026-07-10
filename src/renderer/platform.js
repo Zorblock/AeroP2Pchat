@@ -4,6 +4,9 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { Preferences } from "@capacitor/preferences";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
+import { App } from "@capacitor/app";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 
@@ -319,5 +322,33 @@ export function createPlatformApi() {
     onTrayAction(callback) {
       return electron?.onTrayAction?.(callback) || null;
     },
+
+    async vibrate(style = "light") {
+      if (!isNativeCapacitor()) return;
+      const hapticStyle = style === "heavy" ? ImpactStyle.Heavy : style === "medium" ? ImpactStyle.Medium : ImpactStyle.Light;
+      try {
+        await Haptics.impact({ style: hapticStyle });
+      } catch (e) {}
+    },
+
+    onBackButton(callback) {
+      if (!isNativeCapacitor()) return;
+      App.addListener("backButton", callback);
+    },
+
+    async minimizeApp() {
+      if (!isNativeCapacitor()) return;
+      await App.minimizeApp();
+    },
+
+    async initMobile() {
+      if (!isNativeCapacitor()) return;
+      try {
+        await StatusBar.setStyle({ style: Style.Dark });
+        if (isAndroid) {
+          await StatusBar.setBackgroundColor({ color: "#09090b" });
+        }
+      } catch (e) {}
+    }
   };
 }

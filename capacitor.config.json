@@ -9,6 +9,15 @@
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#09090b"
     }
   }
 }

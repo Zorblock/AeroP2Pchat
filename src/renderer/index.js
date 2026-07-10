@@ -2669,6 +2669,11 @@ function addChatMessage({ id, text, sender, peerId, time }) {
     peerId,
     time: time ?? formatTime(),
   };
+
+  if (sender !== "me") {
+    platformApi.vibrate("light");
+  }
+
   const history = ensureChatHistory(peerId);
   history.push(item);
   const trimmed = history.length > MAX_CHAT_HISTORY_ITEMS;
@@ -6534,6 +6539,8 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
   conn.on("open", () => {
     hideConnectRetry();
+    platformApi.vibrate("heavy");
+    console.log("Connection opened with", remotePeerId);
     sendReceiptSettings(conn);
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
@@ -7165,6 +7172,7 @@ messageForm.addEventListener("submit", (event) => {
   }
 
   if (sendChatText(activePeerId, text)) {
+    platformApi.vibrate("light");
     messageInput.value = "";
     sendTypingState(activePeerId, false, { force: true });
     messageInput.focus();
@@ -8108,3 +8116,14 @@ async function finishBootScreen() {
 }
 
 finishBootScreen();
+
+// Mobile integrations
+platformApi.initMobile();
+platformApi.onBackButton(() => {
+  // If a dialog or modal is open, we could ideally close it, but for now:
+  if (activePeerId) {
+    platformApi.minimizeApp();
+  } else {
+    platformApi.minimizeApp();
+  }
+});
