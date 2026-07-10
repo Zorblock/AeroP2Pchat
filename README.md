@@ -53,6 +53,10 @@ curl -sSL https://aero.zorblock.de/install.sh | bash
 
 *(Alternative mirror if blocked: replace `aero.zorblock.de` with `zorblock.github.io/AeroP2Pchat`)*
 
+### 📱 Android
+
+Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) and install it directly on your device.
+
 > **Note:** If you prefer downloading manually, you can grab the `.exe`
 > (Windows), `.AppImage` (Linux), or `.apk` (Android) directly from our
 > [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the
