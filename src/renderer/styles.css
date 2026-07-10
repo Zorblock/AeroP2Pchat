@@ -3894,9 +3894,197 @@ body.platform-android .call-action.stream {
   display: none !important;
 }
 
+body:not(.platform-electron) .mobile-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 7px max(10px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  border-top: 1px solid rgba(184, 204, 214, 0.9);
+  background: rgba(247, 250, 252, 0.96);
+  box-shadow: 0 -8px 24px rgba(18, 43, 58, 0.1);
+}
+
+body:not(.platform-electron) .mobile-tab {
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #55707d;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+body:not(.platform-electron) .mobile-tab i {
+  font-size: 17px;
+}
+
+body:not(.platform-electron) .mobile-tab.active {
+  background: #dff3fa;
+  color: #0f668c;
+}
+
+body.platform-electron .mobile-tabbar {
+  display: none;
+}
+
+body:not(.platform-electron) .titlebar {
+  min-height: 50px;
+  padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+}
+
+body:not(.platform-electron) .titlebar-brand {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+}
+
+body:not(.platform-electron) .titlebar-avatar,
+body:not(.platform-electron) .titlebar-logo {
+  width: 32px;
+  height: 32px;
+}
+
+body:not(.platform-electron) .titlebar-brand strong {
+  font-size: 14px;
+}
+
+body:not(.platform-electron) .titlebar-brand span {
+  font-size: 11px;
+}
+
+body:not(.platform-electron) .app-shell {
+  height: calc(100dvh - 50px - 64px - env(safe-area-inset-bottom));
+  padding-bottom: 8px;
+}
+
+body:not(.platform-electron)[data-mobile-tab="contacts"] .chat-panel,
+body:not(.platform-electron)[data-mobile-tab="chat"] .connection-panel,
+body:not(.platform-electron)[data-mobile-tab="settings"] .connection-panel,
+body:not(.platform-electron)[data-mobile-tab="settings"] .chat-panel {
+  display: none;
+}
+
+body:not(.platform-electron)[data-mobile-tab="contacts"] .app-shell,
+body:not(.platform-electron)[data-mobile-tab="chat"] .app-shell,
+body:not(.platform-electron)[data-mobile-tab="settings"] .app-shell {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+body:not(.platform-electron) .connection-panel,
+body:not(.platform-electron) .chat-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+body:not(.platform-electron) .connection-panel {
+  gap: 8px;
+  padding: 10px;
+}
+
+body:not(.platform-electron) .chat-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+}
+
+body:not(.platform-electron) .id-card,
+body:not(.platform-electron) .peers-card,
+body:not(.platform-electron) .update-card {
+  border-radius: 8px;
+}
+
+body:not(.platform-electron) .connect-row {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+body:not(.platform-electron) .connect-row button span,
+body:not(.platform-electron) .chat-actions button span,
+body:not(.platform-electron) .message-form button span {
+  display: none;
+}
+
+body:not(.platform-electron) .peer-list {
+  gap: 7px;
+}
+
+body:not(.platform-electron) .peer-chip,
+body:not(.platform-electron) .contact-item,
+body:not(.platform-electron) .request-item {
+  min-height: 46px;
+}
+
+body:not(.platform-electron) .chat-header {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+body:not(.platform-electron) .chat-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+
+body:not(.platform-electron) .chat-actions button {
+  min-width: 0;
+  min-height: 40px;
+}
+
+body:not(.platform-electron) .messages {
+  padding: 10px;
+}
+
+body:not(.platform-electron) .message-form {
+  grid-template-columns: minmax(0, 1fr) 48px;
+  padding: 8px;
+}
+
+body:not(.platform-electron) #message-input {
+  min-height: 42px;
+  font-size: 15px;
+}
+
+body:not(.platform-electron) #settings-modal {
+  inset: 50px 0 calc(64px + env(safe-area-inset-bottom)) 0;
+  z-index: 90;
+  align-items: stretch;
+  justify-items: stretch;
+  padding: 8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
+  background: #eef4f7;
+}
+
+body:not(.platform-electron) #settings-modal .modal-panel {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+body:not(.platform-electron) #settings-modal .settings-grid {
+  display: block;
+  height: calc(100dvh - 50px - 64px - env(safe-area-inset-bottom) - 68px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+body:not(.platform-electron) #settings-modal .settings-section {
+  margin-bottom: 10px;
+}
+
+body:not(.platform-electron) #settings-close {
+  min-width: 44px;
+  min-height: 34px;
+}
+
 @media (max-width: 520px) {
   body:not(.platform-electron) .app-shell {
-    grid-template-rows: minmax(160px, 30dvh) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   body:not(.platform-electron) .chat-header,

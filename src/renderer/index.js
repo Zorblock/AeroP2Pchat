@@ -1,14 +1,14 @@
+// deno-lint-ignore-file no-window no-window-prefix no-unused-vars require-await
 import Peer, { util } from "peerjs";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
-import packageInfo from "../../package.json";
+import packageInfo from "../../package.json" with { type: "json" };
 import { createPlatformApi } from "./platform.js";
 import "./styles.css";
 
 const projectConfig = __PROJECT_CONFIG__;
 
 const titlebarLogo = document.querySelector("#titlebar-logo");
-const titlebarAvatar = document.querySelector(".titlebar-avatar");
 const titlebarPresence = document.querySelector("#titlebar-presence");
 const titlebarSubtitle = document.querySelector("#titlebar-subtitle");
 const windowMinimize = document.querySelector("#window-minimize");
@@ -37,7 +37,6 @@ const incomingCallName = document.querySelector("#incoming-call-name");
 const screenCallAccept = document.querySelector("#screen-call-accept");
 const screenCallDecline = document.querySelector("#screen-call-decline");
 const screenCallIgnore = document.querySelector("#screen-call-ignore");
-let incomingCallIgnored = false;
 const callText = document.querySelector("#call-text");
 const callPeerName = document.querySelector("#call-peer-name");
 const callPeerStatus = document.querySelector("#call-peer-status");
@@ -189,6 +188,9 @@ const streamMenuAudio = document.querySelector("#stream-menu-audio");
 const streamMenuWatch = document.querySelector("#stream-menu-watch");
 const streamMenuFullscreen = document.querySelector("#stream-menu-fullscreen");
 const streamMenuStop = document.querySelector("#stream-menu-stop");
+const mobileTabContacts = document.querySelector("#mobile-tab-contacts");
+const mobileTabChat = document.querySelector("#mobile-tab-chat");
+const mobileTabSettings = document.querySelector("#mobile-tab-settings");
 const streamModal = document.querySelector("#stream-modal");
 const streamModalClose = document.querySelector("#stream-modal-close");
 const streamQualitySelect = document.querySelector("#stream-quality-select");
@@ -266,9 +268,6 @@ const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
 const MIN_CHAT_WIDTH = 320;
 const RESIZER_WIDTH = 12;
-const MAX_AUTO_LEVEL = 0.06;
-const MIN_AUTO_LEVEL = 0.01;
-const MANUAL_LEVEL_RANGE = 0.085;
 const VOICE_METER_FFT = 2048;
 const CONNECT_TIMEOUT_MS = 12000;
 let activePeerId = null;
@@ -493,7 +492,6 @@ setBootProgress(18, "Preparing interface");
 const currentVersion = packageInfo.version;
 const appDisplayName = projectConfig.app.name;
 const githubRepo = projectConfig.repo;
-const githubBranch = projectConfig.branch || "main";
 const linuxTerminalCommandName =
   projectConfig.app.cliCommandName ||
   projectConfig.linux.commandName ||
@@ -545,6 +543,31 @@ function applyPlatformUi() {
 }
 
 applyPlatformUi();
+
+function setMobileTab(tab) {
+  const nextTab = ["contacts", "chat", "settings"].includes(tab)
+    ? tab
+    : "contacts";
+  document.body.dataset.mobileTab = nextTab;
+
+  for (const [button, value] of [
+    [mobileTabContacts, "contacts"],
+    [mobileTabChat, "chat"],
+    [mobileTabSettings, "settings"],
+  ]) {
+    const active = value === nextTab;
+    button?.classList.toggle("active", active);
+    button?.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  if (nextTab === "settings") {
+    openSettings();
+  } else if (!settingsModal.classList.contains("hidden")) {
+    settingsModal.classList.add("hidden");
+  }
+}
+
+setMobileTab("contacts");
 
 const peerConnectionConfig = {
   iceServers: [
@@ -2714,7 +2737,9 @@ async function shouldPlaySound(key) {
         systemDnd: Boolean(state.systemDnd),
       };
     }
-  } catch {}
+  } catch {
+    // Native notification state is optional outside Electron.
+  }
 
   return !notificationState.systemDnd;
 }
@@ -6394,6 +6419,7 @@ function refreshPeers() {
       unreadCounts.delete(peerId);
       renderChatHistory();
       refreshPeers();
+      setMobileTab("chat");
       messageInput.focus();
     });
     button.addEventListener("contextmenu", (event) => {
@@ -6828,6 +6854,7 @@ function connectToPeer(remoteId) {
     activePeerId = remoteId;
     renderChatHistory();
     refreshPeers();
+    setMobileTab("chat");
     setStatus(
       "online",
       `Already connected to ${getPeerLabel(remoteId, connections.get(remoteId))}.`,
@@ -6886,7 +6913,7 @@ function renderBlockedList() {
   syncPresenceStatusIndicator();
 }
 
-function renderContactNicknameList(focusContactId = "") {
+function renderContactNicknameList() {
   contactNicknameList.replaceChildren();
   const editableContacts = contacts.filter((contact) => !contact.blocked);
 
@@ -7198,7 +7225,6 @@ screenCallAccept.addEventListener("click", () => {
 });
 
 screenCallIgnore.addEventListener("click", () => {
-  incomingCallIgnored = true;
   incomingCallScreen?.classList.add("hidden");
   stopLocalRingtone();
 });
@@ -7584,6 +7610,7 @@ platformApi.onNotificationAction((action) => {
     unreadCounts.delete(peerId);
     renderChatHistory();
     refreshPeers();
+    setMobileTab("chat");
     messageInput.focus();
     return;
   }
@@ -7602,6 +7629,7 @@ platformApi.onNotificationAction((action) => {
     unreadCounts.delete(peerId);
     renderChatHistory();
     refreshPeers();
+    setMobileTab("chat");
     acceptVoiceCall();
     return;
   }
@@ -7776,16 +7804,35 @@ titlebarLogo.addEventListener("contextmenu", openAppMenu);
 titlebarLogo.addEventListener("click", openAppMenu);
 
 appMenuSettings.addEventListener("click", () => {
-  openSettings();
+  if (platformApi.isElectron) {
+    openSettings();
+  } else {
+    setMobileTab("settings");
+  }
   closeAppMenu();
+});
+
+mobileTabContacts?.addEventListener("click", () => {
+  setMobileTab("contacts");
+});
+
+mobileTabChat?.addEventListener("click", () => {
+  setMobileTab("chat");
+});
+
+mobileTabSettings?.addEventListener("click", () => {
+  setMobileTab("settings");
 });
 
 settingsClose.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
+  if (!platformApi.isElectron) {
+    setMobileTab("contacts");
+  }
 });
 
 settingsModal.addEventListener("click", (event) => {
-  if (event.target === settingsModal) {
+  if (event.target === settingsModal && platformApi.isElectron) {
     settingsModal.classList.add("hidden");
   }
 });
