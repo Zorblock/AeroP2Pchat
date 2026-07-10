@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles';
 import { DownloadButton } from './DownloadButton';
-import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay } from 'lucide-react';
+import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone } from 'lucide-react';
 import { Terminal } from './Terminal';
 import './reset.css';
 import './index.css';
@@ -244,6 +244,14 @@ function App() {
               os="linux"
               text="Linux (.AppImage)"
               icon={<Download size={22} />}
+              colorTheme="green"
+              onClick={triggerConfetti}
+            />
+
+            <DownloadButton
+              os="android"
+              text="Android (.apk)"
+              icon={<Smartphone size={22} />}
               colorTheme="green"
               onClick={triggerConfetti}
             />

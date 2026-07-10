@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface DownloadButtonProps {
-  os: 'windows' | 'linux';
+  os: 'windows' | 'linux' | 'android';
   icon: React.ReactNode;
   text: string;
   colorTheme?: 'blue' | 'green';
@@ -27,8 +27,12 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
       if (!res.ok) throw new Error('API request failed');
       const release = await res.json();
       
-      const ext = os === 'windows' ? '.exe' : '.AppImage';
-      const asset = release.assets.find((a: any) => a.name.endsWith(ext));
+      const assetNames = {
+        windows: 'Aero-P2P-Chat-Windows-x64-Setup.exe',
+        linux: 'Aero-P2P-Chat-Linux-x64.AppImage',
+        android: 'Aero-P2P-Chat-Android.apk',
+      } as const;
+      const asset = release.assets.find((a: any) => a.name === assetNames[os]);
 
       if (!asset) {
         setStatusText('File not found!');
@@ -48,9 +52,12 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
       setStatusText('Using fallback URL...');
       
       setTimeout(() => {
-        const fallbackUrl = os === 'windows' 
-          ? 'https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Windows-x64-Setup.exe'
-          : 'https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/Aero-P2P-Chat-Linux-x64.AppImage';
+        const fallbackAssets = {
+          windows: 'Aero-P2P-Chat-Windows-x64-Setup.exe',
+          linux: 'Aero-P2P-Chat-Linux-x64.AppImage',
+          android: 'Aero-P2P-Chat-Android.apk',
+        } as const;
+        const fallbackUrl = `https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/${fallbackAssets[os]}`;
         window.location.href = fallbackUrl;
         setDownloading(false);
       }, 1000);
