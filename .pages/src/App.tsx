@@ -47,6 +47,7 @@ function App() {
   const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
+  const [headerCompact, setHeaderCompact] = useState(false);
 
   const constraintsRef = useRef(null);
 
@@ -81,6 +82,13 @@ function App() {
     return () => lenis.destroy();
   }, []);
 
+  useEffect(() => {
+    const updateHeader = () => setHeaderCompact(globalThis.scrollY > 70);
+    updateHeader();
+    globalThis.addEventListener('scroll', updateHeader, { passive: true });
+    return () => globalThis.removeEventListener('scroll', updateHeader);
+  }, []);
+
 
   const triggerConfetti = () => {
     confetti({
@@ -111,6 +119,20 @@ function App() {
 
   return (
     <>
+      <header className={`site-header${headerCompact ? ' is-compact' : ''}`}>
+        <nav className="site-header__inner" aria-label="Main navigation">
+          <a className="site-header__brand" href="#top" aria-label="Aero P2P Chat home">
+            <img className="site-header__logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" width="42" height="42" />
+            <span>Aero P2P Chat</span>
+          </a>
+          <div className="site-header__links">
+            <a href="#download">Download</a>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it works</a>
+          </div>
+        </nav>
+      </header>
+
       {/* Dynamic Parallax Background */}
       <motion.div
         style={{
@@ -147,7 +169,7 @@ function App() {
 
       <DustParticles />
 
-      <main style={{ position: 'relative', zIndex: 10, padding: 'clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
+      <main id="top" style={{ position: 'relative', zIndex: 10, padding: 'clamp(6rem, 10vw, 7.5rem) clamp(1rem, 3vw, 2rem) clamp(2rem, 5vw, 4rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
         {/* Decorative insect at the top right of the hero */}
         <motion.img loading="lazy" decoding="async"
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
@@ -247,6 +269,7 @@ function App() {
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '800px' }}
         >
           <div
+            id="download"
             className="aero-glass mobile-p-1"
             style={{ marginTop: '0.5rem', padding: '1.25rem', width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(224,242,254,0.54))', border: '1px solid rgba(255,255,255,0.9)', borderRadius: '1.5rem', boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.9), 0 18px 45px rgba(2,64,145,0.22)' }}
           >
@@ -347,6 +370,7 @@ function App() {
         </motion.div>
 
         <motion.div
+          id="features"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
@@ -371,6 +395,7 @@ function App() {
 
         {/* How It Works Section */}
         <motion.div
+          id="how-it-works"
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
