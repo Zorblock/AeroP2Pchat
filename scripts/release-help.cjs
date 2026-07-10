@@ -206,54 +206,81 @@ function main() {
     return;
   }
 
-  // 1. Bump version
-  setPackageVersion(nextVersion);
-
-  // 2. Run tests
+  // 1. Run tests first (before any version bump)
+  console.log("Running tests...");
   run("npm", ["run", "test"]);
 
-  // 3. Build Windows, then Android, and create the desktop update manifest.
-  // The Windows build cleans dist/, so Android must run afterwards.
-  run("node", [
-    "scripts/ci-build-release.cjs",
-    "--platform=windows",
-    `--version=${nextVersion}`,
-  ]);
-  run("node", ["scripts/build-android.cjs"]);
-  run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
+  // Store original package files for rollback
+  const originalPkg = fs.readFileSync(packagePath, "utf8");
+  const originalLock = fs.existsSync(lockPath) ? fs.readFileSync(lockPath, "utf8") : null;
+  let commitCreated = false;
 
-  // 4. Commit, push, tag
-  run("git", ["add", "-A"]);
-  if (hasStagedChanges()) {
-    run("git", ["commit", "-m", `chore: release ${tag}`]);
-  } else {
-    console.log("No file changes to commit.");
+  try {
+    // 2. Bump version
+    setPackageVersion(nextVersion);
+
+    // 3. Build Windows, then Android, and create the desktop update manifest.
+    // The Windows build cleans dist/, so Android must run afterwards.
+    run("node", [
+      "scripts/ci-build-release.cjs",
+      "--platform=windows",
+      `--version=${nextVersion}`,
+    ]);
+    run("node", ["scripts/build-android.cjs"]);
+    run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
+
+    // 4. Commit, push, tag
+    run("git", ["add", "-A"]);
+    if (hasStagedChanges()) {
+      run("git", ["commit", "-m", `chore: release ${tag}`]);
+      commitCreated = true;
+    } else {
+      console.log("No file changes to commit.");
+    }
+
+    run("git", ["push", "-u", "origin", branch]);
+    run("git", ["tag", tag]);
+    run("git", ["push", "origin", tag]);
+
+    // 5. Create GitHub release and upload Windows + Android artifacts and latest.yml
+    const releaseFiles = collectReleaseFiles();
+    const ghArgs = [
+      "release",
+      "create",
+      tag,
+      "--title",
+      tag,
+      "--generate-notes",
+      ...releaseFiles,
+    ];
+    run("gh", ghArgs);
+
+    console.log("");
+    console.log(
+      `Release ${tag} created on GitHub with Windows and Android artifacts.`,
+    );
+    console.log(
+      "GitHub Actions will now build the Linux AppImage and add it to the release.",
+    );
+  } catch (err) {
+    console.error(`\n❌ Release process failed: ${err.message || err}`);
+    console.log("Rolling back version bump...");
+    
+    // Restore package files
+    fs.writeFileSync(packagePath, originalPkg, "utf8");
+    if (originalLock) {
+      fs.writeFileSync(lockPath, originalLock, "utf8");
+    }
+    
+    // Reset commit if one was created
+    if (commitCreated) {
+      console.log("Rolling back git commit...");
+      spawnSync("git", ["reset", "HEAD~1"], { cwd: root, stdio: "ignore" });
+    }
+    
+    console.log("Rollback complete. Workspace is clean.");
+    throw err;
   }
-
-  run("git", ["push", "-u", "origin", branch]);
-  run("git", ["tag", tag]);
-  run("git", ["push", "origin", tag]);
-
-  // 5. Create GitHub release and upload Windows + Android artifacts and latest.yml
-  const releaseFiles = collectReleaseFiles();
-  const ghArgs = [
-    "release",
-    "create",
-    tag,
-    "--title",
-    tag,
-    "--generate-notes",
-    ...releaseFiles,
-  ];
-  run("gh", ghArgs);
-
-  console.log("");
-  console.log(
-    `Release ${tag} created on GitHub with Windows and Android artifacts.`,
-  );
-  console.log(
-    "GitHub Actions will now build the Linux AppImage and add it to the release.",
-  );
 }
 
 try {
