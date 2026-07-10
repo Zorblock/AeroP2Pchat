@@ -217,16 +217,23 @@ html {
   }
 
   .site-header {
+    width: 100vw;
+    max-width: 100vw;
     padding-inline: 0.75rem;
+    overflow: visible;
   }
 
   .site-header__inner {
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
     gap: 0.5rem;
     min-height: 58px;
     padding: 0.4rem 0.45rem 0.4rem 0.65rem;
   }
 
   .site-header.is-compact .site-header__inner {
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
     min-height: 64px;
     padding: 0.45rem 0.55rem 0.45rem 0.75rem;
     border-radius: 0 0 22px 22px;
@@ -238,11 +245,15 @@ html {
   }
 
   .site-header__brand {
+    flex: 1 1 auto;
     font-size: 0.9rem;
     min-width: 0;
+    overflow: hidden;
   }
 
   .site-header__brand span:last-child {
+    display: block;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
