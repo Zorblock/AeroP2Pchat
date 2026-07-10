@@ -1,4 +1,4 @@
-const { copyFileSync, existsSync, readdirSync } = require("node:fs");
+const { copyFileSync, existsSync, mkdirSync, readdirSync } = require("node:fs");
 const { homedir } = require("node:os");
 const { join } = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -7,6 +7,7 @@ const packageInfo = require("../package.json");
 
 const rootDir = join(__dirname, "..");
 const androidDir = join(rootDir, "android");
+const releaseOutputDir = join(rootDir, "dist", "release");
 const isWindows = process.platform === "win32";
 const buildEnv = { ...process.env };
 
@@ -49,7 +50,9 @@ function findSupportedJavaHome() {
             candidates.push(join(base, entry.name));
           }
         }
-      } catch {}
+      } catch {
+        // The Java installation directory is optional or may be inaccessible.
+      }
     }
   }
 
@@ -129,11 +132,18 @@ run(isWindows ? "gradlew.bat" : "./gradlew", [
 const releaseDir = join(androidDir, "app", "build", "outputs", "apk", "release");
 const gradleApkPath = join(releaseDir, "app-release.apk");
 const namedApkPath = join(
-  releaseDir,
+  releaseOutputDir,
   projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
 );
 
-if (existsSync(gradleApkPath)) {
-  copyFileSync(gradleApkPath, namedApkPath);
-  console.log(`Android APK created: ${namedApkPath}`);
+if (!existsSync(gradleApkPath)) {
+  console.error(`Signed Android APK was not created: ${gradleApkPath}`);
+  console.error(
+    "Configure android/keystore.properties so the GitHub release gets an installable, signed APK.",
+  );
+  process.exit(1);
 }
+
+mkdirSync(releaseOutputDir, { recursive: true });
+copyFileSync(gradleApkPath, namedApkPath);
+console.log(`Android release APK created: ${namedApkPath}`);

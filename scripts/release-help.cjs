@@ -212,12 +212,14 @@ function main() {
   // 2. Run tests
   run("npm", ["run", "test"]);
 
-  // 3. Build Windows (electron-builder + Inno Setup) and create latest.yml
+  // 3. Build Windows, then Android, and create the desktop update manifest.
+  // The Windows build cleans dist/, so Android must run afterwards.
   run("node", [
     "scripts/ci-build-release.cjs",
     "--platform=windows",
     `--version=${nextVersion}`,
   ]);
+  run("node", ["scripts/build-android.cjs"]);
   run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
 
   // 4. Commit, push, tag
@@ -232,7 +234,7 @@ function main() {
   run("git", ["tag", tag]);
   run("git", ["push", "origin", tag]);
 
-  // 5. Create GitHub release and upload Windows artifacts + latest.yml
+  // 5. Create GitHub release and upload Windows + Android artifacts and latest.yml
   const releaseFiles = collectReleaseFiles();
   const ghArgs = [
     "release",
@@ -246,7 +248,9 @@ function main() {
   run("gh", ghArgs);
 
   console.log("");
-  console.log(`Release ${tag} created on GitHub with Windows artifacts.`);
+  console.log(
+    `Release ${tag} created on GitHub with Windows and Android artifacts.`,
+  );
   console.log(
     "GitHub Actions will now build the Linux AppImage and add it to the release.",
   );
