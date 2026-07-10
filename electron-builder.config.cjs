@@ -6,7 +6,14 @@ module.exports = {
   directories: {
     output: "dist",
   },
-  files: ["out/**/*", "assets/**/*", "package.json"],
+  files: [
+    "out/**/*",
+    "assets/**/*",
+    "package.json",
+    "!node_modules/**/android/**/*",
+    "!node_modules/**/ios/**/*",
+    "!node_modules/**/*.podspec"
+  ],
   win: {
     target: "dir",
     icon: "assets/app.ico",
