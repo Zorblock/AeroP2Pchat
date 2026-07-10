@@ -4,10 +4,10 @@ import Tilt from 'react-parallax-tilt';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import Lenis from 'lenis';
-import { DustParticles } from './DustParticles';
-import { DownloadButton } from './DownloadButton';
+import { DustParticles } from './DustParticles.tsx';
+import { DownloadButton } from './DownloadButton.tsx';
 import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone } from 'lucide-react';
-import { Terminal } from './Terminal';
+import { Terminal } from './Terminal.tsx';
 import './reset.css';
 import './index.css';
 import '7.css/dist/7.scoped.css';
@@ -23,6 +23,15 @@ const AeroBadge = ({ label, value, color }: { label: string, value: string, colo
   </div>
 );
 
+interface GitHubReleaseAsset {
+  download_count?: number;
+}
+
+interface GitHubRelease {
+  tag_name: string;
+  assets?: GitHubReleaseAsset[];
+}
+
 function App() {
   const dragControls = useDragControls();
   const { scrollYProgress } = useScroll();
@@ -34,7 +43,7 @@ function App() {
   const insectY = useTransform(scrollYProgress, [0, 1], [0, -250]); /* Increased parallax */
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
-  const [installOs, setInstallOs] = useState<'windows' | 'linux'>('windows');
+  const [installOs, setInstallOs] = useState<'windows' | 'linux' | 'android'>('windows');
   const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
@@ -52,9 +61,9 @@ function App() {
 
           // Calculate total downloads across all releases
           let downloads = 0;
-          releases.forEach((r: any) => {
+          releases.forEach((r: GitHubRelease) => {
             if (r.assets) {
-              r.assets.forEach((a: any) => {
+              r.assets.forEach((a: GitHubReleaseAsset) => {
                 downloads += a.download_count || 0;
               });
             }
@@ -94,6 +103,11 @@ function App() {
     windows: `iwr -useb ${baseUrl}/install.ps1 | iex`,
     linux: `curl -sSL ${baseUrl}/install.sh | bash`
   };
+  const platforms = [
+    { id: 'windows' as const, label: 'Windows', icon: <Download size={17} /> },
+    { id: 'linux' as const, label: 'Linux', icon: <Download size={17} /> },
+    { id: 'android' as const, label: 'Android', icon: <Smartphone size={17} /> },
+  ];
 
   return (
     <>
@@ -232,68 +246,46 @@ function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '800px' }}
         >
-          <div className="mobile-stack-buttons" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <DownloadButton
-              os="windows"
-              text="Windows Setup (.exe)"
-              icon={<Download size={22} />}
-              onClick={triggerConfetti}
-            />
-
-            <DownloadButton
-              os="linux"
-              text="Linux (.AppImage)"
-              icon={<Download size={22} />}
-              colorTheme="green"
-              onClick={triggerConfetti}
-            />
-
-            <DownloadButton
-              os="android"
-              text="Android (.apk)"
-              icon={<Smartphone size={22} />}
-              colorTheme="green"
-              onClick={triggerConfetti}
-            />
-          </div>
-
-          <div style={{ marginTop: '2rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div className="install-os-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'center' }}>
-              <button
-                className="liquid-btn"
-                onClick={() => setInstallOs('windows')}
-                style={{ background: installOs === 'windows' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'windows' ? '#0369a1' : '#475569', border: installOs === 'windows' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'windows' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
-              >
-                Windows
-              </button>
-              <button
-                className="liquid-btn"
-                onClick={() => setInstallOs('linux')}
-                style={{ background: installOs === 'linux' ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: installOs === 'linux' ? '#0369a1' : '#475569', border: installOs === 'linux' ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.4rem 1.4rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: installOs === 'linux' ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
-              >
-                Linux
-              </button>
+          <div style={{ marginTop: '0.5rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="install-os-buttons" role="tablist" aria-label="Choose your platform" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', justifyContent: 'center' }}>
+              {platforms.map((platform) => {
+                const selected = installOs === platform.id;
+                return (
+                  <button
+                    key={platform.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    className="liquid-btn"
+                    onClick={() => setInstallOs(platform.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: selected ? 'linear-gradient(180deg, #bae6fd, #38bdf8)' : 'rgba(255,255,255,0.3)', color: selected ? '#0369a1' : '#475569', border: selected ? '1px solid #7dd3fc' : '1px solid rgba(255,255,255,0.8)', padding: '0.55rem 1.25rem', borderRadius: '100px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', transition: 'all 0.3s', boxShadow: selected ? 'inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 10px rgba(56,189,248,0.4)' : 'inset 0 1px 2px rgba(255,255,255,0.5)' }}
+                  >
+                    {platform.icon}
+                    {platform.label}
+                  </button>
+                );
+              })}
             </div>
-            <motion.div
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={installOs}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
+              >
+              {installOs !== 'android' && <motion.div
               layout
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="aero-glass mobile-col mobile-p-1"
               style={{ padding: '0.5rem 0.5rem 0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.5)', overflow: 'hidden', borderRadius: '1rem' }}
             >
               <motion.div layout style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                <AnimatePresence mode="wait">
-                  <motion.code
-                    layout
-                    key={installOs}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    style={{ color: '#0369a1', fontFamily: 'monospace', fontSize: '0.95rem', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 600, display: 'inline-block' }}
-                  >
-                    {installCommands[installOs]}
-                  </motion.code>
-                </AnimatePresence>
+                <motion.code layout style={{ color: '#0369a1', fontFamily: 'monospace', fontSize: '0.95rem', whiteSpace: 'nowrap', userSelect: 'all', cursor: 'text', fontWeight: 600, display: 'inline-block' }}>
+                  {installCommands[installOs]}
+                </motion.code>
               </motion.div>
               <motion.button
                 layout
@@ -308,8 +300,17 @@ function App() {
               >
                 Copy
               </motion.button>
-            </motion.div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', width: '100%' }}>
+            </motion.div>}
+
+              <DownloadButton
+                os={installOs}
+                text={installOs === 'windows' ? 'Windows Setup (.exe)' : installOs === 'linux' ? 'Linux (.AppImage)' : 'Android APK herunterladen'}
+                icon={installOs === 'android' ? <Smartphone size={22} /> : <Download size={22} />}
+                colorTheme={installOs === 'windows' ? 'blue' : 'green'}
+                onClick={triggerConfetti}
+              />
+
+              {installOs !== 'android' && <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
               <label className="subtle-checkbox-label">
                 <input
                   type="checkbox"
@@ -318,7 +319,9 @@ function App() {
                 />
                 Use Fallback-Mirror (zorblock.github.io)
               </label>
-            </div>
+              </div>}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <motion.a
