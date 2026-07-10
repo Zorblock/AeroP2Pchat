@@ -421,10 +421,12 @@ function App() {
               style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'relative', overflow: 'hidden' }}
             >
               <img loading="lazy" decoding="async" src={`${import.meta.env.BASE_URL}img/bubbles_43.png`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 0 }} alt="" />
-              <div style={{ position: 'relative', zIndex: 1, background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', display: 'inline-block', border: '1px solid #7dd3fc', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
-                {feat.icon}
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7', padding: '1rem', borderRadius: '16px', display: 'inline-flex', flexShrink: 0, border: '1px solid #7dd3fc', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.8)' }}>
+                  {feat.icon}
+                </div>
+                <h3 style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>{feat.title}</h3>
               </div>
-              <h3 style={{ position: 'relative', zIndex: 1, color: '#0f172a', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{feat.title}</h3>
               <p style={{ position: 'relative', zIndex: 1, color: '#334155', lineHeight: 1.6, fontWeight: 500 }}>{feat.desc}</p>
             </motion.div>
           ))}
