@@ -111,12 +111,12 @@ function run(command, args, options = {}) {
     encoding: options.encoding,
   });
 
-  if (result.error) {
+  if (result.error && !options.ignoreError) {
     console.error(result.error.message);
     process.exit(1);
   }
 
-  if (result.status !== 0) {
+  if (result.status !== 0 && !options.ignoreError) {
     process.exit(result.status || 1);
   }
 
@@ -177,7 +177,24 @@ const apkPath = join(
   "debug",
   "app-debug.apk",
 );
-adb(["install", "-r", apkPath]);
+
+console.log("Installing APK on device...");
+const installResult = adb(["install", "-r", apkPath], { ignoreError: true, stdio: "pipe", encoding: "utf8" });
+const output = `${installResult.stdout || ""} ${installResult.stderr || ""}`;
+
+if (installResult.status !== 0) {
+  if (output.includes("INSTALL_FAILED_UPDATE_INCOMPATIBLE")) {
+    console.log("⚠️ Signature mismatch detected! Automatically uninstalling conflicting app...");
+    adb(["uninstall", "de.zorblock.aerop2pchat"]);
+    console.log("Re-installing APK...");
+    adb(["install", "-r", apkPath]);
+  } else {
+    console.error(`Installation failed:\n${output}`);
+    process.exit(1);
+  }
+}
+
+console.log("Launching app...");
 adb([
   "shell",
   "monkey",
@@ -186,6 +203,6 @@ adb([
   "-c",
   "android.intent.category.LAUNCHER",
   "1",
-]);
+], { stdio: "ignore" });
 
 console.log(`Installed and launched ${packageInfo.name} ${packageInfo.version}.`);
