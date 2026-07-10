@@ -1,8 +1,7 @@
-const { copyFileSync, existsSync, readdirSync } = require("node:fs");
+const { existsSync, readdirSync } = require("node:fs");
 const { homedir } = require("node:os");
 const { join } = require("node:path");
 const { spawnSync } = require("node:child_process");
-const projectConfig = require("../config.json");
 const packageInfo = require("../package.json");
 
 const rootDir = join(__dirname, "..");
@@ -49,7 +48,9 @@ function findSupportedJavaHome() {
             candidates.push(join(base, entry.name));
           }
         }
-      } catch {}
+      } catch {
+        // Optional Java install location.
+      }
     }
   }
 
@@ -59,30 +60,38 @@ function findSupportedJavaHome() {
   });
 }
 
+function findAndroidSdkHome() {
+  const candidates = [
+    process.env.ANDROID_HOME,
+    process.env.ANDROID_SDK_ROOT,
+    isWindows
+      ? join(
+          process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
+          "Android",
+          "Sdk",
+        )
+      : "",
+    isWindows ? "C:\\Android\\Sdk" : join(homedir(), "Android", "Sdk"),
+  ].filter(Boolean);
+
+  return candidates.find(
+    (candidate) =>
+      existsSync(join(candidate, "platforms")) &&
+      existsSync(join(candidate, "platform-tools")),
+  );
+}
+
 const supportedJavaHome = findSupportedJavaHome();
 if (supportedJavaHome) {
   buildEnv.JAVA_HOME = supportedJavaHome;
   buildEnv.PATH = `${join(supportedJavaHome, "bin")}${isWindows ? ";" : ":"}${process.env.PATH || ""}`;
 }
 
-function findAndroidSdkHome() {
-  const candidates = [
-    process.env.ANDROID_HOME,
-    process.env.ANDROID_SDK_ROOT,
-    isWindows ? join(process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"), "Android", "Sdk") : "",
-    isWindows ? "C:\\Android\\Sdk" : join(homedir(), "Android", "Sdk"),
-  ].filter(Boolean);
-
-  return candidates.find((candidate) =>
-    existsSync(join(candidate, "platforms")) &&
-    existsSync(join(candidate, "platform-tools")),
-  );
-}
-
 const androidSdkHome = findAndroidSdkHome();
 if (androidSdkHome) {
   buildEnv.ANDROID_HOME = androidSdkHome;
   buildEnv.ANDROID_SDK_ROOT = androidSdkHome;
+  buildEnv.PATH = `${join(androidSdkHome, "platform-tools")}${isWindows ? ";" : ":"}${buildEnv.PATH || ""}`;
 }
 
 function run(command, args, options = {}) {
@@ -96,9 +105,10 @@ function run(command, args, options = {}) {
 
   const result = spawnSync(executable, executableArgs, {
     cwd: options.cwd || rootDir,
-    stdio: "inherit",
+    stdio: options.stdio || "inherit",
     shell: false,
     env: buildEnv,
+    encoding: options.encoding,
   });
 
   if (result.error) {
@@ -109,6 +119,15 @@ function run(command, args, options = {}) {
   if (result.status !== 0) {
     process.exit(result.status || 1);
   }
+
+  return result;
+}
+
+function adb(args, options = {}) {
+  const adbPath = androidSdkHome
+    ? join(androidSdkHome, "platform-tools", isWindows ? "adb.exe" : "adb")
+    : "adb";
+  return run(adbPath, args, options);
 }
 
 if (!existsSync(androidDir)) {
@@ -116,24 +135,57 @@ if (!existsSync(androidDir)) {
   process.exit(1);
 }
 
+const devicesResult = adb(["devices"], {
+  stdio: "pipe",
+  encoding: "utf8",
+});
+const connectedDevices = devicesResult.stdout
+  .split(/\r?\n/)
+  .slice(1)
+  .map((line) => line.trim())
+  .filter((line) => /\tdevice$/.test(line));
+
+if (connectedDevices.length === 0) {
+  console.error(
+    [
+      "No authorized Android device found.",
+      "Enable Developer options and USB debugging on the phone, connect USB, then accept the RSA prompt on the phone.",
+      "You can check the state with: adb devices",
+    ].join("\n"),
+  );
+  process.exit(1);
+}
+
 run("npx", ["vite", "build"]);
 run("npx", ["cap", "sync", "android"]);
-run(isWindows ? "gradlew.bat" : "./gradlew", [
-  "assembleRelease",
-  `-PaeroAndroidVersionName=${packageInfo.version}`,
-  `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
-], {
-  cwd: androidDir,
-});
-
-const releaseDir = join(androidDir, "app", "build", "outputs", "apk", "release");
-const gradleApkPath = join(releaseDir, "app-release.apk");
-const namedApkPath = join(
-  releaseDir,
-  projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
+run(
+  isWindows ? "gradlew.bat" : "./gradlew",
+  [
+    "assembleDebug",
+    `-PaeroAndroidVersionName=${packageInfo.version}`,
+    `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
+  ],
+  { cwd: androidDir },
 );
 
-if (existsSync(gradleApkPath)) {
-  copyFileSync(gradleApkPath, namedApkPath);
-  console.log(`Android APK created: ${namedApkPath}`);
-}
+const apkPath = join(
+  androidDir,
+  "app",
+  "build",
+  "outputs",
+  "apk",
+  "debug",
+  "app-debug.apk",
+);
+adb(["install", "-r", apkPath]);
+adb([
+  "shell",
+  "monkey",
+  "-p",
+  "de.zorblock.aerop2pchat",
+  "-c",
+  "android.intent.category.LAUNCHER",
+  "1",
+]);
+
+console.log(`Installed and launched ${packageInfo.name} ${packageInfo.version}.`);

@@ -16,6 +16,7 @@
   "release": {
     "windowsSetupBaseName": "Aero-P2P-Chat-Setup",
     "windowsSetupAsset": "Aero-P2P-Chat-Windows-x64-Setup.exe",
-    "linuxAppImageAsset": "Aero-P2P-Chat-Linux-x64.AppImage"
+    "linuxAppImageAsset": "Aero-P2P-Chat-Linux-x64.AppImage",
+    "androidApkAsset": "Aero-P2P-Chat-Android.apk"
   }
 }

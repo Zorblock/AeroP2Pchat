@@ -1,3 +1,14 @@
 {
-    "deno.enable": true
+    "deno.enable": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+    "java.import.gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+    "gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "C:\\Program Files\\Java\\jdk-21.0.11",
+            "default": true
+        }
+    ]
 }
