@@ -219,6 +219,60 @@ html {
   .site-header__links a:first-child {
     display: inline-flex;
   }
+
+  .site-header__brand {
+    font-size: 0.9rem;
+  }
+
+  .site-main {
+    padding: 5.5rem 0.75rem 2rem !important;
+  }
+
+  .hero-insect {
+    display: none;
+  }
+
+  .hero-intro {
+    margin-bottom: 2rem !important;
+  }
+
+  .hero-logo {
+    width: 108px !important;
+    height: 108px !important;
+  }
+
+  .hero-intro h1 {
+    margin-top: 1rem !important;
+    font-size: clamp(2.35rem, 12vw, 3.2rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .hero-intro p {
+    max-width: 340px !important;
+    font-size: 0.98rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .hero-badges {
+    gap: 0.45rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .hero-badges > :nth-child(n + 4) {
+    display: none !important;
+  }
+
+  .platform-tabs {
+    gap: 0.2rem !important;
+    padding: 0.22rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .platform-tabs button {
+    gap: 0.3rem !important;
+    padding: 0.65rem 0.25rem !important;
+    font-size: 0.78rem !important;
+  }
 }
 
 /* Hide native scrollbar */
@@ -653,7 +707,7 @@ h1 {
   }
 
   .mobile-p-1 {
-    padding: 1.5rem !important;
+    padding: 0.9rem !important;
   }
 
   .hide-on-mobile {

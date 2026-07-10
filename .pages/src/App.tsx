@@ -89,6 +89,17 @@ function App() {
     return () => globalThis.removeEventListener('scroll', updateHeader);
   }, []);
 
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('android')) {
+      setInstallOs('android');
+    } else if (userAgent.includes('windows')) {
+      setInstallOs('windows');
+    } else if (userAgent.includes('linux') && !userAgent.includes('cros')) {
+      setInstallOs('linux');
+    }
+  }, []);
+
 
   const triggerConfetti = () => {
     confetti({
@@ -169,9 +180,9 @@ function App() {
 
       <DustParticles />
 
-      <main id="top" style={{ position: 'relative', zIndex: 10, padding: 'clamp(6rem, 10vw, 7.5rem) clamp(1rem, 3vw, 2rem) clamp(2rem, 5vw, 4rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
+      <main id="top" className="site-main" style={{ position: 'relative', zIndex: 10, padding: 'clamp(6rem, 10vw, 7.5rem) clamp(1rem, 3vw, 2rem) clamp(2rem, 5vw, 4rem)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', overflowX: 'hidden' }}>
         {/* Decorative insect at the top right of the hero */}
-        <motion.img loading="lazy" decoding="async"
+        <motion.img loading="lazy" decoding="async" className="hero-insect"
           src={`${import.meta.env.BASE_URL}img/insects_8.png`}
           style={{ position: 'absolute', top: '5%', right: '10%', width: '350px', zIndex: 60, opacity: 0.9, pointerEvents: 'none', transform: 'rotate(5deg)', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))', y: insectY }}
           alt=""
@@ -236,6 +247,7 @@ function App() {
         />
 
         <motion.div
+          className="hero-intro"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -243,7 +255,7 @@ function App() {
         >
           <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05} transitionSpeed={2000}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
-              <img fetchPriority="high" src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
+              <img className="hero-logo" fetchPriority="high" src={`${import.meta.env.BASE_URL}logo.png`} alt="Aero P2P Chat" style={{ width: 140, height: 140, filter: 'drop-shadow(0 0 20px rgba(56,189,248,0.4))' }} />
               <img loading="lazy" decoding="async" src={`${import.meta.env.BASE_URL}img/bubbles_40.png`} style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '120%', objectFit: 'contain', zIndex: 10, pointerEvents: 'none', mixBlendMode: 'screen', opacity: 0.9 }} alt="" />
             </div>
           </Tilt>
@@ -253,7 +265,7 @@ function App() {
           <p style={{ color: '#e2e8f0', fontSize: 'clamp(1rem, 4vw, 1.35rem)', maxWidth: '600px', margin: '1rem auto 0', lineHeight: 1.6, fontWeight: 500, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
             Direct desktop messaging without the middleman. Secure, fast, and completely peer-to-peer.
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+          <div className="hero-badges" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
             <AeroBadge label="Release" value={latestVersion} color="#0ea5e9" />
             <AeroBadge label="Downloads" value={totalDownloads > 0 ? totalDownloads.toLocaleString() : '12,345'} color="#38bdf8" />
             <AeroBadge label="License" value="Proprietary" color="#7dd3fc" />
