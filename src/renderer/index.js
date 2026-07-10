@@ -7691,16 +7691,20 @@ async function installAvailableUpdate() {
     return;
   }
 
-  if (platformApi.supportsNativeUpdateInstall) {
+  if (platformApi.supportsNativeUpdateInstall || platformApi.isAndroid) {
     updateButton.disabled = true;
     headerUpdateButton.disabled = true;
     startUpdateProgressListener();
     setUpdateButtonText("Downloading 0%");
-    setStatus("pending", "Downloading update installer...");
+    setStatus("pending", "Downloading update...");
 
     try {
+      const androidUrl = platformApi.isAndroid
+        ? `${githubRepoUrl}/releases/download/v${availableUpdate.version}/${projectConfig.release?.androidApkAsset || "Aero-P2P-Chat-Android.apk"}`
+        : "";
+
       await platformApi.installUpdate({
-        url: availableUpdate.windowsUrl,
+        url: platformApi.isAndroid ? androidUrl : availableUpdate.windowsUrl,
         version: availableUpdate.version,
         sha256: availableUpdate.windowsSha256,
         sha512: availableUpdate.windowsSha512,

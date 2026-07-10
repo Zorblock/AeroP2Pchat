@@ -2,6 +2,8 @@ import { Capacitor } from "@capacitor/core";
 import { Clipboard } from "@capacitor/clipboard";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { Preferences } from "@capacitor/preferences";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { FileOpener } from "@capacitor-community/file-opener";
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 
@@ -69,6 +71,7 @@ export function createPlatformApi() {
   const platform = electron?.platform || capacitorPlatform || "web";
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
+  let androidUpdateProgressCallback = null;
 
   return {
     platform,
@@ -218,11 +221,54 @@ export function createPlatformApi() {
       });
     },
 
-    installUpdate(details) {
-      if (!electron?.installUpdate) {
-        return Promise.reject(new Error("Native updates are not available here."));
+    async installUpdate(details) {
+      if (electron?.installUpdate) {
+        return electron.installUpdate(details);
       }
-      return electron.installUpdate(details);
+
+      if (isAndroid) {
+        if (!details.url) {
+          throw new Error("No download URL provided for Android update.");
+        }
+
+        let progressListener = null;
+        if (androidUpdateProgressCallback) {
+          progressListener = await Filesystem.addListener("progress", (progress) => {
+            const percent = progress.contentLength > 0 ? Math.round((progress.bytes / progress.contentLength) * 100) : 0;
+            androidUpdateProgressCallback({ phase: "download", percent });
+          });
+        }
+
+        try {
+          const downloadResult = await Filesystem.downloadFile({
+            url: details.url,
+            path: "update.apk",
+            directory: Directory.Cache,
+            progress: true,
+          });
+
+          if (androidUpdateProgressCallback) {
+            androidUpdateProgressCallback({ phase: "install" });
+          }
+
+          await FileOpener.open({
+            filePath: downloadResult.path,
+            contentType: "application/vnd.android.package-archive",
+          });
+
+          if (progressListener) {
+            await progressListener.remove();
+          }
+          return { ok: true };
+        } catch (error) {
+          if (progressListener) {
+            await progressListener.remove();
+          }
+          throw error;
+        }
+      }
+
+      throw new Error("Native updates are not available here.");
     },
 
     windowControl(action) {
@@ -238,7 +284,20 @@ export function createPlatformApi() {
     },
 
     onUpdateProgress(callback) {
-      return electron?.onUpdateProgress?.(callback) || null;
+      if (electron?.onUpdateProgress) {
+        return electron.onUpdateProgress(callback);
+      }
+      
+      if (isAndroid) {
+        androidUpdateProgressCallback = callback;
+        return () => {
+          if (androidUpdateProgressCallback === callback) {
+            androidUpdateProgressCallback = null;
+          }
+        };
+      }
+      
+      return null;
     },
 
     onCheckForUpdates(callback) {
