@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles.tsx';
 import { DownloadButton } from './DownloadButton.tsx';
-import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone } from 'lucide-react';
+import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone, Menu, X } from 'lucide-react';
 import { Terminal } from './Terminal.tsx';
 import './reset.css';
 import './index.css';
@@ -48,6 +48,7 @@ function App() {
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
   const [headerCompact, setHeaderCompact] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const constraintsRef = useRef(null);
 
@@ -95,6 +96,14 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+    globalThis.addEventListener('keydown', closeOnEscape);
+    return () => globalThis.removeEventListener('keydown', closeOnEscape);
+  }, []);
+
+  useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes('android')) {
       setInstallOs('android');
@@ -137,14 +146,24 @@ function App() {
     <>
       <header className={`site-header${headerCompact ? ' is-compact' : ''}`}>
         <nav className="site-header__inner" aria-label="Main navigation">
-          <a className="site-header__brand" href="#top" aria-label="Aero P2P Chat home">
+          <a className="site-header__brand" href="#top" aria-label="Aero P2P Chat home" onClick={() => setMobileMenuOpen(false)}>
             <img className="site-header__logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" width="42" height="42" />
             <span>Aero P2P Chat</span>
           </a>
-          <div className="site-header__links">
-            <a href="#download">Download</a>
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it works</a>
+          <button
+            type="button"
+            className="site-header__menu-button"
+            aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="main-navigation-links"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div id="main-navigation-links" className={`site-header__links${mobileMenuOpen ? ' is-open' : ''}`}>
+            <a href="#download" onClick={() => setMobileMenuOpen(false)}>Download</a>
+            <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
           </div>
         </nav>
       </header>
