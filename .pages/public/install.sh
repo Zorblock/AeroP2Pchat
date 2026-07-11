@@ -61,29 +61,34 @@ color() {
 }
 
 line() {
-    printf '%s\n' "$(color dim '----------------------------------------')"
+    printf '%s\n' "$(color dim '  =====================================================')"
 }
 
 title() {
-    line
-    printf '%s\n' "$(color bold "$APP_NAME Linux Installer")"
-    line
+    printf '\n'
+    printf '%s\n' "$(color cyan '  =====================================================')"
+    printf '%s\n' "$(color cyan '       A E R O   P 2 P   C H A T')"
+    printf '%s\n' "$(color cyan '  =====================================================')"
+    printf '\n'
+    printf '%s%s%s\n' "$(color dim '  |')" "$(color bold '             Linux Installer & Manager              ')" "$(color dim '|')"
+    printf '%s\n' "$(color dim '  -----------------------------------------------------')"
+    printf '\n'
 }
 
 info() {
-    printf '%s %s\n' "$(color blue '>')" "$1"
+    printf '   %s %s\n' "$(color blue '[i]')" "$1"
 }
 
 ok() {
-    printf '%s %s\n' "$(color green 'OK')" "$1"
+    printf '   %s %s\n' "$(color green '[OK]')" "$1"
 }
 
 warn() {
-    printf '%s %s\n' "$(color yellow 'WARN')" "$1"
+    printf '   %s %s\n' "$(color yellow '[!]')" "$1"
 }
 
 fail() {
-    printf '%s %s\n' "$(color red 'ERROR')" "$1" >&2
+    printf '   %s %s\n' "$(color red '[x]')" "$1" >&2
     exit 1
 }
 
@@ -302,11 +307,12 @@ install_icon() {
 }
 
 print_paths() {
-    printf '%s %s\n' "$(color dim 'AppImage')" "$APPIMAGE_PATH"
-    printf '%s %s\n' "$(color dim 'App cmd ')" "$BIN_PATH"
-    printf '%s %s\n' "$(color dim 'CLI cmd ')" "$CLI_PATH"
-    printf '%s %s\n' "$(color dim 'Launcher')" "$DESKTOP_PATH"
-    printf '%s %s\n' "$(color dim 'App data')" "$APP_DATA_DIR"
+    printf '\n'
+    printf '   %s %s\n' "$(color dim 'AppImage:')" "$APPIMAGE_PATH"
+    printf '   %s %s\n' "$(color dim 'App cmd: ')" "$BIN_PATH"
+    printf '   %s %s\n' "$(color dim 'CLI cmd: ')" "$CLI_PATH"
+    printf '   %s %s\n' "$(color dim 'Launcher:')" "$DESKTOP_PATH"
+    printf '   %s %s\n' "$(color dim 'App data:')" "$APP_DATA_DIR"
 }
 
 fetch_manifest() {
@@ -426,30 +432,41 @@ show_menu() {
     
     best_format="$(detect_best_format)"
     
-    printf '%s %s\n' "$(color dim 'Installed')" "$installed_version"
-    printf '%s %s\n' "$(color dim 'Latest   ')" "$latest_version"
+    # Status Banner
+    if [ "$installed_version" = "not installed" ]; then
+        printf '   %s %s\n' "Status:" "$(color yellow 'Not Installed')"
+        printf '   %s %s\n' "Latest:" "$(color cyan "v${latest_version}")"
+    else
+        if [ "$installed_version" = "$latest_version" ]; then
+            printf '   %s %s\n' "Status:" "$(color green "Installed & Up-to-date (v${installed_version})")"
+        else
+            printf '   %s %s\n' "Status:" "$(color green "Installed (v${installed_version})")"
+            printf '   %s %s\n' "Latest:" "$(color yellow "v${latest_version} (Update available!)")"
+        fi
+    fi
     printf '\n'
     
-    printf '%s\n' "$(color bold "1 - Auto Install [Recommended: $(format_name "$best_format")]")"
-    printf '%s\n' "$(color cyan "2 - Install DEB")"
-    printf '%s\n' "$(color cyan "3 - Install RPM")"
-    printf '%s\n' "$(color cyan "4 - Install Snap")"
-    printf '%s\n' "$(color cyan "5 - Install Flatpak")"
-    printf '%s\n' "$(color cyan "6 - Install AppImage")"
+    # Menu Options
+    printf '   %s\n' "$(color bold "1) Auto Install [Recommended: $(format_name "$best_format")]")"
+    printf '   %s\n' "$(color cyan '2) Install DEB (Debian/Ubuntu/Mint)')"
+    printf '   %s\n' "$(color cyan '3) Install RPM (Fedora/RedHat/SUSE)')"
+    printf '   %s\n' "$(color cyan '4) Install Snap')"
+    printf '   %s\n' "$(color cyan '5) Install Flatpak')"
+    printf '   %s\n' "$(color cyan '6) Install AppImage (Portable)')"
     
     opt_uninstall=0
     opt_index=7
     if is_installed; then
-        printf '%s\n' "$(color red "$opt_index - Uninstall AppImage")"
+        printf '   %s\n' "$(color red "$opt_index) Uninstall AppImage")"
         opt_uninstall=$opt_index
         opt_index=$((opt_index + 1))
     fi
     
-    printf '%s\n' "$(color dim "$opt_index - Exit")"
+    printf '   %s\n' "$(color dim "$opt_index) Exit")"
     opt_exit=$opt_index
     
     printf '\n'
-    choice="$(prompt_input "Choose an option [1-$opt_index]: ")"
+    choice="$(prompt_input "   Select an option [1-$opt_index]: ")"
     printf '\n'
     
     rm -f "$tmp_manifest"
@@ -638,21 +655,21 @@ show_status() {
         latest_version="unknown"
     fi
     
-    if is_installed; then
-        ok "Installed"
-    else
-        warn "Not installed"
-    fi
-    printf '%s %s\n' "$(color dim 'Installed')" "$installed_version"
-    printf '%s %s\n' "$(color dim 'Latest   ')" "$latest_version"
+    printf '   %s %s\n' "Installed:" "$(color cyan "$installed_version")"
+    printf '   %s %s\n' "Latest:   " "$(color cyan "$latest_version")"
+    printf '\n'
     
-    if is_installed && [ "$latest_version" != "unknown" ]; then
-        if [ "$installed_version" = "$latest_version" ]; then
+    if is_installed; then
+        if [ "$latest_version" != "unknown" ] && [ "$installed_version" = "$latest_version" ]; then
             ensure_terminal_integration
-            ok "Up to date."
-        else
+            ok "You are up to date."
+        elif [ "$latest_version" != "unknown" ]; then
             warn "Update available. Run: $CLI_COMMAND_NAME update"
+        else
+            ok "Installed."
         fi
+    else
+        warn "Not installed."
     fi
     print_paths
 }

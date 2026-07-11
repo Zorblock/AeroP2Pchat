@@ -15,7 +15,6 @@ $ErrorActionPreference = "Stop"
 
 # Define application and repository details
 $AppName            = "Aero P2P Chat"
-$AppSlug            = "aero-p2p-chat"
 $CliCommandName     = "aerop2p"
 $Repo               = "Zorblock/AeroP2Pchat"
 $ReleaseBase        = "https://github.com/$Repo/releases/latest/download"
@@ -52,17 +51,15 @@ function Write-Color {
 function Write-Title {
     Clear-Host
     Write-Host ""
-    Write-Color '      ___' 'Cyan'
-    Write-Color '     /   |  ___  _________ ' 'Cyan'
-    Write-Color '    / /| | / _ \/ ___/ __ \ ' 'Cyan'
-    Write-Color '   / ___ |/  __/ /  / /_/ /' 'Cyan'
-    Write-Color '  /_/  |_|\___/_/   \____/ ' 'Cyan'
+    Write-Host "  =====================================================" -ForegroundColor Cyan
+    Write-Host "       A E R O   P 2 P   C H A T" -ForegroundColor Cyan
+    Write-Host "  =====================================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Color " =====================================================" "DarkGray"
-    Write-Host  " | " -ForegroundColor "DarkGray" -NoNewline
-    Write-Host  "          Aero P2P Chat Windows Installer          " -ForegroundColor "White" -NoNewline
-    Write-Color " |" "DarkGray"
-    Write-Color " =====================================================" "DarkGray"
+    Write-Host "  -----------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  |" -ForegroundColor DarkGray -NoNewline
+    Write-Host "            Windows Installer & Manager             " -ForegroundColor White -NoNewline
+    Write-Host "|" -ForegroundColor DarkGray
+    Write-Host "  -----------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
 }
 
