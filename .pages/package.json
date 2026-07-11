@@ -13,6 +13,7 @@
     "@icons-pack/react-simple-icons": "^13.13.0",
     "7.css": "^0.21.1",
     "canvas-confetti": "^1.9.4",
+    "featurebase-js": "^1.0.3",
     "framer-motion": "^12.42.0",
     "lenis": "^1.3.25",
     "lucide-react": "^1.22.0",
