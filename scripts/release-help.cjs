@@ -219,8 +219,8 @@ function main() {
     // 2. Bump version
     setPackageVersion(nextVersion);
 
-    // 3. Build Windows, then Android, and create the desktop update manifest.
-    // The Windows build cleans dist/, so Android must run afterwards.
+    // 3. Build Windows, Android, and the Microsoft Store package.
+    // The Windows build cleans dist/, so Android and Store builds run afterwards.
     run("node", [
       "scripts/ci-build-release.cjs",
       "--platform=windows",
@@ -228,6 +228,7 @@ function main() {
     ]);
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
+    run("npm", ["run", "build:store"]);
 
     // 4. Commit, push, tag
     run("git", ["add", "-A"]);
@@ -255,6 +256,9 @@ function main() {
     ];
     run("gh", ghArgs);
 
+    // 6. Upload the version-matched MSIX package and submit it to Microsoft Store.
+    run("npm", ["run", "store:publish"]);
+
     console.log("");
     console.log(
       `Release ${tag} created on GitHub with Windows and Android artifacts.`,
@@ -262,6 +266,7 @@ function main() {
     console.log(
       "GitHub Actions will now build the Linux AppImage and add it to the release.",
     );
+    console.log("Microsoft Store submission was uploaded for certification.");
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     console.log("Rolling back version bump...");

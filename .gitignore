@@ -1,6 +1,7 @@
 /out
 /node_modules
 /dist
+/.env.store
 *.iss.bak
 *.setup.log
 .dev-data

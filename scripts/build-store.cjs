@@ -45,4 +45,19 @@ run("npx", [
   `--config.appx.artifactName=Aero-P2P-Chat-Store-${packageJson.version}-x64.\${ext}`,
 ]);
 
+const appxPackage = fs
+  .readdirSync(outputDir)
+  .find((fileName) => fileName.toLowerCase().endsWith(".appx"));
+
+if (!appxPackage) {
+  throw new Error("electron-builder did not create an .appx Store package.");
+}
+
+const msixPackage = appxPackage.replace(/\.appx$/i, ".msix");
+fs.copyFileSync(
+  path.join(outputDir, appxPackage),
+  path.join(outputDir, msixPackage),
+);
+
 console.log(`Microsoft Store package: ${path.relative(root, outputDir)}`);
+console.log(`Microsoft Store CLI package: ${path.join("dist", "store", msixPackage)}`);
