@@ -30,6 +30,7 @@ const windowIcon = nativeImage.createFromPath(
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
+const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
 const userConfigFileName = "config.json";
 const updateManifestTimeoutMs = 12000;
@@ -371,10 +372,6 @@ function updateTrayMenu() {
       click: showMainWindow,
     },
     {
-      label: "Check for Updates",
-      click: () => sendTrayAction("check-for-updates"),
-    },
-    {
       label: "Disconnect All",
       click: () => sendTrayAction("disconnect-p2p"),
     },
@@ -387,6 +384,13 @@ function updateTrayMenu() {
       },
     },
   );
+
+  if (!isWindowsStore) {
+    menuTemplate.splice(-2, 0, {
+      label: "Check for Updates",
+      click: () => sendTrayAction("check-for-updates"),
+    });
+  }
 
   if (!app.isPackaged) {
     menuTemplate.push(
@@ -807,6 +811,9 @@ async function fetchTextWithRetry(url, attempts = 2) {
 }
 
 async function fetchUpdateManifest(rawUrl) {
+  if (isWindowsStore) {
+    throw new Error("Updates are managed by Microsoft Store.");
+  }
   const url = assertTrustedManifestUrl(rawUrl);
   return fetchTextWithRetry(url);
 }
@@ -919,6 +926,9 @@ async function installWindowsUpdate(
   expectedSha512 = "",
   onProgress = () => {},
 ) {
+  if (isWindowsStore) {
+    throw new Error("Updates are managed by Microsoft Store.");
+  }
   if (process.platform !== "win32") {
     throw new Error("Setup updates are only available on Windows.");
   }

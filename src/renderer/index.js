@@ -2473,6 +2473,11 @@ function clearUpdateAvailableUi() {
   updateCard.classList.add("hidden");
   titlebarLogo.classList.remove("update-available");
   titlebarLogo.removeAttribute("title");
+  if (platformApi.isWindowsStore) {
+    appMenuUpdate.classList.add("hidden");
+    appMenuUpdateIgnore.classList.add("hidden");
+    return;
+  }
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
   appMenuUpdate.querySelector("span").textContent = "Check for updates";
@@ -2552,6 +2557,12 @@ function ignoreAvailableUpdateHint() {
 }
 
 async function checkForUpdates({ manual = false } = {}) {
+  if (platformApi.isWindowsStore) {
+    clearUpdateAvailableUi();
+    if (manual) setStatus("online", "Updates are managed by Microsoft Store.");
+    return;
+  }
+
   if (updateCheckInFlight) {
     if (manual) {
       setUpdateMenuStatus("Checking...", { reset: false });
@@ -8053,9 +8064,11 @@ setBootProgress(82, "Rendering chat");
 peer = createPeer();
 setBootProgress(90, "Starting peer");
 setBootProgress(90, "Starting peer");
-checkForUpdates();
-setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
-platformApi.onCheckForUpdates(() => checkForUpdates({ manual: true }));
+if (!platformApi.isWindowsStore) {
+  checkForUpdates();
+  setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
+  platformApi.onCheckForUpdates(() => checkForUpdates({ manual: true }));
+}
 platformApi.onDisconnect(() => cleanupRealtimeConnections());
 
 function syncTrayState() {

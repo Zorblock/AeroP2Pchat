@@ -75,17 +75,19 @@ export function createPlatformApi() {
   const platform = electron?.platform || capacitorPlatform || "web";
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
+  const isWindowsStore = Boolean(electron?.isWindowsStore);
   let androidUpdateProgressCallback = null;
 
   return {
     platform,
     isAndroid,
     isElectron,
+    isWindowsStore,
     hasNativeWindowControls: isElectron,
     hasDesktopIntegration: isElectron,
     supportsAutostart: isElectron,
     supportsCloseToTray: isElectron,
-    supportsNativeUpdateInstall: platform === "win32",
+    supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
     supportsDesktopScreenSources: isElectron,
 
     async loadConfig() {
