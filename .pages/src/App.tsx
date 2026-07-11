@@ -356,6 +356,23 @@ function App() {
                 onClick={triggerConfetti}
               />
 
+              {installOs === 'windows' && (
+                <div className="microsoft-store-option">
+                  <div className="microsoft-store-option__copy">
+                    <strong>Prefer Microsoft Store?</strong>
+                    <span>One-click install and automatic updates</span>
+                  </div>
+                  <ms-store-badge
+                    className="microsoft-store-badge"
+                    productid="9MTXCOM7P403"
+                    productname="Aero P2P Chat"
+                    window-mode="full"
+                    theme="light"
+                    animation="on"
+                  />
+                </div>
+              )}
+
               {installOs !== 'android' && <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />

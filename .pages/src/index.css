@@ -900,3 +900,42 @@ h1 {
 .flare-animate {
   animation: lightPulse 8s infinite alternate ease-in-out;
 }
+.microsoft-store-option {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid rgba(14, 116, 144, 0.2);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(224, 242, 254, 0.78));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 22px rgba(14, 116, 144, 0.1);
+}
+
+.microsoft-store-option__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  color: #0f4c6d;
+  text-align: center;
+}
+
+.microsoft-store-option__copy strong {
+  font-size: 0.92rem;
+}
+
+.microsoft-store-option__copy span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+ms-store-badge.microsoft-store-badge::part(img) {
+  display: block;
+  max-height: 46px;
+  width: auto;
+  border-radius: 0.55rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+}
