@@ -392,6 +392,25 @@ close_running_instances() {
     fi
 }
 
+detect_best_format() {
+    if command -v apt-get >/dev/null 2>&1; then echo "deb"; return; fi
+    if command -v dnf >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then echo "rpm"; return; fi
+    if command -v snap >/dev/null 2>&1; then echo "snap"; return; fi
+    if command -v flatpak >/dev/null 2>&1; then echo "flatpak"; return; fi
+    echo "appimage"
+}
+
+format_name() {
+    case "$1" in
+        deb) echo "DEB (Debian/Ubuntu/Mint)" ;;
+        rpm) echo "RPM (Fedora/RedHat/SUSE)" ;;
+        snap) echo "Snap (Ubuntu Software Center)" ;;
+        flatpak) echo "Flatpak" ;;
+        appimage) echo "AppImage (Portable)" ;;
+        *) echo "$1" ;;
+    esac
+}
+
 show_menu() {
     title
     tmp_manifest="$(mktemp)"
@@ -405,79 +424,61 @@ show_menu() {
         warn "Could not check latest release."
     fi
     
+    best_format="$(detect_best_format)"
+    
     printf '%s %s\n' "$(color dim 'Installed')" "$installed_version"
     printf '%s %s\n' "$(color dim 'Latest   ')" "$latest_version"
     printf '\n'
     
-    install_label="Install"
-    if is_installed && [ "$latest_version" != "unknown" ] && [ "$installed_version" != "$latest_version" ]; then
-        install_label="Update to v${latest_version}"
-    elif is_installed && [ "$latest_version" != "unknown" ] && [ "$installed_version" = "$latest_version" ]; then
-        install_label="Reinstall v${latest_version}"
-    fi
-    
-    opt_index=1
-    printf '%s\n' "$(color bold "$opt_index - $install_label")"
-    opt_install=$opt_index
-    opt_index=$((opt_index + 1))
+    printf '%s\n' "$(color bold "1 - Auto Install [Recommended: $(format_name "$best_format")]")"
+    printf '%s\n' "$(color cyan "2 - Install DEB")"
+    printf '%s\n' "$(color cyan "3 - Install RPM")"
+    printf '%s\n' "$(color cyan "4 - Install Snap")"
+    printf '%s\n' "$(color cyan "5 - Install Flatpak")"
+    printf '%s\n' "$(color cyan "6 - Install AppImage")"
     
     opt_uninstall=0
+    opt_index=7
     if is_installed; then
-        printf '%s\n' "$(color red "$opt_index - Uninstall")"
+        printf '%s\n' "$(color red "$opt_index - Uninstall AppImage")"
         opt_uninstall=$opt_index
         opt_index=$((opt_index + 1))
     fi
-    
-    printf '%s\n' "$(color cyan "$opt_index - Check status details")"
-    opt_status=$opt_index
-    opt_index=$((opt_index + 1))
     
     printf '%s\n' "$(color dim "$opt_index - Exit")"
     opt_exit=$opt_index
     
     printf '\n'
-    choice="$(prompt_input "Choose an option [1-${opt_index}]: ")"
+    choice="$(prompt_input "Choose an option [1-$opt_index]: ")"
     printf '\n'
     
+    rm -f "$tmp_manifest"
+    trap - EXIT
+    
     case "$choice" in
-        $opt_install)
-            if confirm_action "Run ${install_label}?"; then
-                rm -f "$tmp_manifest"
-                trap - EXIT
-                install_app
-            else
-                warn "Cancelled."
-            fi
-        ;;
+        1) install_app "$best_format" "$latest_version" ;;
+        2) install_app "deb" "$latest_version" ;;
+        3) install_app "rpm" "$latest_version" ;;
+        4) install_app "snap" "$latest_version" ;;
+        5) install_app "flatpak" "$latest_version" ;;
+        6) install_app "appimage" "$latest_version" ;;
         $opt_uninstall)
             if [ "$opt_uninstall" -gt 0 ]; then
                 if confirm_action "Run Uninstall?"; then
-                    rm -f "$tmp_manifest"
-                    trap - EXIT
                     uninstall_app
-                else
-                    warn "Cancelled."
                 fi
             else
                 fail "Unknown option: $choice"
             fi
         ;;
-        $opt_status)
-            rm -f "$tmp_manifest"
-            trap - EXIT
-            show_status
-        ;;
-        $opt_exit)
-            exit 0
-        ;;
+        $opt_exit) exit 0 ;;
         *)
             warn "Invalid choice."
-            rm -f "$tmp_manifest"
-            trap - EXIT
             show_menu
         ;;
     esac
 }
+
 install_dependencies() {
     needs_fuse=0
     if ! command -v fusermount >/dev/null 2>&1 && [ ! -f /lib/x86_64-linux-gnu/libfuse.so.2 ] && [ ! -f /usr/lib/libfuse.so.2 ] && [ ! -f /usr/lib64/libfuse.so.2 ]; then
@@ -522,6 +523,59 @@ install_dependencies() {
 }
 
 install_app() {
+    format="${1:-$(detect_best_format)}"
+    target_version="$2"
+    
+    if [ "$format" = "appimage" ]; then
+        install_appimage
+        return
+    fi
+    
+    if [ "$target_version" = "unknown" ] || [ -z "$target_version" ]; then
+        tmp_manifest="$(mktemp)"
+        fetch_manifest "$tmp_manifest"
+        target_version="$(get_latest_version "$tmp_manifest")"
+        rm -f "$tmp_manifest"
+    fi
+    
+    file_name="Aero-P2P-Chat-Linux-x64.${format}"
+    download_url="${RELEASE_BASE}/${file_name}"
+    tmp_file="$(mktemp -d)/${file_name}"
+    
+    info "Downloading $(format_name "$format") v${target_version}..."
+    download "$download_url" "$tmp_file"
+    
+    info "Installing $(format_name "$format")... (sudo may be required)"
+    case "$format" in
+        deb)
+            sudo apt-get install -y "$tmp_file"
+            ;;
+        rpm)
+            if command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y "$tmp_file"
+            elif command -v zypper >/dev/null 2>&1; then
+                sudo zypper install -y "$tmp_file"
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y "$tmp_file"
+            else
+                sudo rpm -i "$tmp_file"
+            fi
+            ;;
+        snap)
+            sudo snap install --dangerous "$tmp_file"
+            ;;
+        flatpak)
+            flatpak install --user -y "$tmp_file"
+            ;;
+    esac
+    
+    rm -rf "$(dirname "$tmp_file")"
+    ok "Installation complete!"
+    warn "Note: Native packages like DEB/RPM/Snap/Flatpak manage their own uninstallation via your system package manager."
+}
+
+install_appimage() {
+
     title
     install_dependencies
     mkdir -p "$INSTALL_DIR"

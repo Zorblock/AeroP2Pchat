@@ -348,13 +348,15 @@ function App() {
                 transition={{ duration: 0.2 }}
                 style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
               >
-              <DownloadButton
-                os={installOs}
-                text={installOs === 'windows' ? 'Download for Windows (.exe)' : installOs === 'linux' ? 'Download for Linux (.AppImage)' : 'Download for Android (.apk)'}
-                icon={installOs === 'android' ? <Smartphone size={22} /> : <Download size={22} />}
-                colorTheme={installOs === 'windows' ? 'blue' : 'green'}
-                onClick={triggerConfetti}
-              />
+              {installOs !== 'linux' && (
+                <DownloadButton
+                  os={installOs}
+                  text={installOs === 'windows' ? 'Download for Windows (.exe)' : 'Download for Android (.apk)'}
+                  icon={installOs === 'android' ? <Smartphone size={22} /> : <Download size={22} />}
+                  colorTheme={installOs === 'windows' ? 'blue' : 'green'}
+                  onClick={triggerConfetti}
+                />
+              )}
 
               {installOs === 'windows' && (
                 <div className="microsoft-store-option">
@@ -376,7 +378,7 @@ function App() {
               {installOs !== 'android' && <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
-                  Or install from the terminal
+                  {installOs === 'linux' ? 'Install from the terminal' : 'Or install from the terminal'}
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
                 </div>
 

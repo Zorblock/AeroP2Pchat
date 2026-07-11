@@ -14,10 +14,11 @@ $SetupAsset = "Aero-P2P-Chat-Windows-x64-Setup.exe"
 $SetupUrl = "$ReleaseBase/$SetupAsset"
 $InstallUrl = "https://aero.zorblock.de/install.ps1"
 $FallbackInstallUrl = "https://zorblock.github.io/AeroP2Pchat/install.ps1"
+$MsStoreId = "9MTXCOM7P403"
 
-$InstallDir = "$env:LOCALAPPDATA\Programs\$AppSlug"
+$InstallDir = "$env:APPDATA\zorblock\$AppName"
 $ExePath = "$InstallDir\$AppName.exe"
-$UninstallerPath = "$InstallDir\Uninstall $AppName.exe"
+$UninstallerPath = "$InstallDir\unins000.exe"
 
 $BinDir = "$env:USERPROFILE\.local\bin"
 $CliPath = "$BinDir\$CliCommandName.bat"
@@ -56,6 +57,13 @@ function Get-InstalledVersion {
             $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath)
             return $versionInfo.FileVersion
         } catch {}
+    }
+    # Check if installed via winget
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+        $wingetOutput = winget list --id $MsStoreId --source msstore --accept-source-agreements 2>$null
+        if ($wingetOutput -match "$MsStoreId") {
+            return "MS Store Version"
+        }
     }
     return "not installed"
 }
@@ -105,8 +113,7 @@ exit /b 0
 if exist "$ExePath" (
     start "" "$ExePath" %*
 ) else (
-    echo $AppName is not installed.
-    exit /b 1
+    echo Aero P2P Chat was installed via Microsoft Store. Please launch it from the Start Menu.
 )
 "@
     Set-Content -Path $CliPath -Value $batContent -Encoding UTF8
@@ -122,8 +129,34 @@ if exist "$ExePath" (
     }
 }
 
+function Get-BestFormat {
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+        return "msstore"
+    }
+    return "exe"
+}
+
+function Format-Name {
+    param([string]$Format)
+    if ($Format -eq "msstore") { return "Microsoft Store (Winget)" }
+    if ($Format -eq "exe") { return "Standard Setup (.exe from GitHub)" }
+    return $Format
+}
+
 function Install-App {
-    param([bool]$IsUpdate = $false)
+    param([string]$Format = $(Get-BestFormat))
+
+    if ($Format -eq "msstore") {
+        Write-Info "Installing from Microsoft Store using Winget..."
+        try {
+            winget install --id $MsStoreId --source msstore --exact --accept-package-agreements --accept-source-agreements
+            Write-Ok "$AppName installed successfully via Microsoft Store!"
+            Write-TerminalCommand
+        } catch {
+            Write-ErrorMsg "Winget installation failed."
+        }
+        return
+    }
 
     Write-Info "Fetching latest release info..."
     $latest = Get-LatestVersion
@@ -134,11 +167,7 @@ function Install-App {
     Invoke-WebRequest -Uri $SetupUrl -OutFile $tempSetup -UseBasicParsing
 
     Write-Info "Running installer..."
-    if ($IsUpdate) {
-        Start-Process -FilePath $tempSetup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
-    } else {
-        Start-Process -FilePath $tempSetup -ArgumentList "/SILENT", "/NORESTART" -Wait
-    }
+    Start-Process -FilePath $tempSetup -ArgumentList "/SILENT", "/NORESTART" -Wait
 
     Write-TerminalCommand
     
@@ -148,18 +177,29 @@ function Install-App {
 }
 
 function Uninstall-App {
+    $uninstalled = $false
     if (Test-Path $UninstallerPath) {
-        Write-Info "Running uninstaller..."
+        Write-Info "Running uninstaller for .exe version..."
         Start-Process -FilePath $UninstallerPath -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
-        
-        # Cleanup CLI
+        $uninstalled = $true
+    }
+    
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+        $wingetOutput = winget list --id $MsStoreId --source msstore --accept-source-agreements 2>$null
+        if ($wingetOutput -match "$MsStoreId") {
+            Write-Info "Uninstalling Microsoft Store version via Winget..."
+            winget uninstall --id $MsStoreId --exact --accept-source-agreements
+            $uninstalled = $true
+        }
+    }
+
+    if ($uninstalled) {
         if (Test-Path $CliPath) {
             Remove-Item $CliPath -Force
         }
-        
         Write-Ok "$AppName has been uninstalled."
     } else {
-        Write-ErrorMsg "Uninstaller not found. Is it installed?"
+        Write-ErrorMsg "Aero P2P Chat is not installed."
     }
 }
 
@@ -169,10 +209,12 @@ function Show-Status {
     $latest = Get-LatestVersion
 
     Write-Color "Installed version: $installed" "Cyan"
-    Write-Color "Latest version:    $latest" "Cyan"
+    Write-Color "Latest GitHub version: $latest" "Cyan"
 
-    if ($installed -ne "not installed" -and $installed -ne $latest -and $latest -ne "Unknown") {
-        Write-Color "An update is available!" "Yellow"
+    if ($installed -eq "MS Store Version") {
+        Write-Color "Managed by Microsoft Store (Auto-Updates enabled)." "Green"
+    } elseif ($installed -ne "not installed" -and $installed -ne $latest -and $latest -ne "Unknown") {
+        Write-Color "An update is available on GitHub!" "Yellow"
     } elseif ($installed -eq $latest) {
         Write-Color "You are up to date." "Green"
     }
@@ -185,13 +227,17 @@ function Show-Menu {
     Write-Info "Checking versions..."
     $latest = Get-LatestVersion
 
+    $bestFormat = Get-BestFormat
+
     Write-Host ""
     
     if ($installed -eq "not installed") {
         Write-Color "Status: Not Installed" "Yellow"
         Write-Color "Latest: v$latest" "Cyan"
     } else {
-        if ($installed -eq $latest) {
+        if ($installed -eq "MS Store Version") {
+            Write-Color "Status: Installed via Microsoft Store" "Green"
+        } elseif ($installed -eq $latest) {
             Write-Color "Status: Installed & Up-to-date (v$installed)" "Green"
         } else {
             Write-Color "Status: Installed (v$installed)" "Green"
@@ -202,14 +248,12 @@ function Show-Menu {
 
     $options = @()
     
-    if ($installed -eq "not installed") {
-        $options += [PSCustomObject]@{ Label = "Install $AppName"; Action = { Install-App } }
-    } else {
-        if ($installed -ne $latest) {
-            $options += [PSCustomObject]@{ Label = "Update to v$latest"; Action = { Install-App -IsUpdate $true } }
-        } else {
-            $options += [PSCustomObject]@{ Label = "Reinstall v$latest"; Action = { Install-App -IsUpdate $true } }
-        }
+    $recName = Format-Name $bestFormat
+    $options += [PSCustomObject]@{ Label = "Auto Install [Recommended: $recName]"; Action = { Install-App $bestFormat } }
+    $options += [PSCustomObject]@{ Label = "Install Microsoft Store Version (Winget)"; Action = { Install-App "msstore" } }
+    $options += [PSCustomObject]@{ Label = "Install Standard Setup (.exe from GitHub)"; Action = { Install-App "exe" } }
+    
+    if ($installed -ne "not installed") {
         $options += [PSCustomObject]@{ Label = "Uninstall $AppName"; Action = { Uninstall-App } }
     }
     
@@ -248,7 +292,7 @@ function Show-Menu {
 # Main execution
 switch ($Action.ToLower()) {
     "install" { Install-App }
-    "update" { Install-App -IsUpdate $true }
+    "update" { Install-App }
     "status" { Show-Status }
     "uninstall" { Uninstall-App }
     "remove" { Uninstall-App }

@@ -153,16 +153,26 @@ function buildLinux(version) {
     "--config",
     "electron-builder.config.cjs",
     "--linux",
-    "AppImage",
     "--publish",
     "never",
   ]);
 
-  const asset = copyAsset(
-    findFile(distDir, (name) => name.endsWith(".AppImage")),
-    config.release.linuxAppImageAsset,
-  );
-  writePlatformManifest("linux", version, asset);
+  const extensions = [".AppImage", ".flatpak", ".snap", ".deb", ".rpm"];
+  const assets = [];
+
+  for (const ext of extensions) {
+    const file = findFile(distDir, (name) => name.endsWith(ext));
+    if (file) {
+      const asset = copyAsset(file, `Aero-P2P-Chat-Linux-x64${ext}`);
+      assets.push(asset);
+    }
+  }
+
+  // Use the AppImage as the primary asset for the manifest if available
+  const appImage = assets.find((a) => a.name.endsWith(".AppImage"));
+  if (appImage) {
+    writePlatformManifest("linux", version, appImage);
+  }
 }
 
 function main() {

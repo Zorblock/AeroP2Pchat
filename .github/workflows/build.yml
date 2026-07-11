@@ -42,10 +42,10 @@ jobs:
       - name: Append Linux entries to latest.yml
         run: node scripts/ci-append-linux-latest.cjs ./dist/release/latest.yml ./dist/release
 
-      - name: Upload Linux AppImage and updated latest.yml to release
+      - name: Upload Linux assets and updated latest.yml to release
         run: |
           gh release upload "${{ github.ref_name }}" \
-            "./dist/release/Aero-P2P-Chat-Linux-x64.AppImage" \
+            "./dist/release/Aero-P2P-Chat-Linux-x64."* \
             "./dist/release/latest.yml" \
             --clobber
         env:
