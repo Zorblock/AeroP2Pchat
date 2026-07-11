@@ -29,6 +29,7 @@ const windowIcon = nativeImage.createFromPath(
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
+const changelogFeedUrl = "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
 const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
 const userConfigFileName = "config.json";
@@ -772,6 +773,10 @@ function fetchUpdateManifest(rawUrl) {
   return fetchTextWithRetry(url);
 }
 
+function fetchChangelogFeed() {
+  return fetchTextWithRetry(new URL(changelogFeedUrl));
+}
+
 function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
   return new Promise((resolve, reject) => {
     const request = get(url, (response) => {
@@ -1022,6 +1027,13 @@ app.whenReady().then(async () => {
         ok: false,
         error: error?.message || "Update manifest request failed.",
       };
+    }
+  });
+  ipcMain.handle("fetch-changelog-feed", async () => {
+    try {
+      return { ok: true, text: await fetchChangelogFeed() };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Changelog request failed." };
     }
   });
   ipcMain.handle("load-config", () => loadConfig());

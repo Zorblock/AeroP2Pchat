@@ -14,6 +14,7 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         index: resolve("src/renderer/index.html"),
+        changelog: resolve("src/renderer/changelog.html"),
       },
     },
   },

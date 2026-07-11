@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { Clipboard } from "@capacitor/clipboard";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { Preferences } from "@capacitor/preferences";
@@ -134,6 +134,32 @@ export function createPlatformApi() {
       const response = await fetch(`${url}?t=${Date.now()}`, {
         cache: "no-store",
       });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.text();
+    },
+
+    async fetchChangelogFeed(url) {
+      if (electron?.fetchChangelogFeed) {
+        const response = await electron.fetchChangelogFeed();
+        if (!response?.ok) {
+          throw new Error(response?.error || "Could not load the changelog.");
+        }
+        return response.text;
+      }
+
+      if (isNativeCapacitor()) {
+        const response = await CapacitorHttp.get({ url });
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return typeof response.data === "string"
+          ? response.data
+          : String(response.data || "");
+      }
+
+      const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

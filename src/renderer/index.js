@@ -162,6 +162,7 @@ const appMenuDnd = document.querySelector("#app-menu-dnd");
 const appMenuOffline = document.querySelector("#app-menu-offline");
 const appMenuUpdate = document.querySelector("#app-menu-update");
 const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
+const appMenuChangelog = document.querySelector("#app-menu-changelog");
 const appMenuSettings = document.querySelector("#app-menu-settings");
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
@@ -7782,6 +7783,11 @@ appMenuUpdate.addEventListener("click", () => {
 appMenuUpdateIgnore.addEventListener("click", () => {
   ignoreAvailableUpdateHint();
   closeAppMenu();
+});
+appMenuChangelog.addEventListener("click", () => {
+  closeAppMenu();
+  const theme = appConfig.appSettings?.theme === "dark" ? "dark" : "light";
+  window.location.assign(`changelog.html?theme=${theme}`);
 });
 
 appMenuOnline?.addEventListener("click", () => {

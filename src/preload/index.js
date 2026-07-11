@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
     };
   },
   fetchUpdateManifest: (url) => ipcRenderer.invoke("fetch-update-manifest", url),
+  fetchChangelogFeed: () => ipcRenderer.invoke("fetch-changelog-feed"),
   onCheckForUpdates: (callback) => {
     const listener = () => callback();
     ipcRenderer.on("check-for-updates", listener);
