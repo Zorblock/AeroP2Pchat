@@ -9,11 +9,10 @@ const {
   desktopCapturer,
   ipcMain,
   powerMonitor,
-  screen,
   shell,
   session,
 } = require("electron");
-const { createWriteStream, existsSync, readFileSync } = require("node:fs");
+const { createWriteStream, readFileSync } = require("node:fs");
 const { mkdir, mkdtemp, readFile, rm, writeFile } = require("node:fs/promises");
 const { createHash } = require("node:crypto");
 const { get } = require("node:https");
@@ -308,7 +307,6 @@ function updateTrayMenu() {
     return;
   }
 
-  const { nativeImage } = require("electron");
   const menuIcon = windowIcon.resize({ width: 16, height: 16 });
 
   const sendTrayAction = (action, value) => {
@@ -558,70 +556,6 @@ function shouldSuppressNotification({ showWhenFocused = false } = {}) {
   return Boolean(state.systemDnd || (!showWhenFocused && state.appFocused));
 }
 
-function getRendererAssetPath(fileName) {
-  if (process.env.ELECTRON_RENDERER_URL) {
-    return join(__dirname, "../../public", fileName);
-  }
-
-  return join(__dirname, "../renderer", fileName);
-}
-
-function getMimeType(filePath) {
-  const lowerPath = String(filePath).toLowerCase();
-  if (lowerPath.endsWith(".png")) return "image/png";
-  if (lowerPath.endsWith(".ogg")) return "audio/ogg";
-  if (lowerPath.endsWith(".wav")) return "audio/wav";
-  return "application/octet-stream";
-}
-
-function fileToDataUrl(filePath) {
-  try {
-    const bytes = readFileSync(filePath);
-    return `data:${getMimeType(filePath)};base64,${bytes.toString("base64")}`;
-  } catch {
-    return "";
-  }
-}
-
-function findRendererAssetDataUrl(candidates) {
-  for (const candidate of candidates) {
-    const assetPath = getRendererAssetPath(candidate);
-    if (existsSync(assetPath)) {
-      return fileToDataUrl(assetPath);
-    }
-  }
-
-  return "";
-}
-
-function findNotificationSound(baseName) {
-  const candidates = [
-    `${baseName}.ogg`,
-    `${baseName}.wav`,
-    join("sound", `${baseName}.ogg`),
-    join("sound", `${baseName}.wav`),
-  ];
-
-  return findRendererAssetDataUrl(candidates);
-}
-
-function findNotificationLogo() {
-  return findRendererAssetDataUrl(["app.png", "boot-logo.png"]);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function escapeAttribute(value) {
-  return escapeHtml(value).replace(/`/g, "&#96;");
-}
-
 function sendNotificationAction(action) {
   if (action?.openWindow) {
     showMainWindow();
@@ -658,7 +592,7 @@ function showAppNotification(details = {}) {
     ] : undefined
   });
 
-  notification.on('action', (event, index) => {
+  notification.on('action', (_event, index) => {
     if (kind === "call") {
       if (index === 0) {
         sendNotificationAction({ type: 'accept-call', openWindow: true, id: notificationId, kind, peerId, callId });
@@ -810,7 +744,7 @@ async function fetchTextWithRetry(url, attempts = 2) {
   throw lastError;
 }
 
-async function fetchUpdateManifest(rawUrl) {
+function fetchUpdateManifest(rawUrl) {
   if (isWindowsStore) {
     throw new Error("Updates are managed by Microsoft Store.");
   }
