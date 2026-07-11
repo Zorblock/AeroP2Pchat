@@ -13,7 +13,7 @@ const {
   session,
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
-const { mkdir, mkdtemp, readFile, rm, writeFile } = require("node:fs/promises");
+const { copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } = require("node:fs/promises");
 const { createHash } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
@@ -86,6 +86,10 @@ function getConfigPath() {
   return join(app.getPath("userData"), userConfigFileName);
 }
 
+function getConfigBackupPath() {
+  return `${getConfigPath()}.bak`;
+}
+
 function getDefaultAppSettings() {
   return {
     autostart: true,
@@ -124,6 +128,7 @@ function normalizeConfig(config = {}) {
   };
 
   config.appSettings = {
+    ...settings,
     autostart: Boolean(settings.autostart),
     startHidden: Boolean(settings.startHidden),
     closeToTray: settings.closeToTray !== false,
@@ -156,6 +161,7 @@ function normalizeConfig(config = {}) {
   };
 
   config.audio = {
+    ...audio,
     inputDeviceId:
       typeof audio.inputDeviceId === "string" ? audio.inputDeviceId : "default",
     cameraDeviceId:
@@ -199,25 +205,39 @@ function normalizeConfig(config = {}) {
 }
 
 async function loadConfig() {
-  try {
-    return normalizeConfig(JSON.parse(await readFile(getConfigPath(), "utf8")));
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return normalizeConfig({});
+  const configPaths = [getConfigPath(), getConfigBackupPath()];
+  let lastError = null;
+  for (const configPath of configPaths) {
+    try {
+      return normalizeConfig(JSON.parse(await readFile(configPath, "utf8")));
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        lastError = error;
+        console.warn(`Could not read saved settings from ${configPath}; trying backup.`, error.message);
+      }
     }
-    throw error;
   }
+  // Keep a damaged file in place for recovery instead of replacing it with an
+  // empty config. A later save will recreate the primary file atomically.
+  if (lastError) {
+    console.warn("No readable settings file found; starting with defaults.");
+  }
+  return normalizeConfig({});
 }
 
 async function saveConfig(config) {
   const normalizedConfig = normalizeConfig(config || {});
   const configPath = getConfigPath();
+  const backupPath = getConfigBackupPath();
+  const tempPath = `${configPath}.${process.pid}.tmp`;
   await mkdir(app.getPath("userData"), { recursive: true });
-  await writeFile(
-    configPath,
-    `${JSON.stringify(normalizedConfig, null, 2)}`,
-    "utf8",
-  );
+  await writeFile(tempPath, `${JSON.stringify(normalizedConfig, null, 2)}`, "utf8");
+  try {
+    await copyFile(configPath, backupPath);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  await rename(tempPath, configPath);
   appConfig = normalizedConfig;
   await applyAutostartSettings();
   return { ok: true, path: configPath };

@@ -10,6 +10,9 @@
     "CapacitorHttp": {
       "enabled": true
     },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_aero"
+    },
     "Keyboard": {
       "resize": "body",
       "resizeOnFullScreen": true

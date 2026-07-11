@@ -583,13 +583,20 @@ const peerConnectionConfig = {
   sdpSemantics: "unified-plan",
 };
 let appConfig = {};
+let configSaveQueue = Promise.resolve();
 
 async function loadAppConfig() {
   return platformApi.loadConfig();
 }
 
 function saveAppConfig() {
-  platformApi.saveConfig(appConfig).catch(() => {});
+  // Serialize immutable snapshots. Rapid UI changes must not let an older
+  // asynchronous write overwrite a newer setting, especially on Android.
+  const snapshot = JSON.parse(JSON.stringify(appConfig));
+  configSaveQueue = configSaveQueue
+    .catch(() => {})
+    .then(() => platformApi.saveConfig(snapshot));
+  return configSaveQueue.catch(() => {});
 }
 
 function createIdentityId() {
@@ -1230,6 +1237,7 @@ function normalizeAppSettings() {
   }
 
   appConfig.appSettings = {
+    ...appConfig.appSettings,
     autostart: appConfig.appSettings.autostart !== false,
     startHidden: appConfig.appSettings.startHidden !== false,
     closeToTray: appConfig.appSettings.closeToTray !== false,
@@ -1261,6 +1269,7 @@ function normalizeAppSettings() {
     appConfig.notificationSettings = {};
   }
   appConfig.notificationSettings = {
+    ...appConfig.notificationSettings,
     enabled: appConfig.notificationSettings.enabled !== false,
     messages: appConfig.notificationSettings.messages !== false,
     calls: appConfig.notificationSettings.calls !== false,
@@ -6606,6 +6615,19 @@ function attachConnectionHandlers(conn, peerId, direction) {
     }
 
     if (data?.type === "connection-request") {
+      const pending = pendingConnections.get(peerId);
+      if (pending?.direction === "incoming") {
+        pending.receivedRequest = true;
+        if (isTrusted(getPeerIdentityId(peerId, conn))) {
+          // Wait for the sender's explicit request packet. Accepting directly
+          // from PeerJS' connection event can race the remote open handler.
+          acceptConnection(peerId);
+          return;
+        }
+
+        setStatus("pending", `Connection request from ${peerLabel()}`);
+        addSystemMessage(`${peerLabel()} wants to chat. Accept the request to start.`);
+      }
       refreshPeers();
       return;
     }
@@ -6823,25 +6845,17 @@ function registerConnection(conn, options = {}) {
     pendingConnections.get(peerId).conn.close();
   }
 
-  pendingConnections.set(peerId, { conn, direction });
+  pendingConnections.set(peerId, { conn, direction, receivedRequest: false });
   attachConnectionHandlers(conn, peerId, direction);
   if (direction === "outgoing") {
     startConnectTimeout(peerId, conn);
   }
 
   if (direction === "incoming") {
-    if (isTrusted(peerIdentityId)) {
-      acceptConnection(peerId);
-      return;
-    }
-
-    setStatus(
-      "pending",
-      `Connection request from ${getPeerLabel(peerId, conn)}`,
-    );
-    addSystemMessage(
-      `${getPeerLabel(peerId, conn)} wants to chat. Accept the request to start.`,
-    );
+    // The trusted auto-accept happens after the remote side has sent its
+    // connection-request packet. This removes a timing race on fast/mobile
+    // links where the previous eager accept could be missed.
+    setStatus("pending", `Connecting with ${getPeerLabel(peerId, conn)}...`);
   } else {
     setStatus("pending", `Sending request to ${getPeerLabel(peerId, conn)}...`);
   }

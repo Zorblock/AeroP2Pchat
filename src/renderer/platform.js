@@ -157,6 +157,9 @@ export function createPlatformApi() {
               id: Math.floor(Date.now() % 2147483647),
               title: details.title || "Aero P2P Chat",
               body: details.body || "",
+              // Android requires a monochrome small icon in the status bar.
+              // This resource is our Aero chat mark, not Capacitor's info icon.
+              smallIcon: "ic_stat_aero",
               schedule: { at: new Date(Date.now() + 100) },
               sound: details.silent ? undefined : "default",
               extra: details.extra || null
@@ -370,6 +373,7 @@ export function createPlatformApi() {
           text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
           hidden: false,
           silent: true,
+          icon: "ic_stat_aero",
           allowClose: true,
           closeTitle: "Beenden",
           disableWebViewOptimization: true
@@ -390,6 +394,7 @@ export function createPlatformApi() {
         await BackgroundMode.updateNotification({
           title: "Aero P2P Chat",
           text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
+          icon: "ic_stat_aero",
         });
       } catch (e) {}
     }

@@ -193,10 +193,11 @@ const output = `${installResult.stdout || ""} ${installResult.stderr || ""}`;
 
 if (installResult.status !== 0) {
   if (output.includes("INSTALL_FAILED_UPDATE_INCOMPATIBLE")) {
-    console.log("⚠️ Signature mismatch detected! Automatically uninstalling conflicting app...");
-    adb(["uninstall", "de.zorblock.aerop2pchat"]);
-    console.log("Re-installing APK...");
-    adb(["install", "-r", apkPath]);
+    console.error(
+      "Update refused because the installed app was signed with a different key. " +
+      "It was not uninstalled, so the existing settings remain safe. Build with the original release key to update it."
+    );
+    process.exit(1);
   } else {
     console.error(`Installation failed:\n${output}`);
     process.exit(1);
