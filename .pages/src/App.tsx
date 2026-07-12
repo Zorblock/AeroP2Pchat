@@ -571,6 +571,14 @@ function App() {
 
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
+              <a
+                href="https://stats.uptimerobot.com/F7N9e7zRPN"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', marginBottom: '0.35rem', color: '#0284c7', fontSize: '0.85rem', fontWeight: 800, textDecoration: 'none' }}
+              >
+                System status
+              </a>
               <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Powered by</p>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                 <span style={{ background: '#0284c7', color: '#fff', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>Electron</span>

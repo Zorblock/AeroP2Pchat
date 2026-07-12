@@ -163,6 +163,7 @@ const appMenuOffline = document.querySelector("#app-menu-offline");
 const appMenuUpdate = document.querySelector("#app-menu-update");
 const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
 const appMenuChangelog = document.querySelector("#app-menu-changelog");
+const appMenuStatus = document.querySelector("#app-menu-status");
 const appMenuSettings = document.querySelector("#app-menu-settings");
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
@@ -500,6 +501,7 @@ const linuxTerminalCommandName =
 const githubRepoUrl = `https://github.com/${githubRepo}`;
 const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
+const statusPageUrl = "https://stats.uptimerobot.com/F7N9e7zRPN";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
@@ -7788,6 +7790,10 @@ appMenuChangelog.addEventListener("click", () => {
   closeAppMenu();
   const theme = appConfig.appSettings?.theme === "dark" ? "dark" : "light";
   window.location.assign(`changelog.html?theme=${theme}`);
+});
+appMenuStatus.addEventListener("click", () => {
+  closeAppMenu();
+  window.open(statusPageUrl, "_blank", "noopener");
 });
 
 appMenuOnline?.addEventListener("click", () => {
