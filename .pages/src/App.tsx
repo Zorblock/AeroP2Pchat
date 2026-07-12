@@ -572,7 +572,7 @@ function App() {
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
               <a
-                href="https://stats.uptimerobot.com/F7N9e7zRPN"
+              href="https://status.zorblock.de/"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ display: 'inline-block', marginBottom: '0.35rem', color: '#0284c7', fontSize: '0.85rem', fontWeight: 800, textDecoration: 'none' }}
