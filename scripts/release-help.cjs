@@ -204,11 +204,113 @@ function terminalLink(filePath) {
   return `\u001b]8;;${fileUrl}\u0007${absolutePath}\u001b]8;;\u0007`;
 }
 
+const color = {
+  reset: "\u001b[0m",
+  bold: "\u001b[1m",
+  cyan: "\u001b[36m",
+  green: "\u001b[32m",
+  yellow: "\u001b[33m",
+  magenta: "\u001b[35m",
+  dim: "\u001b[2m",
+};
+
+function colored(value, ...styles) {
+  return `${styles.join("")}${value}${color.reset}`;
+}
+
+function printArtifact(label, filePath, note, styles) {
+  console.log(`  ${colored(label, color.bold, ...styles)}`);
+  console.log(`  ${terminalLink(filePath)}`);
+  console.log(`  ${colored(note, color.dim)}`);
+}
+
 function printArtifactLinks(releaseFiles) {
-  const files = [...releaseFiles, ...collectStoreFiles()];
-  console.log("\nBuilt files (click to open):");
-  for (const filePath of files) {
-    console.log(`  ${path.basename(filePath)}\n  ${terminalLink(filePath)}`);
+  const storeFiles = collectStoreFiles();
+  const findReleaseFile = (extension) =>
+    releaseFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
+  const findStoreFile = (extension) =>
+    storeFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
+
+  console.log(`\n${colored("════════════ RELEASE FILES ════════════", color.bold, color.cyan)}`);
+  console.log(colored("Click a path to open the file in Explorer.", color.dim));
+
+  const appx = findStoreFile(".appx");
+  if (appx) {
+    console.log(`\n${colored("MICROSOFT STORE — ACTION REQUIRED", color.bold, color.yellow)}`);
+    printArtifact(
+      "UPLOAD THIS .APPX TO PARTNER CENTER",
+      appx,
+      "Partner Center → submission → Packages → upload. Do not upload the .msix copy.",
+      [color.yellow],
+    );
+  }
+
+  const windows = findReleaseFile(".exe");
+  if (windows) {
+    console.log(`\n${colored("WINDOWS DOWNLOAD", color.bold, color.green)}`);
+    printArtifact(
+      "Windows installer (.exe)",
+      windows,
+      "Already included in the GitHub release. This is the normal direct download.",
+      [color.green],
+    );
+  }
+
+  const appImage = findReleaseFile(".appimage");
+  const deb = findReleaseFile(".deb");
+  const rpm = findReleaseFile(".rpm");
+  if (appImage || deb || rpm) {
+    console.log(`\n${colored("LINUX DOWNLOADS", color.bold, color.magenta)}`);
+    if (appImage) {
+      printArtifact(
+        "AppImage (recommended)",
+        appImage,
+        "Already included in the GitHub release. Supports the app's automatic updates.",
+        [color.magenta],
+      );
+    }
+    if (deb) {
+      printArtifact(
+        "Debian/Ubuntu package (.deb)",
+        deb,
+        "Already included in the GitHub release. Manual package-manager install.",
+        [color.magenta],
+      );
+    }
+    if (rpm) {
+      printArtifact(
+        "Fedora/RHEL package (.rpm)",
+        rpm,
+        "Already included in the GitHub release. Manual package-manager install.",
+        [color.magenta],
+      );
+    }
+  }
+
+  const apk = findReleaseFile(".apk");
+  if (apk) {
+    console.log(`\n${colored("ANDROID DOWNLOAD", color.bold, color.cyan)}`);
+    printArtifact(
+      "Android package (.apk)",
+      apk,
+      "Already included in the GitHub release. Use this for direct Android downloads.",
+      [color.cyan],
+    );
+  }
+
+  const metadataFiles = releaseFiles.filter((filePath) =>
+    /(?:latest\.yml|update_manifest_.*\.json)$/i.test(path.basename(filePath)),
+  );
+  if (metadataFiles.length > 0) {
+    console.log(`\n${colored("UPDATE METADATA — DO NOT UPLOAD MANUALLY", color.bold, color.dim)}`);
+    for (const filePath of metadataFiles) {
+      console.log(`  ${path.basename(filePath)} ${colored("(used by the automatic updater)", color.dim)}`);
+    }
+  }
+
+  const msix = findStoreFile(".msix");
+  if (msix) {
+    console.log(`\n${colored("Store .msix copy", color.dim)} ${colored("not needed for the manual Partner Center upload", color.dim)}`);
   }
 }
 
