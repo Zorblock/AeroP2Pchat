@@ -524,7 +524,6 @@ function main() {
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
-    run("npm", ["run", "build", "--prefix", ".pages"]);
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);
@@ -561,7 +560,6 @@ function main() {
     ]);
     githubReleaseCreated = true;
     uploadReleaseFiles(tag, releaseFiles);
-    run("npm", ["run", "pages"]);
 
     console.log("");
     console.log(
@@ -570,7 +568,7 @@ function main() {
     console.log(
       "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
-    console.log("Website deployment was triggered.");
+    console.log("Website was not deployed. Run: npm run pages (when you are ready).");
     console.log("Upload the .appx file below manually in Partner Center.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);

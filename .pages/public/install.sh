@@ -4,6 +4,7 @@ set -eu
 APP_NAME="Aero P2P Chat"
 APP_ID="de.zorblock.aerop2pchat"
 APP_SLUG="aero-p2p-chat"
+PACKAGE_NAME="aero-p2p-chat"
 CLI_COMMAND_NAME="aerop2p"
 APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
 APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
@@ -171,6 +172,8 @@ get_latest_version() {
 get_installed_version() {
     if [ -f "$VERSION_PATH" ]; then
         cat "$VERSION_PATH"
+    elif has_system_package; then
+        get_system_package_version
     else
         printf 'not installed'
     fi
@@ -178,6 +181,120 @@ get_installed_version() {
 
 is_installed() {
     [ -f "$APPIMAGE_PATH" ] && [ -x "$APPIMAGE_PATH" ]
+}
+
+is_deb_installed() {
+    command -v dpkg-query >/dev/null 2>&1 && \
+        [ "$(dpkg-query -W -f='${db:Status-Status}' "$PACKAGE_NAME" 2>/dev/null || true)" = "installed" ]
+}
+
+is_rpm_installed() {
+    command -v rpm >/dev/null 2>&1 && rpm -q "$PACKAGE_NAME" >/dev/null 2>&1
+}
+
+has_system_package() {
+    is_deb_installed || is_rpm_installed
+}
+
+has_any_installation() {
+    is_installed || has_system_package
+}
+
+get_system_package_format() {
+    if is_deb_installed; then
+        printf 'deb'
+    elif is_rpm_installed; then
+        printf 'rpm'
+    fi
+}
+
+get_system_package_version() {
+    if is_deb_installed; then
+        dpkg-query -W -f='${Version}' "$PACKAGE_NAME" 2>/dev/null | sed 's/-[^-]*$//'
+    elif is_rpm_installed; then
+        rpm -q --qf '%{VERSION}' "$PACKAGE_NAME" 2>/dev/null
+    fi
+}
+
+get_installed_format() {
+    if is_installed; then
+        printf 'appimage'
+    else
+        get_system_package_format
+    fi
+}
+
+refresh_desktop_integration() {
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
+    fi
+}
+
+remove_appimage_installation() {
+    if ! is_installed && [ ! -e "$DESKTOP_PATH" ] && [ ! -e "$ICON_PATH" ]; then
+        return
+    fi
+
+    info "Removing existing AppImage installation..."
+    rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
+    rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
+    refresh_desktop_integration
+}
+
+remove_deb_package() {
+    if ! is_deb_installed; then
+        return
+    fi
+
+    info "Removing existing DEB installation..."
+    if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get remove -y "$PACKAGE_NAME"
+    else
+        sudo dpkg -r "$PACKAGE_NAME"
+    fi
+}
+
+remove_rpm_package() {
+    if ! is_rpm_installed; then
+        return
+    fi
+
+    info "Removing existing RPM installation..."
+    if command -v dnf >/dev/null 2>&1; then
+        sudo dnf remove -y "$PACKAGE_NAME"
+    elif command -v zypper >/dev/null 2>&1; then
+        sudo zypper --non-interactive remove "$PACKAGE_NAME"
+    elif command -v yum >/dev/null 2>&1; then
+        sudo yum remove -y "$PACKAGE_NAME"
+    else
+        sudo rpm -e "$PACKAGE_NAME"
+    fi
+}
+
+# Keep settings in ~/.config/Aero P2P Chat untouched while changing the
+# delivery format. The download is always verified before this function runs.
+prepare_target_format() {
+    target_format="$1"
+    close_running_instances
+
+    case "$target_format" in
+        appimage)
+            remove_deb_package
+            remove_rpm_package
+            ;;
+        deb)
+            remove_rpm_package
+            remove_appimage_installation
+            ;;
+        rpm)
+            remove_deb_package
+            remove_appimage_installation
+            ;;
+        *) fail "Unsupported installer format: $target_format" ;;
+    esac
 }
 
 
@@ -286,9 +403,7 @@ Terminal=false
 Categories=Network;InstantMessaging;Chat;
 StartupWMClass=${APP_NAME}
 EOF
-    if command -v update-desktop-database >/dev/null 2>&1; then
-        update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
-    fi
+    refresh_desktop_integration
 }
 
 install_icon() {
@@ -297,9 +412,7 @@ install_icon() {
     if download "$ICON_URL" "$tmp_icon"; then
         mv "$tmp_icon" "$ICON_PATH"
         rm -f "$OLD_ICON_DIR/${APP_ID}.png"
-        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-            gtk-update-icon-cache -q "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
-        fi
+        refresh_desktop_integration
     else
         rm -f "$tmp_icon"
         warn "Icon download failed. The app will still work."
@@ -308,7 +421,12 @@ install_icon() {
 
 print_paths() {
     printf '\n'
-    printf '   %s %s\n' "$(color dim 'AppImage:')" "$APPIMAGE_PATH"
+    installed_format="$(get_installed_format || true)"
+    [ -n "$installed_format" ] || installed_format="not installed"
+    printf '   %s %s\n' "$(color dim 'Format:  ')" "$(format_name "$installed_format")"
+    if is_installed; then
+        printf '   %s %s\n' "$(color dim 'AppImage:')" "$APPIMAGE_PATH"
+    fi
     printf '   %s %s\n' "$(color dim 'App cmd: ')" "$BIN_PATH"
     printf '   %s %s\n' "$(color dim 'CLI cmd: ')" "$CLI_PATH"
     printf '   %s %s\n' "$(color dim 'Launcher:')" "$DESKTOP_PATH"
@@ -366,7 +484,7 @@ find_running_app_pids() {
 }
 
 close_running_instances() {
-    if ! is_installed; then
+    if ! has_any_installation; then
         return
     fi
     
@@ -450,8 +568,8 @@ show_menu() {
     
     opt_uninstall=0
     opt_index=5
-    if is_installed; then
-        printf '   %s\n' "$(color red "$opt_index) Uninstall AppImage")"
+    if has_any_installation; then
+        printf '   %s\n' "$(color red "$opt_index) Uninstall ${APP_NAME}")"
         opt_uninstall=$opt_index
         opt_index=$((opt_index + 1))
     fi
@@ -573,6 +691,9 @@ install_app() {
     download "$download_url" "$tmp_file"
     verify_sha256 "$tmp_file" "${expected_sha256:-}" "$(format_name "$format")"
     
+    # Only remove the previous format after the new file was downloaded and
+    # verified. App data in ~/.config/Aero P2P Chat is deliberately retained.
+    prepare_target_format "$format"
     info "Installing $(format_name "$format")... (sudo may be required)"
     case "$format" in
         deb)
@@ -586,14 +707,17 @@ install_app() {
             elif command -v yum >/dev/null 2>&1; then
                 sudo yum install -y "$tmp_file"
             else
-                sudo rpm -i "$tmp_file"
+                sudo rpm -U "$tmp_file"
             fi
             ;;
     esac
     
     rm -rf "$(dirname "$tmp_file")"
-    ok "Installation complete!"
-    warn "DEB/RPM packages are removed by your system package manager. Re-run this installer to update."
+    write_launcher
+    write_terminal_command
+    refresh_desktop_integration
+    ok "Installation complete. Your existing settings were kept."
+    print_paths
 }
 
 install_appimage() {
@@ -618,20 +742,22 @@ install_appimage() {
     if is_installed; then
         printf '%s %s\n' "$(color dim 'Installed')" "$installed_version"
         printf '%s %s\n' "$(color dim 'Latest   ')" "$latest_version"
-        if [ "$installed_version" = "$latest_version" ]; then
+        if [ "$installed_version" = "$latest_version" ] && ! has_system_package; then
             ensure_terminal_integration
             ok "Already installed and up to date."
             print_paths
             return
         fi
         info "Updating to ${latest_version}..."
-        close_running_instances
+    elif has_system_package; then
+        info "Switching from $(format_name "$(get_system_package_format)") to AppImage ${latest_version}..."
     else
         info "Installing ${latest_version}..."
     fi
     
     download "$appimage_url" "$tmp_appimage"
     verify_sha256 "$tmp_appimage" "$appimage_sha256" "AppImage"
+    prepare_target_format "appimage"
     chmod +x "$tmp_appimage"
     mv "$tmp_appimage" "$APPIMAGE_PATH"
     printf '%s\n' "$latest_version" > "$VERSION_PATH"
@@ -641,7 +767,7 @@ install_appimage() {
     install_icon
     write_desktop_entry
     
-    ok "${APP_NAME} ${latest_version} installed."
+    ok "${APP_NAME} ${latest_version} installed. Your existing settings were kept."
     print_paths
     if ! printf '%s' ":$PATH:" | grep -q ":$BIN_DIR:"; then
         warn "$BIN_DIR is not in PATH. Restart your shell or add it to PATH to use: $CLI_COMMAND_NAME update"
@@ -664,7 +790,7 @@ show_status() {
     printf '   %s %s\n' "Latest:   " "$(color cyan "$latest_version")"
     printf '\n'
     
-    if is_installed; then
+    if has_any_installation; then
         if [ "$latest_version" != "unknown" ] && [ "$installed_version" = "$latest_version" ]; then
             ensure_terminal_integration
             ok "You are up to date."
@@ -681,7 +807,7 @@ show_status() {
 
 uninstall_app() {
     title
-    if ! is_installed && [ ! -e "$BIN_PATH" ] && [ ! -e "$CLI_PATH" ] && [ ! -e "$DESKTOP_PATH" ]; then
+    if ! has_any_installation && [ ! -e "$BIN_PATH" ] && [ ! -e "$CLI_PATH" ] && [ ! -e "$DESKTOP_PATH" ]; then
         warn "${APP_NAME} is not installed."
         return
     fi
@@ -692,15 +818,11 @@ uninstall_app() {
     fi
     
     close_running_instances
-    rm -f "$APPIMAGE_PATH" "$VERSION_PATH" "$BIN_PATH" "$CLI_PATH" "$DESKTOP_PATH" "$ICON_PATH" "$OLD_ICON_DIR/${APP_ID}.png"
-    rmdir "$INSTALL_DIR" >/dev/null 2>&1 || true
-    
-    if command -v update-desktop-database >/dev/null 2>&1; then
-        update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
-    fi
-    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-        gtk-update-icon-cache -q "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
-    fi
+    remove_appimage_installation
+    remove_deb_package
+    remove_rpm_package
+    rm -f "$BIN_PATH" "$CLI_PATH"
+    refresh_desktop_integration
     
     ok "${APP_NAME} uninstalled."
     if [ "$keep_user_data" -eq 1 ]; then
