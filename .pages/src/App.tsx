@@ -143,7 +143,7 @@ function App() {
   const baseUrl = useFallbackDomain ? 'https://zorblock.github.io/AeroP2Pchat' : 'https://aero.zorblock.de';
   const installCommands = {
     windows: `iwr -useb ${baseUrl}/install.ps1 | iex`,
-    linux: `curl -sSL ${baseUrl}/install.sh | bash`
+    linux: `bash <(curl -fsSL ${baseUrl}/install.sh)`
   };
   const platforms = [
     { id: 'windows' as const, label: 'Windows', icon: <Download size={17} /> },

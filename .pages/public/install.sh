@@ -356,9 +356,9 @@ case "\$command" in
     ;;
     install|update|status|uninstall|remove|menu)
         if command -v curl >/dev/null 2>&1; then
-            curl -fsSL "$INSTALLER_URL" | sh -s -- "\$command" || curl -fsSL "${FALLBACK_PAGES_BASE}/install.sh" | sh -s -- "\$command"
+            curl -fsSL "$INSTALLER_URL" | bash -s -- "\$command" || curl -fsSL "${FALLBACK_PAGES_BASE}/install.sh" | bash -s -- "\$command"
         elif command -v wget >/dev/null 2>&1; then
-            wget -qO- "$INSTALLER_URL" | sh -s -- "\$command" || wget -qO- "${FALLBACK_PAGES_BASE}/install.sh" | sh -s -- "\$command"
+            wget -qO- "$INSTALLER_URL" | bash -s -- "\$command" || wget -qO- "${FALLBACK_PAGES_BASE}/install.sh" | bash -s -- "\$command"
         else
             printf '%s\n' "Install curl or wget first." >&2
             exit 1
@@ -454,6 +454,14 @@ confirm_keep_user_data() {
         n|N|no|NO|No) return 1 ;;
         *) return 0 ;;
     esac
+}
+
+print_update_commands() {
+    printf '\n'
+    printf '   %s\n' "$(color bold 'Update methods:')"
+    printf '   %s %s\n' "$(color cyan '1.')" "$CLI_COMMAND_NAME update"
+    printf '   %s %s\n' "$(color cyan '2.')" "bash <(curl -fsSL ${INSTALLER_URL}) update"
+    printf '   %s %s\n' "$(color cyan '3.')" "bash <(curl -fsSL ${FALLBACK_PAGES_BASE}/install.sh) update"
 }
 
 find_running_app_pids() {
@@ -556,6 +564,7 @@ show_menu() {
         else
             printf '   %s %s\n' "Status:" "$(color green "Installed (v${installed_version})")"
             printf '   %s %s\n' "Latest:" "$(color yellow "v${latest_version} (Update available!)")"
+            print_update_commands
         fi
     fi
     printf '\n'
@@ -800,7 +809,8 @@ show_status() {
             ensure_terminal_integration
             ok "You are up to date."
         elif [ "$latest_version" != "unknown" ]; then
-            warn "Update available. Run: $CLI_COMMAND_NAME update"
+            warn "Update available."
+            print_update_commands
         else
             ok "Installed."
         fi
