@@ -5,6 +5,7 @@ module.exports = {
   productName: projectConfig.app.name,
   directories: {
     output: "dist",
+    buildResources: "assets",
   },
   files: [
     "out/**/*",
