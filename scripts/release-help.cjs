@@ -1,4 +1,5 @@
 const { spawnSync } = require("node:child_process");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -188,6 +189,99 @@ function collectReleaseFiles() {
 function formatFileSize(bytes) {
   const megabytes = bytes / 1024 / 1024;
   return `${megabytes.toFixed(megabytes >= 100 ? 0 : 1)} MB`;
+}
+
+function sha256(filePath) {
+  return crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(filePath))
+    .digest("hex");
+}
+
+function describeReleaseFile(filePath) {
+  const name = path.basename(filePath);
+  const lowerName = name.toLowerCase();
+  if (lowerName.endsWith(".exe")) {
+    return { description: "Windows 10/11 installer", download: true };
+  }
+  if (lowerName.endsWith(".appimage")) {
+    return { description: "Linux portable app · automatic updates", download: true };
+  }
+  if (lowerName.endsWith(".deb")) {
+    return { description: "Debian / Ubuntu package", download: true };
+  }
+  if (lowerName.endsWith(".rpm")) {
+    return { description: "Fedora / RHEL package", download: true };
+  }
+  if (lowerName.endsWith(".apk")) {
+    return { description: "Android direct-install package", download: true };
+  }
+  if (lowerName === "latest.yml") {
+    return { description: "Windows automatic-update metadata", download: false };
+  }
+  if (lowerName === "update_manifest_linux.json") {
+    return { description: "Linux automatic-update metadata", download: false };
+  }
+  if (lowerName === "update_manifest_windows.json") {
+    return { description: "Windows release metadata", download: false };
+  }
+  return { description: "Release file", download: false };
+}
+
+function createReleaseNotes(tag, files) {
+  const entries = files.map((filePath) => ({
+    filePath,
+    name: path.basename(filePath),
+    size: fs.statSync(filePath).size,
+    checksum: sha256(filePath),
+    ...describeReleaseFile(filePath),
+  }));
+  const downloads = entries.filter((entry) => entry.download);
+  const metadata = entries.filter((entry) => !entry.download);
+  const downloadRows = downloads
+    .map(
+      (entry) =>
+        `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(entry.size)} |`,
+    )
+    .join("\n");
+  const metadataRows = metadata
+    .map(
+      (entry) => `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(entry.size)} |`)
+    .join("\n");
+  const checksums = entries
+    .map((entry) => `${entry.checksum}  ${entry.name}`)
+    .join("\n");
+
+  return [
+    `## Aero P2P Chat ${tag}`,
+    "",
+    "### Downloads",
+    "| File | Purpose | Size |",
+    "| --- | --- | ---: |",
+    downloadRows,
+    "",
+    "- **Windows** and **Linux AppImage** receive in-app automatic updates.",
+    "- **Microsoft Store** updates are delivered separately after Store certification.",
+    metadata.length > 0 ? "" : "",
+    metadata.length > 0 ? "### Update metadata" : "",
+    metadata.length > 0 ? "| File | Purpose | Size |" : "",
+    metadata.length > 0 ? "| --- | --- | ---: |" : "",
+    metadataRows,
+    "",
+    "### File integrity",
+    "Verify a downloaded file with its SHA-256 checksum:",
+    "",
+    "<details>",
+    "<summary>Show SHA-256 checksums</summary>",
+    "",
+    "```text",
+    checksums,
+    "```",
+    "",
+    "</details>",
+  ]
+    .filter((line, index, lines) => !(line === "" && lines[index - 1] === ""))
+    .join("\n");
 }
 
 function uploadReleaseFiles(tag, files) {
@@ -455,7 +549,16 @@ function main() {
     run("git", ["push", "origin", tag]);
 
     const releaseFiles = collectReleaseFiles();
-    run("gh", ["release", "create", tag, "--title", tag, "--generate-notes"]);
+    run("gh", [
+      "release",
+      "create",
+      tag,
+      "--title",
+      `Aero P2P Chat ${tag}`,
+      "--generate-notes",
+      "--notes",
+      createReleaseNotes(tag, releaseFiles),
+    ]);
     githubReleaseCreated = true;
     uploadReleaseFiles(tag, releaseFiles);
     run("npm", ["run", "pages"]);
