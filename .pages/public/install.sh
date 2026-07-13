@@ -539,7 +539,18 @@ format_name() {
     esac
 }
 
+pause_for_menu() {
+    # Interactive menus are read from /dev/tty. Do not block scripted calls
+    # such as `install.sh update` when no terminal is attached.
+    if [ ! -r /dev/tty ]; then
+        return
+    fi
+    printf '\n'
+    prompt_input "   Press Enter to return to the menu..." >/dev/null
+}
+
 show_menu() {
+    while :; do
     title
     tmp_manifest="$(mktemp)"
     trap 'rm -f "$tmp_manifest"' EXIT
@@ -604,15 +615,17 @@ show_menu() {
                     uninstall_app
                 fi
             else
-                fail "Unknown option: $choice"
+                warn "Invalid choice."
             fi
         ;;
-        $opt_exit) exit 0 ;;
+        $opt_exit) return ;;
         *)
             warn "Invalid choice."
-            show_menu
         ;;
     esac
+
+    pause_for_menu
+    done
 }
 
 install_dependencies() {

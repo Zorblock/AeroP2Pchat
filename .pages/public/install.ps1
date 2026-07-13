@@ -83,6 +83,11 @@ function Write-ErrorMsg([string]$Text) {
     Write-Host $Text 
 }
 
+function Wait-ForMenu {
+    Write-Host ""
+    [void](Read-Host "   Press Enter to return to the menu")
+}
+
 <#
 .SYNOPSIS
     Retrieves the latest version tag from the GitHub releases manifest.
@@ -330,6 +335,7 @@ function Show-Status {
     Displays the interactive CLI menu for the user.
 #>
 function Show-Menu {
+    while ($true) {
     Write-Title
     
     $installed = Get-InstalledVersion
@@ -389,13 +395,19 @@ function Show-Menu {
     try {
         $idx = [int]$choice - 1
         if ($idx -ge 0 -and $idx -lt $max) {
-            & $options[$idx].Action
-            return
+            try {
+                & $options[$idx].Action
+            } catch {
+                Write-ErrorMsg "The selected action could not be completed: $($_.Exception.Message)"
+            }
+            Wait-ForMenu
+            continue
         }
     } catch {}
     
     Write-Warn "Invalid choice."
-    Show-Menu
+    Wait-ForMenu
+    }
 }
 
 # Main execution loop
