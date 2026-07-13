@@ -12,11 +12,9 @@
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
     "dev:2": "node scripts/dev-two.cjs",
-    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-android.cjs && node --check scripts/install-android-device.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-store.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/ci-append-linux-latest.cjs && node --check scripts/configure-store-cli.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/publish-store.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
+    "test": "node --check src/main/index.js && node --check src/preload/index.js && node --check electron-builder.config.cjs && node --check scripts/build-android.cjs && node --check scripts/install-android-device.cjs && node --check scripts/build-inno.cjs && node --check scripts/build-store.cjs && node --check scripts/build-win.cjs && node --check scripts/ci-build-release.cjs && node --check scripts/ci-create-latest.cjs && node --check scripts/ci-append-linux-latest.cjs && node --check scripts/deploy-pages.cjs && node --check scripts/dev-two.cjs && node --check scripts/release-help.cjs && node --check scripts/release.cjs && node --check scripts/run-electron-vite.cjs",
     "build": "node scripts/build-win.cjs",
     "build:store": "node scripts/build-store.cjs",
-    "store:configure": "node scripts/configure-store-cli.cjs",
-    "store:publish": "node scripts/publish-store.cjs",
     "android": "node scripts/build-android.cjs",
     "android:device": "node scripts/install-android-device.cjs",
     "android:device:uninstall": "node scripts/install-android-device.cjs --uninstall",

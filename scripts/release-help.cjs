@@ -185,6 +185,33 @@ function collectReleaseFiles() {
   return files;
 }
 
+function collectStoreFiles() {
+  const storeDir = path.join(root, "dist", "store");
+  if (!fs.existsSync(storeDir)) return [];
+
+  return fs
+    .readdirSync(storeDir)
+    .map((name) => path.join(storeDir, name))
+    .filter(
+      (filePath) =>
+        fs.statSync(filePath).isFile() && /\.(appx|msix)$/i.test(filePath),
+    );
+}
+
+function terminalLink(filePath) {
+  const absolutePath = path.resolve(filePath);
+  const fileUrl = `file:///${absolutePath.replace(/\\/g, "/")}`;
+  return `\u001b]8;;${fileUrl}\u0007${absolutePath}\u001b]8;;\u0007`;
+}
+
+function printArtifactLinks(releaseFiles) {
+  const files = [...releaseFiles, ...collectStoreFiles()];
+  console.log("\nBuilt files (click to open):");
+  for (const filePath of files) {
+    console.log(`  ${path.basename(filePath)}\n  ${terminalLink(filePath)}`);
+  }
+}
+
 function wait(milliseconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
@@ -333,18 +360,16 @@ function main() {
     run("gh", ghArgs);
     run("npm", ["run", "pages"]);
 
-    // 6. Microsoft Store is last because Partner Center can take longer to process a submission.
-    run("npm", ["run", "store:publish"]);
-
     console.log("");
     console.log(
-      `Release ${tag} created on GitHub with Windows and Android artifacts.`,
+      `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
       "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
     console.log("Website deployment was triggered.");
-    console.log("Microsoft Store submission was uploaded for certification.");
+    console.log("Upload the .appx file below manually in Partner Center.");
+    printArtifactLinks(releaseFiles);
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     if (!commitCreated) {
