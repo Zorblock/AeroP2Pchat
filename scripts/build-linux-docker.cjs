@@ -18,11 +18,20 @@ function main() {
   }
 
   const version = parseVersion();
-  const command = [
-    "npm ci",
-    "node scripts/ci-build-release.cjs --platform=linux --preserve-release",
-  ];
-  if (version) command[1] += ` --version=${version}`;
+  const buildCommand =
+    "node scripts/ci-build-release.cjs --platform=linux --preserve-release" +
+    (version ? ` --version=${version}` : "");
+  const command = `
+    lock_hash="$(sha256sum package-lock.json | awk '{print $1}')"
+    if [ -f node_modules/.aero-package-lock.sha256 ] && [ "$(cat node_modules/.aero-package-lock.sha256)" = "$lock_hash" ]; then
+      echo "Reusing cached Linux node_modules."
+    else
+      echo "Installing Linux dependencies (first build or package-lock changed)..."
+      npm ci
+      printf "%s" "$lock_hash" > node_modules/.aero-package-lock.sha256
+    fi
+    ${buildCommand}
+  `;
 
   console.log("Building Linux packages locally with Docker...");
   console.log(`Image: ${image}`);
@@ -49,7 +58,7 @@ function main() {
       image,
       "bash",
       "-lc",
-      command.join(" && "),
+      command,
     ],
     { cwd: root, stdio: "inherit" },
   );
