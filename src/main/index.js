@@ -323,6 +323,18 @@ let trayState = {
   closeToTray: true,
 };
 
+function hasTrayStateChanged(nextState) {
+  return [
+    "peerId",
+    "isMuted",
+    "isDeafened",
+    "status",
+    "theme",
+    "autostart",
+    "closeToTray",
+  ].some((key) => trayState[key] !== nextState[key]);
+}
+
 function updateTrayMenu() {
   if (!tray) {
     return;
@@ -1040,7 +1052,15 @@ app.whenReady().then(async () => {
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
   ipcMain.on("update-tray-state", (_event, state) => {
-    trayState = { ...trayState, ...state };
+    const nextTrayState = { ...trayState, ...state };
+    // The renderer synchronizes every 1.5 seconds. Replacing an open native
+    // tray menu with an identical menu closes its submenus on Linux, so only
+    // rebuild when an item the user can see has actually changed.
+    if (!hasTrayStateChanged(nextTrayState)) {
+      return;
+    }
+
+    trayState = nextTrayState;
     updateTrayMenu();
   });
   ipcMain.handle("get-screen-sources", async (event) => {
