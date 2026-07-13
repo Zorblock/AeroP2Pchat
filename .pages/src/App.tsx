@@ -145,6 +145,10 @@ function App() {
     windows: `iwr -useb ${baseUrl}/install.ps1 | iex`,
     linux: `bash <(curl -fsSL ${baseUrl}/install.sh)`
   };
+  const guiInstallCommands = {
+    windows: `& ([scriptblock]::Create((iwr -useb ${baseUrl}/install.ps1))) -Gui`,
+    linux: `bash <(curl -fsSL ${baseUrl}/install.sh) --gui`
+  };
   const platforms = [
     { id: 'windows' as const, label: 'Windows', icon: <Download size={17} /> },
     { id: 'linux' as const, label: 'Linux', icon: <Download size={17} /> },
@@ -430,6 +434,22 @@ function App() {
                     Copy
                   </motion.button>
                 </motion.div>
+
+                <div style={{ width: '100%', padding: '0.7rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'rgba(224,242,254,0.5)', border: '1px solid rgba(125,211,252,0.55)', borderRadius: '0.8rem', color: '#075985', fontSize: '0.78rem' }}>
+                  <span style={{ fontWeight: 800, flexShrink: 0 }}>Prefer a graphical installer?</span>
+                  <code style={{ minWidth: 0, flex: 1, overflowX: 'auto', whiteSpace: 'nowrap', fontSize: '0.74rem', fontWeight: 650 }}>{guiInstallCommands[installOs]}</code>
+                  <button
+                    type="button"
+                    className="liquid-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(guiInstallCommands[installOs]);
+                      toast.success('GUI install command copied!');
+                    }}
+                    style={{ border: 0, background: 'transparent', color: '#0369a1', cursor: 'pointer', fontWeight: 800, padding: '0.25rem', flexShrink: 0 }}
+                  >
+                    Copy
+                  </button>
+                </div>
 
                 <label className="subtle-checkbox-label" style={{ alignSelf: 'flex-start', color: '#475569' }}>
                   <input

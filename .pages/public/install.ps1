@@ -8,8 +8,31 @@
 #>
 
 param(
-    [string]$Action = "menu"
+    [Parameter(Position = 0)]
+    [string]$Action = "menu",
+    [switch]$Gui,
+    [switch]$NoGui,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$RemainingArguments
 )
+
+# Support both PowerShell switches and cross-platform --gui/--nogui spellings.
+if ($Action -eq "--nogui" -or $Action -eq "-nogui") {
+    $NoGui = $true
+    $Action = "menu"
+} elseif ($Action -eq "--gui" -or $Action -eq "-gui") {
+    $Gui = $true
+    $Action = "menu"
+}
+foreach ($argumentValue in $RemainingArguments) {
+    if ($argumentValue -eq "--nogui" -or $argumentValue -eq "-nogui") {
+        $NoGui = $true
+    } elseif ($argumentValue -eq "--gui" -or $argumentValue -eq "-gui") {
+        $Gui = $true
+    } elseif ($Action -eq "menu") {
+        $Action = $argumentValue
+    }
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -100,7 +123,7 @@ function Get-LatestVersion {
         }
         $manifest = Invoke-RestMethod @invokeOptions
         if ($manifest -match "version:\s*(.+)") {
-            return $matches[1].Trim()
+            return $matches[1].Trim().Trim('"')
         }
     } catch {
         Write-Warn "Could not fetch latest.yml from GitHub"
@@ -334,7 +357,7 @@ function Show-Status {
 .SYNOPSIS
     Displays the interactive CLI menu for the user.
 #>
-function Show-Menu {
+function Show-TerminalMenu {
     while ($true) {
     Write-Title
     
@@ -407,6 +430,230 @@ function Show-Menu {
     
     Write-Warn "Invalid choice."
     Wait-ForMenu
+    }
+}
+
+function Test-GuiAvailable {
+    if (-not [Environment]::UserInteractive) { return $false }
+    if ([System.Threading.Thread]::CurrentThread.ApartmentState -ne "STA") { return $false }
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Show-GuiActivity {
+    param([string]$Message)
+
+    $activity = New-Object System.Windows.Forms.Form
+    $activity.Text = "$AppName Installer"
+    $activity.ClientSize = New-Object System.Drawing.Size(430, 150)
+    $activity.StartPosition = "CenterScreen"
+    $activity.FormBorderStyle = "FixedDialog"
+    $activity.ControlBox = $false
+    $activity.BackColor = [System.Drawing.Color]::White
+
+    $title = New-Object System.Windows.Forms.Label
+    $title.Text = "Working on it..."
+    $title.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 15, [System.Drawing.FontStyle]::Bold)
+    $title.AutoSize = $true
+    $title.Location = New-Object System.Drawing.Point(24, 22)
+    $activity.Controls.Add($title)
+
+    $detail = New-Object System.Windows.Forms.Label
+    $detail.Text = "$Message`r`nYou can follow the detailed output in the terminal."
+    $detail.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#475569")
+    $detail.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $detail.AutoSize = $true
+    $detail.Location = New-Object System.Drawing.Point(27, 55)
+    $activity.Controls.Add($detail)
+
+    $progress = New-Object System.Windows.Forms.ProgressBar
+    $progress.Style = "Marquee"
+    $progress.MarqueeAnimationSpeed = 32
+    $progress.Location = New-Object System.Drawing.Point(27, 111)
+    $progress.Size = New-Object System.Drawing.Size(375, 12)
+    $activity.Controls.Add($progress)
+
+    $activity.Show()
+    [System.Windows.Forms.Application]::DoEvents()
+    return $activity
+}
+
+function Invoke-GuiAction {
+    param(
+        [string]$Message,
+        [scriptblock]$Operation
+    )
+
+    $activity = Show-GuiActivity $Message
+    try {
+        & $Operation
+        $activity.Close()
+        $activity.Dispose()
+        [System.Windows.Forms.MessageBox]::Show("Completed successfully. Review the terminal for details.", $AppName) | Out-Null
+    } catch {
+        $activity.Close()
+        $activity.Dispose()
+        [System.Windows.Forms.MessageBox]::Show("The action failed: $($_.Exception.Message)`r`n`r`nReview the terminal for details.", $AppName, [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    }
+}
+
+function Show-GuiMenu {
+    while ($true) {
+        $installed = Get-InstalledVersion
+        $latest = Get-LatestVersion
+        $bestFormat = Get-BestFormat
+
+        $form = New-Object System.Windows.Forms.Form
+        $form.Text = "$AppName Installer"
+        $form.ClientSize = New-Object System.Drawing.Size(640, 600)
+        $form.StartPosition = "CenterScreen"
+        $form.FormBorderStyle = "FixedSingle"
+        $form.MaximizeBox = $false
+        $form.MinimizeBox = $false
+        $form.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#F5F7FB")
+        $form.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+        $header = New-Object System.Windows.Forms.Panel
+        $header.Location = New-Object System.Drawing.Point(0, 0)
+        $header.Size = New-Object System.Drawing.Size(640, 122)
+        $header.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#0F172A")
+        $form.Controls.Add($header)
+
+        $heading = New-Object System.Windows.Forms.Label
+        $heading.Text = $AppName
+        $heading.ForeColor = [System.Drawing.Color]::White
+        $heading.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 22, [System.Drawing.FontStyle]::Bold)
+        $heading.AutoSize = $true
+        $heading.Location = New-Object System.Drawing.Point(30, 23)
+        $header.Controls.Add($heading)
+
+        $subheading = New-Object System.Windows.Forms.Label
+        $subheading.Text = "Install, update, and manage your desktop app"
+        $subheading.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#CBD5E1")
+        $subheading.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+        $subheading.AutoSize = $true
+        $subheading.Location = New-Object System.Drawing.Point(33, 72)
+        $header.Controls.Add($subheading)
+
+        $statusCard = New-Object System.Windows.Forms.Panel
+        $statusCard.Location = New-Object System.Drawing.Point(30, 146)
+        $statusCard.Size = New-Object System.Drawing.Size(580, 86)
+        $statusCard.BackColor = [System.Drawing.Color]::White
+        $statusCard.BorderStyle = "FixedSingle"
+        $form.Controls.Add($statusCard)
+
+        $statusTitle = New-Object System.Windows.Forms.Label
+        $statusTitle.Text = "CURRENT INSTALLATION"
+        $statusTitle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#64748B")
+        $statusTitle.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+        $statusTitle.AutoSize = $true
+        $statusTitle.Location = New-Object System.Drawing.Point(16, 13)
+        $statusCard.Controls.Add($statusTitle)
+
+        $statusText = New-Object System.Windows.Forms.Label
+        $statusText.Text = "Installed  $installed`r`nLatest      $latest"
+        $statusText.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#0F172A")
+        $statusText.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10)
+        $statusText.AutoSize = $true
+        $statusText.Location = New-Object System.Drawing.Point(16, 34)
+        $statusCard.Controls.Add($statusText)
+
+        $recommendation = New-Object System.Windows.Forms.Label
+        $recommendation.Text = "Recommended: $(Format-Name $bestFormat)"
+        $recommendation.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#0284C7")
+        $recommendation.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
+        $recommendation.AutoSize = $true
+        $recommendation.Location = New-Object System.Drawing.Point(330, 39)
+        $statusCard.Controls.Add($recommendation)
+
+        $actions = @(
+            @{ Key = "auto"; Text = "Install automatically"; Style = "primary" },
+            @{ Key = "msstore"; Text = "Microsoft Store"; Style = "secondary" },
+            @{ Key = "exe"; Text = "Standalone setup (.exe)"; Style = "secondary" },
+            @{ Key = "status"; Text = "Check status"; Style = "secondary" },
+            @{ Key = "uninstall"; Text = "Uninstall"; Style = "danger" },
+            @{ Key = "exit"; Text = "Close"; Style = "ghost" }
+        )
+
+        $top = 258
+        foreach ($actionItem in $actions) {
+            $button = New-Object System.Windows.Forms.Button
+            $button.Text = $actionItem.Text
+            $button.Tag = $actionItem.Key
+            $button.Size = New-Object System.Drawing.Size(580, 43)
+            $button.Location = New-Object System.Drawing.Point(30, $top)
+            $button.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 10)
+            $button.FlatStyle = "Flat"
+            $button.Cursor = [System.Windows.Forms.Cursors]::Hand
+            $button.FlatAppearance.BorderSize = 0
+            switch ($actionItem.Style) {
+                "primary" {
+                    $button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#0284C7")
+                    $button.ForeColor = [System.Drawing.Color]::White
+                }
+                "danger" {
+                    $button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#FFF1F2")
+                    $button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#BE123C")
+                }
+                "ghost" {
+                    $button.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#E2E8F0")
+                    $button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#334155")
+                }
+                default {
+                    $button.BackColor = [System.Drawing.Color]::White
+                    $button.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#1E293B")
+                    $button.FlatAppearance.BorderSize = 1
+                    $button.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml("#CBD5E1")
+                }
+            }
+            $button.Add_Click({
+                param($clickedControl, $clickData)
+                $clickedControl.FindForm().Tag = $clickedControl.Tag
+                $clickedControl.FindForm().Close()
+            })
+            $form.Controls.Add($button)
+            $top += 49
+        }
+
+        $form.ShowDialog() | Out-Null
+        $choice = [string]$form.Tag
+        $form.Dispose()
+
+        switch ($choice) {
+            "auto" { Invoke-GuiAction "Installing with $(Format-Name $bestFormat)" { Install-App $bestFormat } }
+            "msstore" { Invoke-GuiAction "Opening Microsoft Store installation" { Install-App "msstore" } }
+            "exe" { Invoke-GuiAction "Downloading and installing the standalone setup" { Install-App "exe" } }
+            "status" { [System.Windows.Forms.MessageBox]::Show("Installed: $installed`r`nLatest: $latest", "$AppName Status") | Out-Null }
+            "uninstall" {
+                $confirm = [System.Windows.Forms.MessageBox]::Show(
+                    "Uninstall $AppName? Your app data is kept.",
+                    $AppName,
+                    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                    [System.Windows.Forms.MessageBoxIcon]::Warning
+                )
+                if ($confirm -eq [System.Windows.Forms.DialogResult]::Yes) {
+                    Invoke-GuiAction "Removing $AppName" { Uninstall-App }
+                }
+            }
+            default { return }
+        }
+    }
+}
+
+function Show-Menu {
+    if ($Gui -and $NoGui) {
+        Write-ErrorMsg "Use either -Gui/--gui or -NoGui/--nogui, not both."
+        Show-TerminalMenu
+    } elseif ($Gui -and (Test-GuiAvailable)) {
+        Show-GuiMenu
+    } else {
+        if ($Gui) { Write-Warn "No supported graphical installer is available. Opening the terminal menu." }
+        Show-TerminalMenu
     }
 }
 

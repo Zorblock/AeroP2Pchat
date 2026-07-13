@@ -706,8 +706,32 @@
           </button>
         </header>
         <p id="modal-text"></p>
-        <code id="linux-command" class="command-box"></code>
-        <button id="copy-update-command" type="button">Copy command</button>
+        <div class="update-command-list" aria-label="Linux update commands">
+          <section class="update-command-option">
+            <div class="update-command-heading">
+              <strong>Installed command</strong>
+              <span>Fastest option</span>
+            </div>
+            <code id="linux-command" class="command-box"></code>
+            <button class="copy-update-command" data-update-command="installed" type="button">Copy command</button>
+          </section>
+          <section class="update-command-option">
+            <div class="update-command-heading">
+              <strong>Official installer</strong>
+              <span>Website fallback</span>
+            </div>
+            <code id="linux-website-command" class="command-box"></code>
+            <button class="copy-update-command" data-update-command="website" type="button">Copy command</button>
+          </section>
+          <section class="update-command-option">
+            <div class="update-command-heading">
+              <strong>GitHub mirror</strong>
+              <span>Fallback if the website is unavailable</span>
+            </div>
+            <code id="linux-mirror-command" class="command-box"></code>
+            <button class="copy-update-command" data-update-command="mirror" type="button">Copy command</button>
+          </section>
+        </div>
       </section>
     </div>
 

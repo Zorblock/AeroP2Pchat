@@ -94,7 +94,9 @@ const updateModal = document.querySelector("#update-modal");
 const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
 const linuxCommand = document.querySelector("#linux-command");
-const copyUpdateCommand = document.querySelector("#copy-update-command");
+const linuxWebsiteCommand = document.querySelector("#linux-website-command");
+const linuxMirrorCommand = document.querySelector("#linux-mirror-command");
+const copyUpdateCommands = document.querySelectorAll(".copy-update-command");
 const appDialog = document.querySelector("#app-dialog");
 const appDialogTitle = document.querySelector("#app-dialog-title");
 const appDialogMessage = document.querySelector("#app-dialog-message");
@@ -503,6 +505,15 @@ const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const statusPageUrl = "https://status.zorblock.de/";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
+const linuxWebsiteUpdateCommand =
+  "bash <(curl -fsSL https://aero.zorblock.de/install.sh) update";
+const linuxMirrorUpdateCommand =
+  "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
+const linuxUpdateCommands = {
+  installed: linuxInstallCommand,
+  website: linuxWebsiteUpdateCommand,
+  mirror: linuxMirrorUpdateCommand,
+};
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
 
@@ -7680,8 +7691,10 @@ platformApi.onNotificationAction((action) => {
 });
 
 function openLinuxUpdateModal() {
-  modalText.textContent = `Run this command to update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}.`;
+  modalText.textContent = `Update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}. Use the installed command first; the other two options reinstall or update through the official installer while keeping your settings.`;
   linuxCommand.textContent = linuxInstallCommand;
+  linuxWebsiteCommand.textContent = linuxWebsiteUpdateCommand;
+  linuxMirrorCommand.textContent = linuxMirrorUpdateCommand;
   updateModal.classList.remove("hidden");
 }
 
@@ -7833,19 +7846,22 @@ updateModal.addEventListener("click", (event) => {
   }
 });
 
-copyUpdateCommand.addEventListener("click", async () => {
-  try {
-    await writeClipboardText(linuxInstallCommand);
-    copyUpdateCommand.textContent = "Copied";
+copyUpdateCommands.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const command = linuxUpdateCommands[button.dataset.updateCommand];
+    if (!command) return;
+
+    try {
+      await writeClipboardText(command);
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Copy failed";
+    }
+
     setTimeout(() => {
-      copyUpdateCommand.textContent = "Copy command";
+      button.textContent = "Copy command";
     }, 1200);
-  } catch {
-    copyUpdateCommand.textContent = "Copy failed";
-    setTimeout(() => {
-      copyUpdateCommand.textContent = "Copy command";
-    }, 1200);
-  }
+  });
 });
 
 titlebarLogo.addEventListener("contextmenu", openAppMenu);

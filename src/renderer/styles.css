@@ -553,7 +553,7 @@ code {
 .icon-button,
 .ghost-button,
 .header-update-button,
-#copy-update-command,
+.copy-update-command,
 #connect-button,
 #send-button,
 #update-button,
@@ -575,7 +575,7 @@ code {
 .icon-button::before,
 .ghost-button::before,
 .header-update-button::before,
-#copy-update-command::before,
+.copy-update-command::before,
 #connect-button::before,
 #send-button::before,
 #update-button::before,
@@ -594,7 +594,7 @@ code {
 .icon-button:hover::before,
 .ghost-button:hover::before,
 .header-update-button:hover::before,
-#copy-update-command:hover::before,
+.copy-update-command:hover::before,
 #connect-button:hover::before,
 #send-button:hover::before,
 #update-button:hover::before,
@@ -606,7 +606,7 @@ code {
 .icon-button:hover,
 .ghost-button:hover,
 .header-update-button:hover,
-#copy-update-command:hover,
+.copy-update-command:hover,
 #connect-button:hover,
 #send-button:hover,
 #update-button:hover,
@@ -2447,7 +2447,44 @@ input:disabled {
   overflow-wrap: anywhere;
 }
 
-#copy-update-command {
+#update-modal .modal-panel {
+  width: min(540px, 100%);
+}
+
+.update-command-list {
+  display: grid;
+  gap: 8px;
+}
+
+.update-command-option {
+  padding: 9px;
+  border: 1px solid rgba(22, 125, 170, 0.2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.update-command-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #164b65;
+  font-size: 12px;
+}
+
+.update-command-heading span {
+  color: #5d7a89;
+  font-size: 10px;
+}
+
+.update-command-option .command-box {
+  min-height: 0;
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.copy-update-command {
   width: 100%;
   height: 28px;
   background: linear-gradient(#fbffff, #9cf1ff 48%, #34b7e7 49%, #0f93c8);
@@ -3286,7 +3323,7 @@ body[data-theme="dark"] select:focus {
 
 body[data-theme="dark"] .icon-button,
 body[data-theme="dark"] .ghost-button,
-body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] .copy-update-command,
 body[data-theme="dark"] #connect-button,
 body[data-theme="dark"] #send-button,
 body[data-theme="dark"] #update-button,
@@ -3717,7 +3754,7 @@ body[data-theme="dark"] .contact-name:hover {
 
 body[data-theme="dark"] .icon-button,
 body[data-theme="dark"] .ghost-button,
-body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] .copy-update-command,
 body[data-theme="dark"] #connect-button,
 body[data-theme="dark"] #send-button,
 body[data-theme="dark"] #update-button,
@@ -4373,7 +4410,7 @@ textarea:focus {
 .icon-button,
 .ghost-button,
 .header-update-button,
-#copy-update-command,
+.copy-update-command,
 #connect-button,
 #send-button,
 #update-button,
@@ -4398,7 +4435,7 @@ textarea:focus {
 #send-button,
 #update-button,
 #save-nickname,
-#copy-update-command,
+.copy-update-command,
 .request-actions button,
 .stream-source-tab.active,
 .stream-start-button,
@@ -4412,7 +4449,7 @@ textarea:focus {
 #send-button:hover,
 #update-button:hover,
 #save-nickname:hover,
-#copy-update-command:hover,
+.copy-update-command:hover,
 .stream-start-button:hover,
 .app-dialog-actions button:not(.ghost-button):hover {
   background: var(--ui-primary-hover) !important;
@@ -4696,7 +4733,7 @@ body[data-theme="dark"] .stream-controls select {
 
 body[data-theme="dark"] .icon-button,
 body[data-theme="dark"] .ghost-button,
-body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] .copy-update-command,
 body[data-theme="dark"] #connect-button,
 body[data-theme="dark"] #send-button,
 body[data-theme="dark"] #update-button,
@@ -4740,7 +4777,7 @@ body[data-theme="dark"] #connect-button,
 body[data-theme="dark"] #send-button,
 body[data-theme="dark"] #update-button,
 body[data-theme="dark"] #save-nickname,
-body[data-theme="dark"] #copy-update-command,
+body[data-theme="dark"] .copy-update-command,
 body[data-theme="dark"] .stream-source-tab.active,
 body[data-theme="dark"] .stream-start-button,
 body[data-theme="dark"] .app-dialog-actions button:not(.ghost-button) {
