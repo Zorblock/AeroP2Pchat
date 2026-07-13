@@ -185,6 +185,38 @@ function collectReleaseFiles() {
   return files;
 }
 
+function formatFileSize(bytes) {
+  const megabytes = bytes / 1024 / 1024;
+  return `${megabytes.toFixed(megabytes >= 100 ? 0 : 1)} MB`;
+}
+
+function uploadReleaseFiles(tag, files) {
+  const totalBytes = files.reduce(
+    (total, filePath) => total + fs.statSync(filePath).size,
+    0,
+  );
+  let uploadedBytes = 0;
+
+  console.log(
+    `\n${colored("GITHUB UPLOADS", color.bold, color.cyan)} ${colored(`(${files.length} files, ${formatFileSize(totalBytes)})`, color.dim)}`,
+  );
+
+  for (const [index, filePath] of files.entries()) {
+    const size = fs.statSync(filePath).size;
+    const startedAt = Date.now();
+    console.log(
+      `${colored(`[${index + 1}/${files.length}]`, color.bold, color.cyan)} Uploading ${path.basename(filePath)} ${colored(`(${formatFileSize(size)})`, color.dim)}`,
+    );
+    run("gh", ["release", "upload", tag, filePath]);
+    uploadedBytes += size;
+    const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+    const percentage = Math.round((uploadedBytes / totalBytes) * 100);
+    console.log(
+      `${colored("  ✓ Uploaded", color.green)} ${colored(`${percentage}% total · ${formatFileSize(uploadedBytes)} / ${formatFileSize(totalBytes)} · ${seconds}s`, color.dim)}`,
+    );
+  }
+}
+
 function collectStoreFiles() {
   const storeDir = path.join(root, "dist", "store");
   if (!fs.existsSync(storeDir)) return [];
@@ -200,8 +232,14 @@ function collectStoreFiles() {
 
 function terminalLink(filePath) {
   const absolutePath = path.resolve(filePath);
-  const fileUrl = `file:///${absolutePath.replace(/\\/g, "/")}`;
-  return `\u001b]8;;${fileUrl}\u0007${absolutePath}\u001b]8;;\u0007`;
+  const normalizedPath = absolutePath.replace(/\\/g, "/");
+  const url =
+    process.platform === "win32"
+      ? `command:revealFileInOS?${encodeURIComponent(
+          JSON.stringify([{ scheme: "file", path: `/${normalizedPath}` }]),
+        )}`
+      : `file:///${normalizedPath}`;
+  return `\u001b]8;;${url}\u0007${absolutePath}\u001b]8;;\u0007`;
 }
 
 const color = {
@@ -222,6 +260,11 @@ function printArtifact(label, filePath, note, styles) {
   console.log(`  ${colored(label, color.bold, ...styles)}`);
   console.log(`  ${terminalLink(filePath)}`);
   console.log(`  ${colored(note, color.dim)}`);
+  if (process.platform === "win32") {
+    console.log(
+      `  ${colored("Ctrl+click: Explorer opens with this file selected. Fallback:", color.dim)} explorer.exe /select,"${path.resolve(filePath)}"`,
+    );
+  }
 }
 
 function printArtifactLinks(releaseFiles) {
@@ -371,6 +414,7 @@ function main() {
   const originalPkg = fs.readFileSync(packagePath, "utf8");
   const originalLock = fs.existsSync(lockPath) ? fs.readFileSync(lockPath, "utf8") : null;
   let commitCreated = false;
+  let githubReleaseCreated = false;
 
   try {
     // 2. Bump version
@@ -411,16 +455,9 @@ function main() {
     run("git", ["push", "origin", tag]);
 
     const releaseFiles = collectReleaseFiles();
-    const ghArgs = [
-      "release",
-      "create",
-      tag,
-      "--title",
-      tag,
-      "--generate-notes",
-      ...releaseFiles,
-    ];
-    run("gh", ghArgs);
+    run("gh", ["release", "create", tag, "--title", tag, "--generate-notes"]);
+    githubReleaseCreated = true;
+    uploadReleaseFiles(tag, releaseFiles);
     run("npm", ["run", "pages"]);
 
     console.log("");
@@ -442,6 +479,10 @@ function main() {
       if (originalLock) {
         fs.writeFileSync(lockPath, originalLock, "utf8");
       }
+    } else if (githubReleaseCreated) {
+      console.log(
+        "The GitHub release was created, but one or more asset uploads may need to be retried manually.",
+      );
     } else {
       console.log(
         "The source commit was pushed so GitHub could build Linux, but no Store or GitHub release was created.",
