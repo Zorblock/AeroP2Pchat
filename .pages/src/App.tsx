@@ -360,31 +360,22 @@ function App() {
 
               {installOs === 'linux' && (
                 <div className="linux-downloads">
-                  <DownloadButton
-                    os="linux"
-                    text="Download AppImage (automatic updates)"
-                    icon={<Download size={22} />}
-                    colorTheme="blue"
-                    onClick={triggerConfetti}
-                  />
-                  <div className="linux-downloads__native">
-                    <DownloadButton
-                      os="linux"
-                      assetName="Aero-P2P-Chat-Linux-x64.deb"
-                      text="Download .deb"
-                      icon={<Download size={18} />}
-                      colorTheme="blue"
-                    />
-                    <DownloadButton
-                      os="linux"
-                      assetName="Aero-P2P-Chat-Linux-x64.rpm"
-                      text="Download .rpm"
-                      icon={<Download size={18} />}
-                      colorTheme="blue"
-                    />
-                  </div>
+                  <motion.button
+                    type="button"
+                    className="liquid-btn linux-install-button"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(installCommands.linux);
+                      toast.success('Linux install command copied! Paste it into a terminal.');
+                      triggerConfetti();
+                    }}
+                  >
+                    <Download size={22} />
+                    Install automatically on Linux
+                  </motion.button>
                   <p className="linux-downloads__hint">
-                    AppImage works on most distributions and receives built-in updates. DEB is for Debian/Ubuntu/Mint; RPM is for Fedora, RHEL and SUSE.
+                    The installer detects your distribution, installs the best format (DEB, RPM, or AppImage), creates launchers, and keeps your settings during updates or format changes.
                   </p>
                 </div>
               )}
@@ -409,7 +400,7 @@ function App() {
               {installOs !== 'android' && <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
-                  {installOs === 'linux' ? 'Install from the terminal' : 'Or install from the terminal'}
+                  {installOs === 'linux' ? 'Run this in your terminal' : 'Or install from the terminal'}
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
                 </div>
 

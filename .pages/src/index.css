@@ -179,17 +179,20 @@ html {
   gap: 0.7rem;
 }
 
-.linux-downloads__native {
-  width: min(100%, 360px);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-
-.linux-downloads__native button {
-  min-width: 0 !important;
-  padding: 0.75rem 0.8rem !important;
-  font-size: 0.9rem !important;
+.linux-install-button {
+  min-width: min(100%, 380px) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.95rem 1.35rem !important;
+  background: linear-gradient(180deg, #38bdf8, #0284c7) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(3, 105, 161, 0.5);
 }
 
 .linux-downloads__hint {

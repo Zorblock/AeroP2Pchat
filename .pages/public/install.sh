@@ -685,11 +685,16 @@ install_app() {
     esac
     rm -f "$tmp_manifest"
     [ -n "$download_url" ] || download_url="${RELEASE_BASE}/${file_name}"
-    tmp_file="$(mktemp -d)/${file_name}"
+    tmp_dir="$(mktemp -d)"
+    # APT runs downloads as the restricted _apt user. mktemp creates a 0700
+    # directory by default, so make this temporary package readable to _apt.
+    chmod 755 "$tmp_dir"
+    tmp_file="${tmp_dir}/${file_name}"
     
     info "Downloading $(format_name "$format") v${target_version}..."
     download "$download_url" "$tmp_file"
     verify_sha256 "$tmp_file" "${expected_sha256:-}" "$(format_name "$format")"
+    chmod 644 "$tmp_file"
     
     # Only remove the previous format after the new file was downloaded and
     # verified. App data in ~/.config/Aero P2P Chat is deliberately retained.
@@ -712,7 +717,7 @@ install_app() {
             ;;
     esac
     
-    rm -rf "$(dirname "$tmp_file")"
+    rm -rf "$tmp_dir"
     write_launcher
     write_terminal_command
     refresh_desktop_integration
