@@ -314,70 +314,12 @@ function printArtifactLinks(releaseFiles) {
   }
 }
 
-function wait(milliseconds) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
-}
-
-function buildLinuxOnGitHub(branch, version, commitSha) {
-  run("gh", [
-    "workflow",
-    "run",
-    "build.yml",
-    "--ref",
-    branch,
-    "-f",
-    `version=${version}`,
-  ]);
-
-  let runId = "";
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const output = run(
-      "gh",
-      [
-        "run",
-        "list",
-        "--workflow",
-        "build.yml",
-        "--branch",
-        branch,
-        "--event",
-        "workflow_dispatch",
-        "--limit",
-        "10",
-        "--json",
-        "databaseId,headSha",
-      ],
-      { capture: true },
-    );
-    const matchingRun = JSON.parse(output).find(
-      (entry) => entry.headSha === commitSha,
-    );
-    if (matchingRun) {
-      runId = String(matchingRun.databaseId);
-      break;
-    }
-    wait(1000);
-  }
-
-  if (!runId) {
-    throw new Error("GitHub did not start the Linux build workflow in time.");
-  }
-
-  console.log(`Waiting for Linux build run ${runId}...`);
-  run("gh", ["run", "watch", runId, "--exit-status"]);
-  run("gh", [
-    "run",
-    "download",
-    runId,
-    "--name",
-    "linux-release",
-    "--dir",
-    releaseDir,
-  ]);
+function buildLinuxWithDocker(version) {
+  run("node", ["scripts/build-linux-docker.cjs", `--version=${version}`]);
 
   const linuxManifest = path.join(releaseDir, "update_manifest_linux.json");
   if (!fs.existsSync(linuxManifest)) {
-    throw new Error("The GitHub Linux build did not provide update_manifest_linux.json.");
+    throw new Error("The Docker Linux build did not provide update_manifest_linux.json.");
   }
 }
 
@@ -427,7 +369,15 @@ function main() {
     run("npm", ["run", "build:store"]);
     run("npm", ["run", "build", "--prefix", ".pages"]);
 
-    // 4. Push the source commit so GitHub can build the Linux AppImage.
+    // 4. Build Linux locally in Docker, keeping the other release files intact.
+    buildLinuxWithDocker(nextVersion);
+    run("node", [
+      "scripts/ci-append-linux-latest.cjs",
+      "dist/release/latest.yml",
+      "dist/release",
+    ]);
+
+    // 5. Publish only after every local build succeeded.
     run("git", ["add", "-A"]);
     if (hasStagedChanges()) {
       run("git", ["commit", "-m", `chore: release ${tag}`]);
@@ -437,15 +387,7 @@ function main() {
     }
 
     run("git", ["push", "-u", "origin", branch]);
-    const commitSha = run("git", ["rev-parse", "HEAD"], { capture: true });
-    buildLinuxOnGitHub(branch, nextVersion, commitSha);
-    run("node", [
-      "scripts/ci-append-linux-latest.cjs",
-      "dist/release/latest.yml",
-      "dist/release",
-    ]);
-
-    // 5. Publish the finished desktop and mobile downloads before the Store submission.
+    // 6. Publish the finished desktop and mobile downloads before the Store submission.
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
 

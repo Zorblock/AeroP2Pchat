@@ -13,11 +13,12 @@ const config = JSON.parse(
 );
 
 function parseArgs() {
-  const options = { platform: "", version: "" };
+  const options = { platform: "", version: "", preserveRelease: false };
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith("--platform=")) options.platform = arg.slice(11);
     if (arg.startsWith("--version="))
       options.version = arg.slice(10).replace(/^v/, "");
+    if (arg === "--preserve-release") options.preserveRelease = true;
   }
   if (!["linux", "windows"].includes(options.platform)) {
     throw new Error("Missing --platform=linux|windows");
@@ -71,9 +72,11 @@ function setPackageVersion(version) {
   return version;
 }
 
-function clean() {
+function clean(preserveRelease) {
   fs.rmSync(path.join(root, "out"), { recursive: true, force: true });
-  fs.rmSync(distDir, { recursive: true, force: true });
+  if (!preserveRelease) {
+    fs.rmSync(distDir, { recursive: true, force: true });
+  }
   fs.mkdirSync(releaseDir, { recursive: true });
 }
 
@@ -182,7 +185,7 @@ function buildLinux(version) {
 function main() {
   const options = parseArgs();
   const version = setPackageVersion(options.version);
-  clean();
+  clean(options.preserveRelease);
 
   if (options.platform === "windows") buildWindows(version);
   if (options.platform === "linux") buildLinux(version);
