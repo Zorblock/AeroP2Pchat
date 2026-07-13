@@ -31,6 +31,13 @@ function run(command, args) {
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(outputDir, { recursive: true });
 
+run("powershell.exe", [
+  "-NoProfile",
+  "-ExecutionPolicy",
+  "Bypass",
+  "-File",
+  "scripts/generate-appx-assets.ps1",
+]);
 run("node", ["scripts/run-electron-vite.cjs", "build"]);
 run("npx", [
   "electron-builder",
