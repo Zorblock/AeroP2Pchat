@@ -26,18 +26,16 @@ function parseArgs() {
   return options;
 }
 
-function commandForSpawn(command) {
-  if (process.platform !== "win32") return command;
-  if (command === "npm" || command === "npx") return `${command}.cmd`;
-  return command;
-}
-
 function run(command, args, options = {}) {
-  const result = spawnSync(commandForSpawn(command), args, {
+  const isWindowsNpm =
+    process.platform === "win32" && (command === "npm" || command === "npx");
+  const executable = isWindowsNpm ? process.env.ComSpec || "cmd.exe" : command;
+  const finalArgs = isWindowsNpm
+    ? ["/d", "/s", "/c", `${command}.cmd`, ...args]
+    : args;
+  const result = spawnSync(executable, finalArgs, {
     cwd: root,
     stdio: "inherit",
-    shell:
-      process.platform === "win32" && (command === "npm" || command === "npx"),
     env: { ...process.env, ...(options.env || {}) },
   });
   if (result.status !== 0) {

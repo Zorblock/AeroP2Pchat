@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const image = "electronuserland/builder:20";
+const image = "electronuserland/builder:22";
 
 function parseVersion() {
   const argument = process.argv
@@ -22,13 +22,13 @@ function main() {
     "node scripts/ci-build-release.cjs --platform=linux --preserve-release" +
     (version ? ` --version=${version}` : "");
   const command = `
-    lock_hash="$(sha256sum package-lock.json | awk '{print $1}')"
-    if [ -f node_modules/.aero-package-lock.sha256 ] && [ "$(cat node_modules/.aero-package-lock.sha256)" = "$lock_hash" ]; then
+    cache_key="$(sha256sum package-lock.json | awk '{print $1}'):$(node --version)"
+    if [ -f node_modules/.aero-package-lock.sha256 ] && [ "$(cat node_modules/.aero-package-lock.sha256)" = "$cache_key" ]; then
       echo "Reusing cached Linux node_modules."
     else
       echo "Installing Linux dependencies (first build or package-lock changed)..."
       npm ci
-      printf "%s" "$lock_hash" > node_modules/.aero-package-lock.sha256
+      printf "%s" "$cache_key" > node_modules/.aero-package-lock.sha256
     fi
     ${buildCommand}
   `;
