@@ -358,28 +358,6 @@ function App() {
                 />
               )}
 
-              {installOs === 'linux' && (
-                <div className="linux-downloads">
-                  <motion.button
-                    type="button"
-                    className="liquid-btn linux-install-button"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(installCommands.linux);
-                      toast.success('Linux install command copied! Paste it into a terminal.');
-                      triggerConfetti();
-                    }}
-                  >
-                    <Download size={22} />
-                    Install automatically on Linux
-                  </motion.button>
-                  <p className="linux-downloads__hint">
-                    The installer detects your distribution, installs the best format (DEB, RPM, or AppImage), creates launchers, and keeps your settings during updates or format changes.
-                  </p>
-                </div>
-              )}
-
               {installOs === 'windows' && (
                 <div className="microsoft-store-option">
                   <div className="microsoft-store-option__copy">
