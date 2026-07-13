@@ -323,6 +323,25 @@ function buildLinuxWithDocker(version) {
   }
 }
 
+function notifyReleaseComplete(tag) {
+  if (process.platform !== "win32") return;
+
+  const notificationSound = [
+    "[System.Media.SystemSounds]::Exclamation.Play()",
+    "Start-Sleep -Milliseconds 350",
+    "[System.Media.SystemSounds]::Exclamation.Play()",
+  ].join("; ");
+  const result = spawnSync(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", notificationSound],
+    { cwd: root, stdio: "ignore" },
+  );
+
+  if (result.status !== 0) {
+    console.log(`Release ${tag} completed, but Windows could not play the completion sound.`);
+  }
+}
+
 function main() {
   const options = parseArgs();
   const branch = ensureGitRepository();
@@ -414,6 +433,7 @@ function main() {
     console.log("Website deployment was triggered.");
     console.log("Upload the .appx file below manually in Partner Center.");
     printArtifactLinks(releaseFiles);
+    notifyReleaseComplete(tag);
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     if (!commitCreated) {
