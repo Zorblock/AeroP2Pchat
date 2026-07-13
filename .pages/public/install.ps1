@@ -9,30 +9,8 @@
 
 param(
     [Parameter(Position = 0)]
-    [string]$Action = "menu",
-    [switch]$Gui,
-    [switch]$NoGui,
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$RemainingArguments
+    [string]$Action = "menu"
 )
-
-# Support both PowerShell switches and cross-platform --gui/--nogui spellings.
-if ($Action -eq "--nogui" -or $Action -eq "-nogui") {
-    $NoGui = $true
-    $Action = "menu"
-} elseif ($Action -eq "--gui" -or $Action -eq "-gui") {
-    $Gui = $true
-    $Action = "menu"
-}
-foreach ($argumentValue in $RemainingArguments) {
-    if ($argumentValue -eq "--nogui" -or $argumentValue -eq "-nogui") {
-        $NoGui = $true
-    } elseif ($argumentValue -eq "--gui" -or $argumentValue -eq "-gui") {
-        $Gui = $true
-    } elseif ($Action -eq "menu") {
-        $Action = $argumentValue
-    }
-}
 
 $ErrorActionPreference = "Stop"
 
@@ -646,15 +624,7 @@ function Show-GuiMenu {
 }
 
 function Show-Menu {
-    if ($Gui -and $NoGui) {
-        Write-ErrorMsg "Use either -Gui/--gui or -NoGui/--nogui, not both."
-        Show-TerminalMenu
-    } elseif ($Gui -and (Test-GuiAvailable)) {
-        Show-GuiMenu
-    } else {
-        if ($Gui) { Write-Warn "No supported graphical installer is available. Opening the terminal menu." }
-        Show-TerminalMenu
-    }
+    Show-TerminalMenu
 }
 
 # Main execution loop

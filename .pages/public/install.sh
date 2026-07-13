@@ -36,13 +36,8 @@ DESKTOP_PATH="$APPLICATIONS_DIR/${APP_ID}.desktop"
 ICON_PATH="$ICON_DIR/${APP_ID}.png"
 
 ACTION="menu"
-FORCE_NO_GUI=0
-FORCE_GUI=0
-GUI_PROGRESS_PID=""
 for argument in "$@"; do
     case "$argument" in
-        --nogui|-nogui) FORCE_NO_GUI=1 ;;
-        --gui|-gui) FORCE_GUI=1 ;;
         *) ACTION="$argument" ;;
     esac
 done
@@ -99,9 +94,6 @@ warn() {
 }
 
 fail() {
-    if [ -n "${GUI_PROGRESS_PID:-}" ]; then
-        stop_gui_progress
-    fi
     printf '   %s %s\n' "$(color red '[x]')" "$1" >&2
     exit 1
 }
@@ -641,126 +633,8 @@ show_terminal_menu() {
     done
 }
 
-can_use_gui_menu() {
-    [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && \
-        { command -v zenity >/dev/null 2>&1 || command -v kdialog >/dev/null 2>&1; }
-}
-
-show_gui_info() {
-    message="$1"
-    if command -v zenity >/dev/null 2>&1; then
-        zenity --info --title="$APP_NAME" --text="$message" >/dev/null 2>&1 || true
-    else
-        kdialog --msgbox "$message" --title "$APP_NAME" >/dev/null 2>&1 || true
-    fi
-}
-
-start_gui_progress() {
-    message="$1"
-    GUI_PROGRESS_PID=""
-    if command -v zenity >/dev/null 2>&1; then
-        (
-            while :; do
-                printf '# %s\n' "$message"
-                printf '50\n'
-                sleep 1
-            done
-        ) | zenity --progress --pulsate --no-cancel --auto-close --title="$APP_NAME" --text="$message" --width=430 >/dev/null 2>&1 &
-        GUI_PROGRESS_PID="$!"
-    elif command -v kdialog >/dev/null 2>&1; then
-        kdialog --passivepopup "$message" 15 --title "$APP_NAME" >/dev/null 2>&1 &
-        GUI_PROGRESS_PID="$!"
-    fi
-}
-
-stop_gui_progress() {
-    if [ -n "${GUI_PROGRESS_PID:-}" ]; then
-        kill "$GUI_PROGRESS_PID" >/dev/null 2>&1 || true
-        wait "$GUI_PROGRESS_PID" 2>/dev/null || true
-        GUI_PROGRESS_PID=""
-    fi
-}
-
-run_gui_action() {
-    message="$1"
-    shift
-    start_gui_progress "$message"
-    "$@"
-    stop_gui_progress
-    show_gui_info "Completed successfully. Your settings were kept.\n\nReview the terminal for details."
-}
-
-confirm_gui_action() {
-    prompt="$1"
-    if command -v zenity >/dev/null 2>&1; then
-        zenity --question --title="$APP_NAME" --text="$prompt" --ok-label="Continue" --cancel-label="Cancel" >/dev/null 2>&1
-    else
-        kdialog --yesno "$prompt" --title "$APP_NAME" >/dev/null 2>&1
-    fi
-}
-
-show_gui_menu() {
-    while :; do
-        installed_version="$(get_installed_version)"
-        latest_version="unknown"
-        tmp_manifest="$(mktemp)"
-        if fetch_manifest "$tmp_manifest"; then
-            latest_version="$(get_latest_version "$tmp_manifest")"
-        fi
-        rm -f "$tmp_manifest"
-        best_format="$(detect_best_format)"
-
-        summary="Installed: ${installed_version}
-Latest: ${latest_version}
-Recommended: $(format_name "$best_format")"
-        if command -v zenity >/dev/null 2>&1; then
-            choice="$(zenity --list --title="$APP_NAME Installer" --text="<b>Aero P2P Chat</b>\n${summary}" --column=Action --column=Description --hide-column=1 --print-column=1 --hide-header --ok-label="Continue" --cancel-label="Close" --width=620 --height=470 \
-                auto "★  Install automatically — recommended" \
-                deb "Install DEB — Debian, Ubuntu, Mint" \
-                rpm "Install RPM — Fedora, RHEL, SUSE" \
-                appimage "Install AppImage — portable" \
-                status "ⓘ  Check status" \
-                uninstall "Remove Aero P2P Chat" \
-                exit "Close installer" 2>/dev/null || true)"
-        else
-            choice="$(kdialog --menu "$summary" \
-                auto "Install automatically — recommended" \
-                deb "Install DEB — Debian, Ubuntu, Mint" \
-                rpm "Install RPM — Fedora, RHEL, SUSE" \
-                appimage "Install AppImage — portable" \
-                status "Check status" \
-                uninstall "Remove Aero P2P Chat" \
-                exit "Close installer" 2>/dev/null || true)"
-        fi
-
-        case "$choice" in
-            auto) run_gui_action "Installing with $(format_name "$best_format")..." install_app "$best_format" "$latest_version" ;;
-            deb) run_gui_action "Installing the DEB package..." install_app "deb" "$latest_version" ;;
-            rpm) run_gui_action "Installing the RPM package..." install_app "rpm" "$latest_version" ;;
-            appimage) run_gui_action "Downloading and configuring AppImage..." install_app "appimage" "$latest_version" ;;
-            status) show_gui_info "$summary" ;;
-            uninstall)
-                if confirm_gui_action "Uninstall ${APP_NAME}?"; then
-                    run_gui_action "Removing ${APP_NAME}..." uninstall_app
-                fi
-            ;;
-            exit|"") return ;;
-            *) show_gui_info "Unknown selection. Please choose an action from the list." ;;
-        esac
-    done
-}
-
 show_menu() {
-    if [ "$FORCE_GUI" -eq 1 ] && [ "$FORCE_NO_GUI" -eq 1 ]; then
-        fail "Use either --gui or --nogui, not both."
-    elif [ "$FORCE_GUI" -eq 1 ] && can_use_gui_menu; then
-        show_gui_menu
-    else
-        if [ "$FORCE_GUI" -eq 1 ]; then
-            warn "No supported graphical installer is available. Opening the terminal menu."
-        fi
-        show_terminal_menu
-    fi
+    show_terminal_menu
 }
 
 install_dependencies() {
@@ -1004,8 +878,6 @@ Usage:
   sh install.sh install   Install or update ${APP_NAME}
   sh install.sh status    Show installed and latest version
   sh install.sh uninstall Remove app, launcher, commands, and icon
-  sh install.sh --gui     Force the graphical menu when available
-  sh install.sh --nogui   Force the terminal menu (this is the default)
   sh install.sh help      Show this help
 
 After install:
@@ -1020,8 +892,7 @@ Installer URL:
 
 Examples:
   bash <(curl -fsSL <installer-url>)
-  bash <(curl -fsSL <installer-url>) --nogui
-  bash <(curl -fsSL <installer-url>) update --nogui
+  bash <(curl -fsSL <installer-url>) update
 EOF
 }
 
