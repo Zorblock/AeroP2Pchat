@@ -6,6 +6,7 @@ interface DownloadButtonProps {
   icon: React.ReactNode;
   text: string;
   colorTheme?: 'blue' | 'green';
+  assetName?: string;
   onClick?: () => void;
 }
 
@@ -19,7 +20,7 @@ interface GitHubRelease {
   assets: GitHubReleaseAsset[];
 }
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, colorTheme = 'blue', onClick }) => {
+export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, colorTheme = 'blue', assetName, onClick }) => {
   const [downloading, setDownloading] = useState(false);
   const [statusText, setStatusText] = useState('');
 
@@ -42,7 +43,8 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
         linux: 'Aero-P2P-Chat-Linux-x64.AppImage',
         android: 'Aero-P2P-Chat-Android.apk',
       } as const;
-      const asset = release.assets.find((asset) => asset.name === assetNames[os]);
+      const selectedAssetName = assetName || assetNames[os];
+      const asset = release.assets.find((asset) => asset.name === selectedAssetName);
 
       if (!asset) {
         setStatusText('File not found!');
@@ -67,7 +69,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ os, icon, text, 
           linux: 'Aero-P2P-Chat-Linux-x64.AppImage',
           android: 'Aero-P2P-Chat-Android.apk',
         } as const;
-        const fallbackUrl = `https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/${fallbackAssets[os]}`;
+        const fallbackUrl = `https://github.com/Zorblock/AeroP2Pchat/releases/latest/download/${assetName || fallbackAssets[os]}`;
         globalThis.location.href = fallbackUrl;
         setDownloading(false);
       }, 1000);

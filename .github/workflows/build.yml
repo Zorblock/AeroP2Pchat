@@ -4,9 +4,12 @@ permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the v prefix"
+        required: true
+        type: string
 
 jobs:
   linux:
@@ -32,21 +35,13 @@ jobs:
       - name: Build Linux AppImage
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ github.ref_name }}
+        run: node scripts/ci-build-release.cjs --platform=linux --version=${{ inputs.version }}
 
-      - name: Download existing latest.yml from release
-        run: gh release download "${{ github.ref_name }}" --pattern "latest.yml" --dir ./dist/release --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Append Linux entries to latest.yml
-        run: node scripts/ci-append-linux-latest.cjs ./dist/release/latest.yml ./dist/release
-
-      - name: Upload Linux assets and updated latest.yml to release
-        run: |
-          gh release upload "${{ github.ref_name }}" \
-            "./dist/release/Aero-P2P-Chat-Linux-x64."* \
-            "./dist/release/latest.yml" \
-            --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Linux release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            dist/release/Aero-P2P-Chat-Linux-x64.*
+            dist/release/update_manifest_linux.json
+          if-no-files-found: error

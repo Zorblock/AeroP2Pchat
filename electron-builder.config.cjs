@@ -29,7 +29,7 @@ module.exports = {
     capabilities: ["runFullTrust", "internetClient", "microphone"],
   },
   linux: {
-    target: ["AppImage", "flatpak", "snap", "deb", "rpm"],
+    target: ["AppImage", "deb", "rpm"],
     icon: "assets/linux-icons",
     category: "Network",
     syncDesktopName: true,

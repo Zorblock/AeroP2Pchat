@@ -41,6 +41,10 @@ function main() {
   const asset = manifest.asset;
   if (!asset) throw new Error("No asset in Linux manifest.");
 
+  const assets = Array.isArray(manifest.assets) ? manifest.assets : [asset];
+  const assetFor = (extension) =>
+    assets.find((entry) => entry.name.endsWith(extension));
+
   const lines = [
     `linuxPath: ${yamlQuote(asset.name)}`,
     `linuxUrl: ${yamlQuote(releaseUrl(tag, asset.name))}`,
@@ -48,6 +52,19 @@ function main() {
     `linuxSha512: ${yamlQuote(asset.sha512)}`,
     `linuxSize: ${asset.size}`,
   ];
+
+  for (const [extension, prefix] of [
+    [".deb", "linuxDeb"],
+    [".rpm", "linuxRpm"],
+  ]) {
+    const packageAsset = assetFor(extension);
+    if (!packageAsset) continue;
+    lines.push(
+      `${prefix}Url: ${yamlQuote(releaseUrl(tag, packageAsset.name))}`,
+      `${prefix}Sha256: ${yamlQuote(packageAsset.sha256)}`,
+      `${prefix}Size: ${packageAsset.size}`,
+    );
+  }
 
   let existing = fs.readFileSync(latestYmlPath, "utf8");
 

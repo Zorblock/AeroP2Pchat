@@ -401,8 +401,6 @@ close_running_instances() {
 detect_best_format() {
     if command -v apt-get >/dev/null 2>&1; then echo "deb"; return; fi
     if command -v dnf >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then echo "rpm"; return; fi
-    if command -v snap >/dev/null 2>&1; then echo "snap"; return; fi
-    if command -v flatpak >/dev/null 2>&1; then echo "flatpak"; return; fi
     echo "appimage"
 }
 
@@ -410,8 +408,6 @@ format_name() {
     case "$1" in
         deb) echo "DEB (Debian/Ubuntu/Mint)" ;;
         rpm) echo "RPM (Fedora/RedHat/SUSE)" ;;
-        snap) echo "Snap (Ubuntu Software Center)" ;;
-        flatpak) echo "Flatpak" ;;
         appimage) echo "AppImage (Portable)" ;;
         *) echo "$1" ;;
     esac
@@ -450,12 +446,10 @@ show_menu() {
     printf '   %s\n' "$(color bold "1) Auto Install [Recommended: $(format_name "$best_format")]")"
     printf '   %s\n' "$(color cyan '2) Install DEB (Debian/Ubuntu/Mint)')"
     printf '   %s\n' "$(color cyan '3) Install RPM (Fedora/RedHat/SUSE)')"
-    printf '   %s\n' "$(color cyan '4) Install Snap')"
-    printf '   %s\n' "$(color cyan '5) Install Flatpak')"
-    printf '   %s\n' "$(color cyan '6) Install AppImage (Portable)')"
+    printf '   %s\n' "$(color cyan '4) Install AppImage (Portable, automatic updates)')"
     
     opt_uninstall=0
-    opt_index=7
+    opt_index=5
     if is_installed; then
         printf '   %s\n' "$(color red "$opt_index) Uninstall AppImage")"
         opt_uninstall=$opt_index
@@ -476,9 +470,7 @@ show_menu() {
         1) install_app "$best_format" "$latest_version" ;;
         2) install_app "deb" "$latest_version" ;;
         3) install_app "rpm" "$latest_version" ;;
-        4) install_app "snap" "$latest_version" ;;
-        5) install_app "flatpak" "$latest_version" ;;
-        6) install_app "appimage" "$latest_version" ;;
+        4) install_app "appimage" "$latest_version" ;;
         $opt_uninstall)
             if [ "$opt_uninstall" -gt 0 ]; then
                 if confirm_action "Run Uninstall?"; then
@@ -548,19 +540,38 @@ install_app() {
         return
     fi
     
-    if [ "$target_version" = "unknown" ] || [ -z "$target_version" ]; then
-        tmp_manifest="$(mktemp)"
-        fetch_manifest "$tmp_manifest"
+    tmp_manifest="$(mktemp)"
+    if fetch_manifest "$tmp_manifest"; then
+        if [ "$target_version" = "unknown" ] || [ -z "$target_version" ]; then
         target_version="$(get_latest_version "$tmp_manifest")"
+        fi
+    else
         rm -f "$tmp_manifest"
+        fail "Could not retrieve latest release metadata."
     fi
     
     file_name="Aero-P2P-Chat-Linux-x64.${format}"
-    download_url="${RELEASE_BASE}/${file_name}"
+    case "$format" in
+        deb)
+            download_url="$(read_manifest_value "linuxDebUrl" "$tmp_manifest")"
+            expected_sha256="$(read_manifest_value "linuxDebSha256" "$tmp_manifest")"
+            ;;
+        rpm)
+            download_url="$(read_manifest_value "linuxRpmUrl" "$tmp_manifest")"
+            expected_sha256="$(read_manifest_value "linuxRpmSha256" "$tmp_manifest")"
+            ;;
+        *)
+            rm -f "$tmp_manifest"
+            fail "Unsupported installer format: $format"
+            ;;
+    esac
+    rm -f "$tmp_manifest"
+    [ -n "$download_url" ] || download_url="${RELEASE_BASE}/${file_name}"
     tmp_file="$(mktemp -d)/${file_name}"
     
     info "Downloading $(format_name "$format") v${target_version}..."
     download "$download_url" "$tmp_file"
+    verify_sha256 "$tmp_file" "${expected_sha256:-}" "$(format_name "$format")"
     
     info "Installing $(format_name "$format")... (sudo may be required)"
     case "$format" in
@@ -578,17 +589,11 @@ install_app() {
                 sudo rpm -i "$tmp_file"
             fi
             ;;
-        snap)
-            sudo snap install --dangerous "$tmp_file"
-            ;;
-        flatpak)
-            flatpak install --user -y "$tmp_file"
-            ;;
     esac
     
     rm -rf "$(dirname "$tmp_file")"
     ok "Installation complete!"
-    warn "Note: Native packages like DEB/RPM/Snap/Flatpak manage their own uninstallation via your system package manager."
+    warn "DEB/RPM packages are removed by your system package manager. Re-run this installer to update."
 }
 
 install_appimage() {

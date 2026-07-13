@@ -168,10 +168,14 @@ function buildLinux(version) {
     }
   }
 
-  // Use the AppImage as the primary asset for the manifest if available
+  // AppImage remains the updater-managed Linux format.
   const appImage = assets.find((a) => a.name.endsWith(".AppImage"));
   if (appImage) {
-    writePlatformManifest("linux", version, appImage);
+    fs.writeFileSync(
+      path.join(releaseDir, "update_manifest_linux.json"),
+      `${JSON.stringify({ version, platform: "linux", asset: appImage, assets }, null, 2)}\n`,
+      "utf8",
+    );
   }
 }
 

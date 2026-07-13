@@ -185,6 +185,73 @@ function collectReleaseFiles() {
   return files;
 }
 
+function wait(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function buildLinuxOnGitHub(branch, version, commitSha) {
+  run("gh", [
+    "workflow",
+    "run",
+    "build.yml",
+    "--ref",
+    branch,
+    "-f",
+    `version=${version}`,
+  ]);
+
+  let runId = "";
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const output = run(
+      "gh",
+      [
+        "run",
+        "list",
+        "--workflow",
+        "build.yml",
+        "--branch",
+        branch,
+        "--event",
+        "workflow_dispatch",
+        "--limit",
+        "10",
+        "--json",
+        "databaseId,headSha",
+      ],
+      { capture: true },
+    );
+    const matchingRun = JSON.parse(output).find(
+      (entry) => entry.headSha === commitSha,
+    );
+    if (matchingRun) {
+      runId = String(matchingRun.databaseId);
+      break;
+    }
+    wait(1000);
+  }
+
+  if (!runId) {
+    throw new Error("GitHub did not start the Linux build workflow in time.");
+  }
+
+  console.log(`Waiting for Linux build run ${runId}...`);
+  run("gh", ["run", "watch", runId, "--exit-status"]);
+  run("gh", [
+    "run",
+    "download",
+    runId,
+    "--name",
+    "linux-release",
+    "--dir",
+    releaseDir,
+  ]);
+
+  const linuxManifest = path.join(releaseDir, "update_manifest_linux.json");
+  if (!fs.existsSync(linuxManifest)) {
+    throw new Error("The GitHub Linux build did not provide update_manifest_linux.json.");
+  }
+}
+
 function main() {
   const options = parseArgs();
   const branch = ensureGitRepository();
@@ -219,7 +286,7 @@ function main() {
     // 2. Bump version
     setPackageVersion(nextVersion);
 
-    // 3. Build Windows, Android, and the Microsoft Store package.
+    // 3. Build all local artifacts before publishing anything.
     // The Windows build cleans dist/, so Android and Store builds run afterwards.
     run("node", [
       "scripts/ci-build-release.cjs",
@@ -229,8 +296,9 @@ function main() {
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
+    run("npm", ["run", "build", "--prefix", ".pages"]);
 
-    // 4. Commit, push, tag
+    // 4. Push the source commit so GitHub can build the Linux AppImage.
     run("git", ["add", "-A"]);
     if (hasStagedChanges()) {
       run("git", ["commit", "-m", `chore: release ${tag}`]);
@@ -240,10 +308,19 @@ function main() {
     }
 
     run("git", ["push", "-u", "origin", branch]);
+    const commitSha = run("git", ["rev-parse", "HEAD"], { capture: true });
+    buildLinuxOnGitHub(branch, nextVersion, commitSha);
+    run("node", [
+      "scripts/ci-append-linux-latest.cjs",
+      "dist/release/latest.yml",
+      "dist/release",
+    ]);
+
+    // 5. The Store and GitHub release happen only after every platform build succeeded.
+    run("npm", ["run", "store:publish"]);
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
 
-    // 5. Create GitHub release and upload Windows + Android artifacts and latest.yml
     const releaseFiles = collectReleaseFiles();
     const ghArgs = [
       "release",
@@ -255,35 +332,30 @@ function main() {
       ...releaseFiles,
     ];
     run("gh", ghArgs);
-
-    // 6. Upload the version-matched MSIX package and submit it to Microsoft Store.
-    run("npm", ["run", "store:publish"]);
+    run("npm", ["run", "pages"]);
 
     console.log("");
     console.log(
       `Release ${tag} created on GitHub with Windows and Android artifacts.`,
     );
     console.log(
-      "GitHub Actions will now build the Linux AppImage and add it to the release.",
+      "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
     console.log("Microsoft Store submission was uploaded for certification.");
+    console.log("Website deployment was triggered.");
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
-    console.log("Rolling back version bump...");
-    
-    // Restore package files
-    fs.writeFileSync(packagePath, originalPkg, "utf8");
-    if (originalLock) {
-      fs.writeFileSync(lockPath, originalLock, "utf8");
+    if (!commitCreated) {
+      console.log("Rolling back the local version bump...");
+      fs.writeFileSync(packagePath, originalPkg, "utf8");
+      if (originalLock) {
+        fs.writeFileSync(lockPath, originalLock, "utf8");
+      }
+    } else {
+      console.log(
+        "The source commit was pushed so GitHub could build Linux, but no Store or GitHub release was created.",
+      );
     }
-    
-    // Reset commit if one was created
-    if (commitCreated) {
-      console.log("Rolling back git commit...");
-      spawnSync("git", ["reset", "HEAD~1"], { cwd: root, stdio: "ignore" });
-    }
-    
-    console.log("Rollback complete. Workspace is clean.");
     throw err;
   }
 }

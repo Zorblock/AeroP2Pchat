@@ -358,6 +358,37 @@ function App() {
                 />
               )}
 
+              {installOs === 'linux' && (
+                <div className="linux-downloads">
+                  <DownloadButton
+                    os="linux"
+                    text="Download AppImage (automatic updates)"
+                    icon={<Download size={22} />}
+                    colorTheme="blue"
+                    onClick={triggerConfetti}
+                  />
+                  <div className="linux-downloads__native">
+                    <DownloadButton
+                      os="linux"
+                      assetName="Aero-P2P-Chat-Linux-x64.deb"
+                      text="Download .deb"
+                      icon={<Download size={18} />}
+                      colorTheme="blue"
+                    />
+                    <DownloadButton
+                      os="linux"
+                      assetName="Aero-P2P-Chat-Linux-x64.rpm"
+                      text="Download .rpm"
+                      icon={<Download size={18} />}
+                      colorTheme="blue"
+                    />
+                  </div>
+                  <p className="linux-downloads__hint">
+                    AppImage works on most distributions and receives built-in updates. DEB is for Debian/Ubuntu/Mint; RPM is for Fedora, RHEL and SUSE.
+                  </p>
+                </div>
+              )}
+
               {installOs === 'windows' && (
                 <div className="microsoft-store-option">
                   <div className="microsoft-store-option__copy">
@@ -366,7 +397,7 @@ function App() {
                   </div>
                   <ms-store-badge
                     className="microsoft-store-badge"
-                    productid="9MTXCOM7P403"
+                    productid="9MTXC0M7P403"
                     productname="Aero P2P Chat"
                     window-mode="full"
                     theme="light"
