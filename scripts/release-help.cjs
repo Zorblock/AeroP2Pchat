@@ -316,8 +316,7 @@ function main() {
       "dist/release",
     ]);
 
-    // 5. The Store and GitHub release happen only after every platform build succeeded.
-    run("npm", ["run", "store:publish"]);
+    // 5. Publish the finished desktop and mobile downloads before the Store submission.
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
 
@@ -334,6 +333,9 @@ function main() {
     run("gh", ghArgs);
     run("npm", ["run", "pages"]);
 
+    // 6. Microsoft Store is last because Partner Center can take longer to process a submission.
+    run("npm", ["run", "store:publish"]);
+
     console.log("");
     console.log(
       `Release ${tag} created on GitHub with Windows and Android artifacts.`,
@@ -341,8 +343,8 @@ function main() {
     console.log(
       "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
-    console.log("Microsoft Store submission was uploaded for certification.");
     console.log("Website deployment was triggered.");
+    console.log("Microsoft Store submission was uploaded for certification.");
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     if (!commitCreated) {
