@@ -60,7 +60,9 @@ let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.name = projectConfig.app.name || "Aero P2P Chat";
-if (app.isPackaged) {
+// Windows uses this ID to associate a running window with its taskbar icon.
+// Set it in development too; otherwise Electron's default icon is shown.
+if (process.platform === "win32") {
   app.setAppUserModelId(projectConfig.app.id);
 }
 
