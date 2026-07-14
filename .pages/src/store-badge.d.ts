@@ -9,6 +9,7 @@ declare module "react" {
         cid?: string;
         "window-mode"?: "direct" | "full";
         theme?: "dark" | "light" | "auto";
+        size?: "small" | "medium" | "large";
         animation?: "on" | "off";
         language?: string;
       };

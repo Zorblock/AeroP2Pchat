@@ -366,10 +366,12 @@ function App() {
                   </div>
                   <ms-store-badge
                     className="microsoft-store-badge"
-                    productid="9MTXC0M7P403"
-                    productname="Aero P2P Chat"
+                    productid="9mtxc0m7p403"
+                    cid="aero-website"
                     window-mode="full"
                     theme="light"
+                    size="large"
+                    language="en-us"
                     animation="on"
                   />
                 </div>
