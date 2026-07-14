@@ -324,16 +324,26 @@ function collectStoreFiles() {
     );
 }
 
-function terminalLink(filePath) {
-  const absolutePath = path.resolve(filePath);
-  const normalizedPath = absolutePath.replace(/\\/g, "/");
-  const url =
-    process.platform === "win32"
-      ? `command:revealFileInOS?${encodeURIComponent(
-          JSON.stringify([{ scheme: "file", path: `/${normalizedPath}` }]),
-        )}`
-      : `file:///${normalizedPath}`;
-  return `\u001b]8;;${url}\u0007${absolutePath}\u001b]8;;\u0007`;
+function terminalFolderLink(filePath) {
+  const folderPath = path.dirname(path.resolve(filePath));
+  const normalizedPath = folderPath.replace(/\\/g, "/");
+  const url = `file:///${normalizedPath}`;
+  return `\u001b]8;;${url}\u0007Open containing folder\u001b]8;;\u0007`;
+}
+
+function revealInExplorer(filePath) {
+  if (process.platform !== "win32" || !process.stdout.isTTY) return;
+
+  const child = spawnSync(
+    "explorer.exe",
+    ["/select,", path.resolve(filePath)],
+    { detached: true, stdio: "ignore", windowsHide: false },
+  );
+  // Explorer may return before it has displayed the selection. It is a
+  // convenience only, so the printed folder link remains the fallback.
+  if (child.error) {
+    console.warn("Could not open Explorer automatically.");
+  }
 }
 
 const color = {
@@ -352,11 +362,12 @@ function colored(value, ...styles) {
 
 function printArtifact(label, filePath, note, styles) {
   console.log(`  ${colored(label, color.bold, ...styles)}`);
-  console.log(`  ${terminalLink(filePath)}`);
+  console.log(`  ${terminalFolderLink(filePath)}`);
+  console.log(`  ${colored(`Artifact: ${path.basename(filePath)}`, color.dim)}`);
   console.log(`  ${colored(note, color.dim)}`);
   if (process.platform === "win32") {
     console.log(
-      `  ${colored("Ctrl+click: Explorer opens with this file selected. Fallback:", color.dim)} explorer.exe /select,"${path.resolve(filePath)}"`,
+      `  ${colored("Ctrl+click opens the folder. Fallback:", color.dim)} explorer.exe /select,"${path.resolve(filePath)}"`,
     );
   }
 }
@@ -369,7 +380,7 @@ function printArtifactLinks(releaseFiles) {
     storeFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
 
   console.log(`\n${colored("════════════ RELEASE FILES ════════════", color.bold, color.cyan)}`);
-  console.log(colored("Click a path to open the file in Explorer.", color.dim));
+  console.log(colored("Open containing folder to reveal a release artifact.", color.dim));
 
   const appx = findStoreFile(".appx");
   if (appx) {
@@ -380,6 +391,7 @@ function printArtifactLinks(releaseFiles) {
       "Partner Center → submission → Packages → upload. Do not upload the .msix copy.",
       [color.yellow],
     );
+    revealInExplorer(appx);
   }
 
   const windows = findReleaseFile(".exe");
