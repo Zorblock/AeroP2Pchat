@@ -32,6 +32,7 @@ const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/down
 const changelogFeedUrl = "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
 const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
+const microsoftStoreSearchUrl = `ms-windows-store://search/?query=${encodeURIComponent(appDisplayName)}`;
 const userConfigFileName = "config.json";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
@@ -321,6 +322,7 @@ let trayState = {
   theme: "light",
   autostart: true,
   closeToTray: true,
+  debugOfflineMode: false,
 };
 
 function hasTrayStateChanged(nextState) {
@@ -332,6 +334,7 @@ function hasTrayStateChanged(nextState) {
     "theme",
     "autostart",
     "closeToTray",
+    "debugOfflineMode",
   ].some((key) => trayState[key] !== nextState[key]);
 }
 
@@ -435,6 +438,19 @@ function updateTrayMenu() {
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.toggleDevTools();
               }
+            },
+          },
+          {
+            label: "Offline Mode",
+            type: "checkbox",
+            checked: trayState.debugOfflineMode,
+            click: () => {
+              trayState.debugOfflineMode = !trayState.debugOfflineMode;
+              updateTrayMenu();
+              sendTrayAction(
+                "set-debug-offline-mode",
+                trayState.debugOfflineMode,
+              );
             },
           },
           {
@@ -1039,6 +1055,15 @@ app.whenReady().then(async () => {
         ok: false,
         error: error?.message || "Update manifest request failed.",
       };
+    }
+  });
+  ipcMain.handle("open-microsoft-store", async () => {
+    if (!isWindowsStore) return { ok: false, error: "Microsoft Store is not managing this installation." };
+    try {
+      await shell.openExternal(microsoftStoreSearchUrl);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Could not open Microsoft Store." };
     }
   });
   ipcMain.handle("fetch-changelog-feed", async () => {

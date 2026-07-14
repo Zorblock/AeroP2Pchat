@@ -86,6 +86,7 @@ const messageInput = document.querySelector("#message-input");
 const sendButton = document.querySelector("#send-button");
 const headerUpdateButton = document.querySelector("#header-update-button");
 const updateCard = document.querySelector("#update-card");
+const offlineBanner = document.querySelector("#offline-banner");
 const updateTitle = document.querySelector("#update-title");
 const updateText = document.querySelector("#update-text");
 const updateButton = document.querySelector("#update-button");
@@ -516,6 +517,8 @@ const linuxUpdateCommands = {
 };
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
+let networkOffline = navigator.onLine === false;
+let debugOfflineMode = false;
 
 document.title = appDisplayName;
 document.querySelectorAll("[data-app-name]").forEach((element) => {
@@ -1378,6 +1381,11 @@ function renderAppSettings() {
 function syncPresenceStatusIndicator() {
   updateTitlebarPresenceIndicator();
 
+  if (isNetworkOffline()) {
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
+
   if (
     callState.status !== "idle" ||
     connections.size > 0 ||
@@ -1409,6 +1417,95 @@ function isPresenceOffline() {
   return getPresenceStatus() === "offline";
 }
 
+function isNetworkOffline() {
+  return networkOffline || debugOfflineMode;
+}
+
+function updateNetworkAvailabilityUi() {
+  document.body.classList.toggle("network-offline", isNetworkOffline());
+  offlineBanner?.classList.toggle("hidden", !isNetworkOffline());
+  offlineBanner?.setAttribute("aria-hidden", String(!isNetworkOffline()));
+  remoteIdInput.disabled = isNetworkOffline();
+  remoteIdInput.placeholder = isNetworkOffline()
+    ? "Internet connection required"
+    : "aero-...";
+  updateConnectButton();
+  refreshPeers();
+}
+
+function activateOfflineMode() {
+  closeAllPeerConnections();
+  if (peer?.open || peer?.disconnected === false) {
+    intentionalPeerDisconnect = true;
+    peer.disconnect();
+  }
+  updateNetworkAvailabilityUi();
+  hideConnectRetry();
+  setStatus("offline", "You're offline. Internet connection required.");
+}
+
+function enterNetworkOfflineMode() {
+  if (networkOffline) {
+    updateNetworkAvailabilityUi();
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
+
+  networkOffline = true;
+  if (!debugOfflineMode) {
+    activateOfflineMode();
+  } else {
+    updateNetworkAvailabilityUi();
+  }
+}
+
+function restoreNetworkConnection({ force = false } = {}) {
+  if (!networkOffline && !force) {
+    return;
+  }
+
+  networkOffline = false;
+  updateNetworkAvailabilityUi();
+  if (debugOfflineMode) {
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
+  if (isPresenceOffline()) {
+    syncPresenceStatusIndicator();
+    return;
+  }
+
+  setStatus("pending", "Internet connection restored. Reconnecting...");
+  if (!peer || peer.destroyed) {
+    peer = createPeer();
+  } else if (peer.disconnected) {
+    peer.reconnect();
+  } else {
+    syncPresenceStatusIndicator();
+  }
+}
+
+function setDebugOfflineMode(enabled) {
+  const nextEnabled = Boolean(enabled);
+  if (debugOfflineMode === nextEnabled) {
+    return;
+  }
+
+  debugOfflineMode = nextEnabled;
+  if (nextEnabled) {
+    activateOfflineMode();
+    return;
+  }
+
+  if (networkOffline) {
+    updateNetworkAvailabilityUi();
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
+
+  restoreNetworkConnection({ force: true });
+}
+
 function isPresenceDnd() {
   return getPresenceStatus() === "dnd";
 }
@@ -1432,7 +1529,7 @@ function updatePresenceMenuState() {
 }
 
 function updateTitlebarPresenceIndicator() {
-  const presenceStatus = getPresenceStatus();
+  const presenceStatus = isNetworkOffline() ? "offline" : getPresenceStatus();
   if (titlebarPresence) {
     titlebarPresence.className = `titlebar-presence ${presenceStatus}`;
   }
@@ -1485,6 +1582,11 @@ function setPresenceStatus(status, { persist = false, force = false } = {}) {
     }
     setStatus("offline", "Offline");
     hideConnectRetry();
+    return;
+  }
+
+  if (isNetworkOffline()) {
+    setStatus("offline", "You're offline. Internet connection required.");
     return;
   }
 
@@ -2172,7 +2274,8 @@ function updateConnectButton() {
     !isValidAeroId(remoteId) ||
     remoteId === identity.id ||
     !peer?.open ||
-    isPresenceOffline();
+    isPresenceOffline() ||
+    isNetworkOffline();
   if (!remoteId || remoteId !== lastFailedConnectId) {
     hideConnectRetry();
   }
@@ -2497,7 +2600,10 @@ function clearUpdateAvailableUi() {
   titlebarLogo.classList.remove("update-available");
   titlebarLogo.removeAttribute("title");
   if (platformApi.isWindowsStore) {
-    appMenuUpdate.classList.add("hidden");
+    appMenuUpdate.classList.remove("hidden");
+    appMenuUpdate.disabled = false;
+    appMenuUpdate.querySelector("span").textContent = "Open Microsoft Store";
+    appMenuUpdate.querySelector("i").className = "fa-brands fa-microsoft";
     appMenuUpdateIgnore.classList.add("hidden");
     return;
   }
@@ -2580,9 +2686,24 @@ function ignoreAvailableUpdateHint() {
 }
 
 async function checkForUpdates({ manual = false } = {}) {
+  if (isNetworkOffline()) {
+    if (manual) {
+      setStatus("offline", "You're offline. Internet connection required.");
+    }
+    return;
+  }
+
   if (platformApi.isWindowsStore) {
     clearUpdateAvailableUi();
-    if (manual) setStatus("online", "Updates are managed by Microsoft Store.");
+    if (manual) {
+      const result = await platformApi.openMicrosoftStore();
+      setStatus(
+        result?.ok ? "online" : "offline",
+        result?.ok
+          ? "Microsoft Store opened. It shows an Update button when a new version is available."
+          : result?.error || "Could not open Microsoft Store.",
+      );
+    }
     return;
   }
 
@@ -2923,6 +3044,11 @@ function notifyIncomingCall(peerId, callId) {
 function sendChatText(peerId, rawText) {
   const text = String(rawText || "").trim();
   if (!text) {
+    return false;
+  }
+
+  if (isNetworkOffline()) {
+    setStatus("offline", "You're offline. Internet connection required.");
     return false;
   }
 
@@ -3640,7 +3766,9 @@ function setCallHealthUi({
 
 function refreshCallUi() {
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
-  const canStartCall = Boolean(activeConn?.open && !isCallBusy());
+  const canStartCall = Boolean(
+    activeConn?.open && !isCallBusy() && !isNetworkOffline(),
+  );
   callChat.disabled = !canStartCall;
 
   callAccept.classList.add("hidden");
@@ -5397,6 +5525,11 @@ async function startVoiceCall() {
     return;
   }
 
+  if (isNetworkOffline()) {
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
+
   if (isPresenceOffline()) {
     setStatus("offline", "Offline");
     return;
@@ -5417,6 +5550,7 @@ async function startVoiceCall() {
 
 function handleIncomingCallRequest(peerId, data) {
   if (
+    isNetworkOffline() ||
     isPresenceOffline() ||
     !connections.has(peerId) ||
     typeof data.callId !== "string"
@@ -5443,7 +5577,7 @@ async function acceptVoiceCall() {
     return;
   }
 
-  if (isPresenceOffline()) {
+  if (isNetworkOffline() || isPresenceOffline()) {
     resetCallState();
     return;
   }
@@ -6143,7 +6277,7 @@ function normalizeMessage(data) {
 }
 
 function sendProtocolMessage(conn, type, extra = {}) {
-  if (!conn?.open) {
+  if (isNetworkOffline() || !conn?.open) {
     return false;
   }
 
@@ -6475,7 +6609,7 @@ function refreshPeers() {
   }
 
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
-  const canChat = Boolean(activeConn?.open);
+  const canChat = Boolean(activeConn?.open && !isNetworkOffline());
   chatTitle.textContent = activePeerId
     ? getPeerLabel(activePeerId, activeConn)
     : "No active chat";
@@ -6828,7 +6962,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
 function registerConnection(conn, options = {}) {
   const peerId = conn.peer;
   const direction = options.incoming ? "incoming" : "outgoing";
-  if (isPresenceOffline()) {
+  if (isNetworkOffline() || isPresenceOffline()) {
     conn.close();
     return;
   }
@@ -6880,6 +7014,11 @@ function registerConnection(conn, options = {}) {
 function connectToPeer(remoteId) {
   remoteId = normalizeAeroId(remoteId);
   hideConnectRetry();
+
+  if (isNetworkOffline()) {
+    setStatus("offline", "You're offline. Internet connection required.");
+    return;
+  }
 
   if (!peer?.open) {
     setStatus("offline", "Your peer is not ready yet.");
@@ -7065,6 +7204,12 @@ function createPeer() {
   });
 
   nextPeer.on("open", (id) => {
+    intentionalPeerDisconnect = false;
+    if (isNetworkOffline()) {
+      intentionalPeerDisconnect = true;
+      nextPeer.disconnect();
+      return;
+    }
     myPeerId = id;
     ownId.textContent = identity.id;
     setStatus("pending", "Aero ID ready. Share it with your chat partner.");
@@ -7085,6 +7230,9 @@ function createPeer() {
   });
 
   nextPeer.on("disconnected", () => {
+    if (isNetworkOffline()) {
+      return;
+    }
     if (intentionalPeerDisconnect) {
       intentionalPeerDisconnect = false;
       syncPresenceStatusIndicator();
@@ -7098,6 +7246,9 @@ function createPeer() {
   });
 
   nextPeer.on("error", (error) => {
+    if (isNetworkOffline()) {
+      return;
+    }
     if (error.type === "unavailable-id") {
       setStatus(
         "offline",
@@ -7126,6 +7277,9 @@ function createPeer() {
   });
 
   nextPeer.on("close", () => {
+    if (isNetworkOffline()) {
+      return;
+    }
     setStatus("offline", "Peer closed.");
   });
 
@@ -8103,7 +8257,8 @@ refreshPeers();
 refreshAudioDevices();
 clearUpdateAvailableUi();
 setBootProgress(82, "Rendering chat");
-peer = createPeer();
+updateNetworkAvailabilityUi();
+peer = isNetworkOffline() ? null : createPeer();
 setBootProgress(90, "Starting peer");
 setBootProgress(90, "Starting peer");
 if (!platformApi.isWindowsStore) {
@@ -8113,15 +8268,21 @@ if (!platformApi.isWindowsStore) {
 }
 platformApi.onDisconnect(() => cleanupRealtimeConnections());
 
+window.addEventListener("offline", enterNetworkOfflineMode);
+window.addEventListener("online", restoreNetworkConnection);
+
 function syncTrayState() {
   platformApi.updateTrayState({
     peerId: callState.peerId || (peer && peer.id) || null,
     isMuted: Boolean(callState.muted),
     isDeafened: Boolean(callState.deafened),
-    status: appConfig.appSettings?.presenceStatus || "online",
+    status: isNetworkOffline()
+      ? "offline"
+      : appConfig.appSettings?.presenceStatus || "online",
     theme: appConfig.appSettings?.theme || "light",
     autostart: Boolean(appConfig.appSettings?.autostart),
     closeToTray: Boolean(appConfig.appSettings?.closeToTray),
+    debugOfflineMode,
   });
 }
 
@@ -8133,14 +8294,9 @@ platformApi.onTrayAction(({ action, value }) => {
   } else if (action === "toggle-deafen") {
     setCallDeafened(!callState.deafened);
   } else if (action === "set-status") {
-    appConfig.appSettings.presenceStatus = value;
-    renderAppSettings();
-    platformApi.saveConfig(appConfig).catch(() => {});
-    
-    let label = "Online";
-    if (value === "offline") label = "Offline";
-    if (value === "dnd") label = "Do Not Disturb";
-    setStatus(value, label);
+    setPresenceStatus(value, { persist: true });
+  } else if (action === "set-debug-offline-mode") {
+    setDebugOfflineMode(value);
   } else if (action === "toggle-theme") {
     appConfig.appSettings.theme = appConfig.appSettings.theme === "light" ? "dark" : "light";
     renderAppSettings();

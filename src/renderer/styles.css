@@ -209,6 +209,40 @@ body.app-boot-finish .window-frame {
   --presence-color: #8c9aa3;
 }
 
+.offline-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 14px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(145, 91, 18, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 245, 219, 0.86);
+  color: #6d430a;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.offline-banner > i {
+  margin-top: 2px;
+  color: #a56808;
+}
+
+.offline-banner strong,
+.offline-banner span {
+  display: block;
+}
+
+.offline-banner strong {
+  margin-bottom: 2px;
+}
+
+body[data-theme="dark"] .offline-banner {
+  border-color: rgba(255, 190, 79, 0.34);
+  background: rgba(72, 48, 14, 0.9);
+  color: #ffe0a1;
+}
+
 @keyframes updateLogoPulse {
   0%,
   100% {

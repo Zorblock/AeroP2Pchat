@@ -340,6 +340,13 @@ export function createPlatformApi() {
       return electron?.onCheckForUpdates?.(callback) || null;
     },
 
+    openMicrosoftStore() {
+      return electron?.openMicrosoftStore?.() || {
+        ok: false,
+        error: "Microsoft Store is not available.",
+      };
+    },
+
     onDisconnect(callback) {
       return electron?.onDisconnect?.(callback) || null;
     },
