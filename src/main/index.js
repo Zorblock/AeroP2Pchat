@@ -32,7 +32,7 @@ const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/down
 const changelogFeedUrl = "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
 const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
-const microsoftStoreSearchUrl = `ms-windows-store://search/?query=${encodeURIComponent(appDisplayName)}`;
+const microsoftStoreProductUrl = "ms-windows-store://pdp/?productid=9MTXC0M7P403";
 const userConfigFileName = "config.json";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
@@ -1062,7 +1062,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("open-microsoft-store", async () => {
     if (!isWindowsStore) return { ok: false, error: "Microsoft Store is not managing this installation." };
     try {
-      await shell.openExternal(microsoftStoreSearchUrl);
+      await shell.openExternal(microsoftStoreProductUrl);
       return { ok: true };
     } catch (error) {
       return { ok: false, error: error?.message || "Could not open Microsoft Store." };
