@@ -548,7 +548,6 @@ function main() {
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
-    run("node", ["scripts/build-android.cjs", "--play"]);
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);
@@ -591,10 +590,10 @@ function main() {
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, Linux, Microsoft Store, and Google Play packages were built before publishing.",
+      "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
     console.log("Website was not deployed. Run: npm run pages (when you are ready).");
-    console.log("Upload the .appx in Partner Center and the .aab in Play Console.");
+    console.log("Upload the .appx in Partner Center.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);
   } catch (err) {

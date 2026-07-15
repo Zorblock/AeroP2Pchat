@@ -8,10 +8,8 @@ const packageInfo = require("../package.json");
 const rootDir = join(__dirname, "..");
 const androidDir = join(rootDir, "android");
 const releaseOutputDir = join(rootDir, "dist", "release");
-const storeOutputDir = join(rootDir, "dist", "store");
 const isWindows = process.platform === "win32";
 const buildEnv = { ...process.env };
-const isPlayBuild = process.argv.slice(2).includes("--play");
 
 // Keep Android's Gradle transforms independent from a machine-wide cache. This
 // avoids reusing classes produced by a newer, incompatible JDK.
@@ -162,38 +160,14 @@ assertReleaseKeystore();
 run("npx", ["vite", "build"]);
 run("npx", ["cap", "sync", "android"]);
 run(isWindows ? "gradlew.bat" : "./gradlew", [
-  isPlayBuild ? "bundlePlayRelease" : "assembleDirectRelease",
+  "assembleDirectRelease",
   `-PaeroAndroidVersionName=${packageInfo.version}`,
   `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
 ], {
   cwd: androidDir,
 });
 
-if (isPlayBuild) {
-  const gradleAabPath = join(
-    androidDir,
-    "app",
-    "build",
-    "outputs",
-    "bundle",
-    "playRelease",
-    "app-play-release.aab",
-  );
-  const namedAabPath = join(
-    storeOutputDir,
-    projectConfig.release.androidPlayAsset || "Aero-P2P-Chat-Google-Play.aab",
-  );
-
-  if (!existsSync(gradleAabPath)) {
-    console.error(`Signed Google Play AAB was not created: ${gradleAabPath}`);
-    process.exit(1);
-  }
-
-  mkdirSync(storeOutputDir, { recursive: true });
-  copyFileSync(gradleAabPath, namedAabPath);
-  console.log(`Google Play upload bundle created: ${namedAabPath}`);
-} else {
-  const gradleApkPath = join(
+const gradleApkPath = join(
     androidDir,
     "app",
     "build",
@@ -203,17 +177,16 @@ if (isPlayBuild) {
     "release",
     "app-direct-release.apk",
   );
-  const namedApkPath = join(
+const namedApkPath = join(
     releaseOutputDir,
     projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
   );
 
-  if (!existsSync(gradleApkPath)) {
-    console.error(`Signed Android APK was not created: ${gradleApkPath}`);
-    process.exit(1);
-  }
-
-  mkdirSync(releaseOutputDir, { recursive: true });
-  copyFileSync(gradleApkPath, namedApkPath);
-  console.log(`Android direct-download APK created: ${namedApkPath}`);
+if (!existsSync(gradleApkPath)) {
+  console.error(`Signed Android APK was not created: ${gradleApkPath}`);
+  process.exit(1);
 }
+
+mkdirSync(releaseOutputDir, { recursive: true });
+copyFileSync(gradleApkPath, namedApkPath);
+console.log(`Android direct-download APK created: ${namedApkPath}`);
