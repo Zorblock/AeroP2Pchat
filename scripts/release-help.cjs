@@ -565,6 +565,7 @@ function main() {
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
     copyStoreAppxToRelease();
+    run("npm", ["run", "build:chromeaddon"]);
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);
