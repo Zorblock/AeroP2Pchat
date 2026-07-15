@@ -16,6 +16,7 @@
     "build": "node scripts/build-win.cjs",
     "build:store": "node scripts/build-store.cjs",
     "android": "node scripts/build-android.cjs",
+    "android:play": "node scripts/build-android.cjs --play",
     "android:device": "node scripts/install-android-device.cjs",
     "android:device:uninstall": "node scripts/install-android-device.cjs --uninstall",
     "android:sync": "npm run renderer:build && npx cap sync android",

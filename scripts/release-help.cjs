@@ -320,7 +320,7 @@ function collectStoreFiles() {
     .map((name) => path.join(storeDir, name))
     .filter(
       (filePath) =>
-        fs.statSync(filePath).isFile() && /\.(appx|msix)$/i.test(filePath),
+        fs.statSync(filePath).isFile() && /\.(appx|msix|aab)$/i.test(filePath),
     );
 }
 
@@ -392,6 +392,18 @@ function printArtifactLinks(releaseFiles) {
       [color.yellow],
     );
     revealInExplorer(appx);
+  }
+
+  const playBundle = findStoreFile(".aab");
+  if (playBundle) {
+    console.log(`\n${colored("GOOGLE PLAY — ACTION REQUIRED", color.bold, color.yellow)}`);
+    printArtifact(
+      "UPLOAD THIS .AAB TO PLAY CONSOLE",
+      playBundle,
+      "Play Console → Testing (start with Internal testing) → Create new release → upload. Do not upload the APK here.",
+      [color.yellow],
+    );
+    revealInExplorer(playBundle);
   }
 
   const windows = findReleaseFile(".exe");
@@ -536,6 +548,7 @@ function main() {
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
+    run("node", ["scripts/build-android.cjs", "--play"]);
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);
@@ -578,10 +591,10 @@ function main() {
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
+      "Windows, Android, Linux, Microsoft Store, and Google Play packages were built before publishing.",
     );
     console.log("Website was not deployed. Run: npm run pages (when you are ready).");
-    console.log("Upload the .appx file below manually in Partner Center.");
+    console.log("Upload the .appx in Partner Center and the .aab in Play Console.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);
   } catch (err) {

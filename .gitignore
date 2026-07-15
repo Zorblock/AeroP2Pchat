@@ -7,6 +7,7 @@
 *.setup.log
 .dev-data
 /.tools/inno
+/.gradle-android
 AGENTS.md
 TODO.todo
 android/.kotlin/sessions/

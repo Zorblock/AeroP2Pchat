@@ -1,6 +1,6 @@
 # Aero P2P Chat
 
-<img src="./assets/app.png" width="250" alt="Aero P2P Chat Logo">
+![Aero P2P Chat Logo](./assets/app.png)
 
 **Direct messaging without the middleman. Secure, fast, and completely peer-to-peer.**
 
@@ -56,6 +56,10 @@ curl -sSL https://aero.zorblock.de/install.sh | bash
 ### 📱 Android
 
 Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) and install it directly on your device.
+
+For Google Play releases, build the separately signed Android App Bundle with
+`npm run android:play`. Upload the resulting `.aab` from `dist/store/` to Play
+Console; keep the `.apk` from `dist/release/` for direct downloads.
 
 > **Note:** If you prefer downloading manually, you can grab the `.exe`
 > (Windows), `.AppImage`, `.deb`, or `.rpm` (Linux), or `.apk` (Android) directly from our
