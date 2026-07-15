@@ -567,6 +567,10 @@ function main() {
     }
 
     run("git", ["push", "-u", "origin", branch]);
+    // The website workflow checks out the remote branch, so trigger it only
+    // after the release commit is available on origin.
+    run("npm", ["run", "pages"]);
+
     // 6. Publish the finished desktop and mobile downloads before the Store submission.
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
@@ -592,7 +596,7 @@ function main() {
     console.log(
       "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
     );
-    console.log("Website was not deployed. Run: npm run pages (when you are ready).");
+    console.log("Website deployment was triggered after the source push.");
     console.log("Upload the .appx in Partner Center.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);
