@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles.tsx';
 import { DownloadButton } from './DownloadButton.tsx';
-import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone, Menu, X } from 'lucide-react';
+import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone, Menu, X, Globe } from 'lucide-react';
 import { Terminal } from './Terminal.tsx';
 import './reset.css';
 import './index.css';
@@ -52,7 +52,7 @@ function App() {
   const insectY = useTransform(scrollYProgress, [0, 1], [0, -250]); /* Increased parallax */
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-15%']);
 
-  const [installOs, setInstallOs] = useState<'windows' | 'linux' | 'android'>('windows');
+  const [installOs, setInstallOs] = useState<'windows' | 'linux' | 'android' | 'web'>('windows');
   const [useFallbackDomain, setUseFallbackDomain] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string>('v1.2.0');
   const [totalDownloads, setTotalDownloads] = useState<number>(0);
@@ -149,6 +149,7 @@ function App() {
     { id: 'windows' as const, label: 'Windows', icon: <Download size={17} /> },
     { id: 'linux' as const, label: 'Linux', icon: <Download size={17} /> },
     { id: 'android' as const, label: 'Android', icon: <Smartphone size={17} /> },
+    { id: 'web' as const, label: 'Web', icon: <Globe size={17} /> },
   ];
 
   return (
@@ -320,7 +321,7 @@ function App() {
             className="aero-glass mobile-p-1"
             style={{ marginTop: '0.5rem', padding: '1.25rem', width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(224,242,254,0.54))', border: '1px solid rgba(255,255,255,0.9)', borderRadius: '1.5rem', boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.9), 0 18px 45px rgba(2,64,145,0.22)' }}
           >
-            <div className="install-os-buttons platform-tabs" role="tablist" aria-label="Choose your platform" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', width: '100%', padding: '0.3rem', marginBottom: '1.25rem', background: 'rgba(15, 82, 150, 0.12)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: '1rem', boxShadow: 'inset 0 2px 5px rgba(2,64,145,0.12)' }}>
+            <div className="install-os-buttons platform-tabs" role="tablist" aria-label="Choose your platform" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', width: '100%', padding: '0.3rem', marginBottom: '1.25rem', background: 'rgba(15, 82, 150, 0.12)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: '1rem', boxShadow: 'inset 0 2px 5px rgba(2,64,145,0.12)' }}>
               {platforms.map((platform) => {
                 const selected = installOs === platform.id;
                 return (
@@ -349,7 +350,7 @@ function App() {
                 transition={{ duration: 0.2 }}
                 style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
               >
-              {installOs !== 'linux' && (
+              {installOs !== 'linux' && installOs !== 'web' && (
                 <DownloadButton
                   os={installOs}
                   text={installOs === 'windows' ? 'Download for Windows (.exe)' : 'Download for Android (.apk)'}
@@ -378,7 +379,27 @@ function App() {
                 </div>
               )}
 
-              {installOs !== 'android' && <>
+              {installOs === 'web' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', width: '100%' }}>
+                  <a
+                    href={`${import.meta.env.BASE_URL}app/`}
+                    className="liquid-btn"
+                    onClick={triggerConfetti}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', background: 'linear-gradient(180deg, #38bdf8, #0284c7)', color: '#ffffff', fontWeight: 800, textDecoration: 'none', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 5px 14px rgba(2,132,199,0.22)' }}
+                  >
+                    <Globe size={21} /> Open web app
+                  </a>
+                  <span
+                    aria-disabled="true"
+                    title="Available after the Chrome Web Store listing is published"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', border: '1px solid rgba(51,65,85,0.18)', background: 'rgba(255,255,255,0.58)', color: '#475569', fontWeight: 800, cursor: 'not-allowed' }}
+                  >
+                    <Globe size={21} /> Chrome Web Store · soon
+                  </span>
+                </div>
+              )}
+
+              {installOs !== 'android' && installOs !== 'web' && <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   <span style={{ height: '1px', flex: 1, background: 'rgba(51,65,85,0.18)' }} />
                   {installOs === 'linux' ? 'Run this in your terminal' : 'Or install from the terminal'}
