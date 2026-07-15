@@ -391,7 +391,7 @@ function App() {
                     <Globe size={21} /> Open web app
                   </a>
                   <a
-                    href="https://chromewebstore.google.com/detail/aero-p2p-chat/eknaijaolnecdoiilmphgfdplfimeadp"
+                    href="https://chromewebstore.google.com/detail/eknaijaolnecdoiilmphgfdplfimeadp?utm_source=item-share-cb"
                     target="_blank"
                     rel="noreferrer"
                     className="liquid-btn"
