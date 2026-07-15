@@ -172,6 +172,7 @@ function App() {
           </button>
           <div id="main-navigation-links" className={`site-header__links${mobileMenuOpen ? ' is-open' : ''}`}>
             <a href={`${import.meta.env.BASE_URL}app/`} onClick={() => setMobileMenuOpen(false)}>Open app</a>
+            <a href={`${import.meta.env.BASE_URL}privacy/`} onClick={() => setMobileMenuOpen(false)}>Privacy</a>
             <a href="#download" onClick={() => setMobileMenuOpen(false)}>Download</a>
             <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
             <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
@@ -389,13 +390,15 @@ function App() {
                   >
                     <Globe size={21} /> Open web app
                   </a>
-                  <span
-                    aria-disabled="true"
-                    title="Available after the Chrome Web Store listing is published"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', border: '1px solid rgba(51,65,85,0.18)', background: 'rgba(255,255,255,0.58)', color: '#475569', fontWeight: 800, cursor: 'not-allowed' }}
+                  <a
+                    href="https://chromewebstore.google.com/detail/aero-p2p-chat/eknaijaolnecdoiilmphgfdplfimeadp"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="liquid-btn"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', border: '1px solid rgba(51,65,85,0.18)', background: 'rgba(255,255,255,0.78)', color: '#075985', fontWeight: 800, textDecoration: 'none' }}
                   >
-                    <Globe size={21} /> Chrome Web Store · soon
-                  </span>
+                    <Globe size={21} /> Chrome Web Store
+                  </a>
                 </div>
               )}
 
