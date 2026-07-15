@@ -4601,6 +4601,16 @@ textarea:focus {
 .mine .bubble {
   border-color: rgba(22, 125, 170, 0.34);
   background: #e6f3f8 !important;
+  color: #12384b;
+}
+
+.mine .bubble p {
+  color: #12384b;
+  text-shadow: none;
+}
+
+.mine .bubble .bubble-footer {
+  color: #477080;
 }
 
 .bubble-footer {
@@ -4894,6 +4904,15 @@ body[data-theme="dark"] .bubble {
 body[data-theme="dark"] .mine .bubble {
   border-color: #315c70;
   background: #193445 !important;
+}
+
+body[data-theme="dark"] .mine .bubble p {
+  color: #f5feff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .mine .bubble .bubble-footer {
+  color: #a9dce7;
 }
 
 body[data-theme="dark"] .participant-meta,
