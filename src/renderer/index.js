@@ -540,7 +540,12 @@ document.querySelectorAll("[data-app-aria-template]").forEach((element) => {
 function applyPlatformUi() {
   document.body.dataset.platform = platform;
   document.body.classList.toggle("platform-android", platformApi.isAndroid);
-  document.body.classList.toggle("platform-electron", platformApi.isElectron);
+  // The extension runs in a browser tab, but it has the same spacious
+  // two-column layout as the desktop client rather than the mobile web view.
+  document.body.classList.toggle(
+    "platform-electron",
+    platformApi.isElectron || platformApi.isChromeExtension,
+  );
 
   document
     .querySelector(".window-controls")
