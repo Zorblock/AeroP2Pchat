@@ -964,6 +964,43 @@ h1 {
   font-weight: 600;
 }
 
+.browser-extension-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.browser-extension-option__support {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.browser-extension-option__browsers {
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  color: #0f4c6d;
+}
+
+.browser-extension-option__browsers i,
+.browser-extension-option__browsers svg {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.browser-extension-option__browsers i:hover,
+.browser-extension-option__browsers svg:hover {
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
 ms-store-badge.microsoft-store-badge::part(img) {
   display: block;
   max-height: 46px;

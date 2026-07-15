@@ -6,7 +6,9 @@ import { toast } from 'sonner';
 import Lenis from 'lenis';
 import { DustParticles } from './DustParticles.tsx';
 import { DownloadButton } from './DownloadButton.tsx';
-import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone, Menu, X, Globe } from 'lucide-react';
+import { Shield, Zap, Terminal as TerminalIcon, Download, MonitorPlay, Smartphone, Menu, X, Globe, Puzzle } from 'lucide-react';
+import { SiVivaldi } from '@icons-pack/react-simple-icons';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import { Terminal } from './Terminal.tsx';
 import './reset.css';
 import './index.css';
@@ -390,15 +392,27 @@ function App() {
                   >
                     <Globe size={21} /> Open web app
                   </a>
-                  <a
-                    href="https://chromewebstore.google.com/detail/eknaijaolnecdoiilmphgfdplfimeadp?utm_source=item-share-cb"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="liquid-btn"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', border: '1px solid rgba(51,65,85,0.18)', background: 'rgba(255,255,255,0.78)', color: '#075985', fontWeight: 800, textDecoration: 'none' }}
-                  >
-                    <Globe size={21} /> Chrome Web Store
-                  </a>
+                  <div className="browser-extension-option">
+                    <a
+                      href="https://chromewebstore.google.com/detail/eknaijaolnecdoiilmphgfdplfimeadp?utm_source=item-share-cb"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="liquid-btn"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.65rem', minHeight: '52px', borderRadius: '0.85rem', border: '1px solid rgba(51,65,85,0.18)', background: 'rgba(255,255,255,0.78)', color: '#075985', fontWeight: 800, textDecoration: 'none' }}
+                    >
+                      <Puzzle size={21} /> Browser Extension
+                    </a>
+                    <div className="browser-extension-option__support" aria-label="Supported Chromium browsers">
+                      <span>Available for</span>
+                      <div className="browser-extension-option__browsers">
+                        <i className="fa-brands fa-chrome" title="Google Chrome" aria-label="Google Chrome" />
+                        <i className="fa-brands fa-edge" title="Microsoft Edge" aria-label="Microsoft Edge" />
+                        <i className="fa-brands fa-brave" title="Brave" aria-label="Brave" />
+                        <i className="fa-brands fa-opera" title="Opera" aria-label="Opera" />
+                        <SiVivaldi title="Vivaldi" aria-label="Vivaldi" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
