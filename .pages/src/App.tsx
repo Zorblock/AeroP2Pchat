@@ -170,6 +170,7 @@ function App() {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <div id="main-navigation-links" className={`site-header__links${mobileMenuOpen ? ' is-open' : ''}`}>
+            <a href={`${import.meta.env.BASE_URL}app/`} onClick={() => setMobileMenuOpen(false)}>Open app</a>
             <a href="#download" onClick={() => setMobileMenuOpen(false)}>Download</a>
             <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
             <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
