@@ -20,6 +20,7 @@
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@icons-pack/react-simple-icons": "^13.13.0",
     "7.css": "^0.21.1",
     "canvas-confetti": "^1.9.4",
