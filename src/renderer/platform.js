@@ -11,6 +11,14 @@ import { BackgroundMode } from "@anuradev/capacitor-background-mode";
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 
+function getChromeStorage() {
+  const chromeApi = globalThis.chrome;
+  if (!chromeApi?.runtime?.id || !chromeApi?.storage?.local) {
+    return null;
+  }
+  return chromeApi.storage.local;
+}
+
 function getElectronApi() {
   return window.aeroChat || null;
 }
@@ -28,6 +36,12 @@ function isNativeCapacitor() {
 }
 
 async function readStoredConfig() {
+  const chromeStorage = getChromeStorage();
+  if (chromeStorage) {
+    const stored = await chromeStorage.get(CONFIG_KEY);
+    return stored[CONFIG_KEY] || {};
+  }
+
   const result = await Preferences.get({ key: CONFIG_KEY });
   if (!result.value) {
     return {};
@@ -36,6 +50,12 @@ async function readStoredConfig() {
 }
 
 async function writeStoredConfig(config) {
+  const chromeStorage = getChromeStorage();
+  if (chromeStorage) {
+    await chromeStorage.set({ [CONFIG_KEY]: config || {} });
+    return;
+  }
+
   await Preferences.set({
     key: CONFIG_KEY,
     value: JSON.stringify(config || {}),
@@ -71,8 +91,9 @@ async function showWebNotification({ title, body }) {
 
 export function createPlatformApi() {
   const electron = getElectronApi();
+  const isChromeExtension = Boolean(getChromeStorage());
   const capacitorPlatform = getCapacitorPlatform();
-  const platform = electron?.platform || capacitorPlatform || "web";
+  const platform = electron?.platform || (isChromeExtension ? "chrome-extension" : capacitorPlatform || "web");
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
   const isWindowsStore = Boolean(electron?.isWindowsStore);
@@ -83,6 +104,7 @@ export function createPlatformApi() {
     isAndroid,
     isElectron,
     isWindowsStore,
+    isChromeExtension,
     hasNativeWindowControls: isElectron,
     hasDesktopIntegration: isElectron,
     supportsAutostart: isElectron,
