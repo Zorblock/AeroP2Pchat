@@ -9,7 +9,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["notifications", "storage", "tabs"],
+  "permissions": ["notifications", "storage"],
   "icons": {
     "16": "app.png",
     "32": "app.png",
