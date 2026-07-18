@@ -1924,7 +1924,7 @@ input[type="range"]::-webkit-slider-thumb {
   .call-action.icon-only-button > span { display: none; }
 }
 
-/* Android keeps a dedicated, touch-first single-panel layout. */
+/* Android and mobile web share the touch-first single-panel layout. */
 body.platform-android { min-width: 0; min-height: 100dvh; }
 body.platform-android .window-frame {
   grid-template-rows: auto minmax(0, 1fr);

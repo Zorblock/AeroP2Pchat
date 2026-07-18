@@ -557,6 +557,9 @@ const linuxUpdateCommands = {
 };
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
+const mobileWebLayoutQuery = window.matchMedia(
+  "(max-width: 820px), (hover: none) and (pointer: coarse)",
+);
 let networkOffline = navigator.onLine === false;
 let debugOfflineMode = false;
 
@@ -578,13 +581,20 @@ document.querySelectorAll("[data-app-aria-template]").forEach((element) => {
 });
 
 function applyPlatformUi() {
+  const usesMobileLayout =
+    platformApi.isAndroid ||
+    (platform === "web" && mobileWebLayoutQuery.matches);
+
   document.body.dataset.platform = platform;
-  document.body.classList.toggle("platform-android", platformApi.isAndroid);
-  // Browser deployments and the extension use the same spacious two-column
-  // layout as the desktop client. Android remains the dedicated mobile view.
+  // The class controls only the touch-first layout. Native capabilities still
+  // use platformApi.isAndroid, so a mobile browser remains a web client.
+  document.body.classList.toggle("platform-android", usesMobileLayout);
   document.body.classList.toggle(
     "platform-electron",
-    platformApi.isElectron || platformApi.isChromeExtension || platform === "web",
+    !usesMobileLayout &&
+      (platformApi.isElectron ||
+        platformApi.isChromeExtension ||
+        platform === "web"),
   );
 
   document
@@ -609,6 +619,11 @@ function applyPlatformUi() {
 }
 
 applyPlatformUi();
+if (typeof mobileWebLayoutQuery.addEventListener === "function") {
+  mobileWebLayoutQuery.addEventListener("change", applyPlatformUi);
+} else {
+  mobileWebLayoutQuery.addListener(applyPlatformUi);
+}
 
 function setMobileTab(tab) {
   const nextTab = ["contacts", "chat", "settings"].includes(tab)
