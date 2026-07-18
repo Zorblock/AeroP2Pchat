@@ -142,6 +142,7 @@ const welcomeBack = document.querySelector("#welcome-back");
 const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
+const resetAllSettingsButton = document.querySelector("#reset-all-settings");
 const nicknameInput = document.querySelector("#nickname-input");
 const saveNickname = document.querySelector("#save-nickname");
 const themeLight = document.querySelector("#theme-light");
@@ -260,6 +261,7 @@ const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
 const CONTACTS_STORAGE_KEY = "aero-p2p-chat.contacts.v1";
+const THEME_STORAGE_KEY = "aero-p2p-chat.theme";
 const MAX_MESSAGE_LENGTH = 4000;
 const HIGH_BUFFER_SIZE = 25;
 const VOICE_AUDIO_BITRATE = 96000;
@@ -1361,6 +1363,11 @@ function applyAppTheme(theme = DEFAULT_THEME) {
   const nextTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = nextTheme;
   document.body.dataset.theme = nextTheme;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch {
+    // The active platform config remains the source of truth if storage is blocked.
+  }
   void platformApi.setSystemTheme(nextTheme);
 }
 
@@ -8583,6 +8590,45 @@ settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal && platformApi.isElectron) {
     settingsModal.classList.add("hidden");
   }
+});
+
+resetAllSettingsButton.addEventListener("click", async () => {
+  const confirmed = await showAppDialog({
+    title: "Reset all settings?",
+    message:
+      "Defaults will be restored and setup will start again. Your Aero ID, contacts and chats will stay.",
+    confirmText: "Reset settings",
+    cancelText: "Cancel",
+    danger: true,
+  });
+  if (!confirmed) {
+    return;
+  }
+
+  appConfig.appSettings = { welcomeScreen: true };
+  appConfig.audio = {};
+  appConfig.notificationSettings = {};
+  appConfig.soundSettings = {};
+  appConfig.callUi = {};
+  identity.nickname = "";
+  appConfig.identity = identity;
+  nicknameInput.value = "";
+
+  normalizeAppSettings();
+  normalizeAudioConfig();
+  renderAppSettings();
+  renderAudioSettings();
+  refreshCallStage();
+  setPresenceStatus("online", { force: true });
+  scheduleVoiceSettingsReapply();
+  await applyAudioOutputDevice();
+  await saveAppConfig();
+
+  settingsModal.classList.add("hidden");
+  if (!platformApi.isElectron) {
+    setMobileTab("contacts");
+  }
+  openWelcomeScreen();
 });
 
 function saveOwnNickname() {

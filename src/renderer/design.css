@@ -1172,6 +1172,7 @@ input:focus, select:focus, textarea:focus {
 }
 .modal-header .ghost-button, .stream-close-button { min-width: 34px; height: 34px; padding: 0 10px; }
 .modal-panel > p { margin-bottom: 14px; color: var(--text-soft); font-size: 12px; }
+#app-dialog { z-index: 1100; }
 .app-dialog-panel { width: min(420px, calc(100vw - 36px)); }
 .app-dialog-actions, .stream-dialog-actions {
   display: flex;
@@ -1401,6 +1402,15 @@ input:focus, select:focus, textarea:focus {
   background: var(--surface-subtle);
 }
 .settings-section:nth-child(4), .settings-section:nth-child(7) { grid-column: 1 / -1; }
+.settings-reset-section {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.settings-section.settings-reset-section h3 { margin: 0; }
+.settings-reset-section button { min-height: 36px; }
 .settings-section h3 {
   margin: 0 0 12px;
   color: var(--text);

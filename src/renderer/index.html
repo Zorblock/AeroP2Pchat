@@ -6,7 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App</title>
     <link rel="preload" href="boot-logo.png" as="image" />
-    <script type="module" src="/boot-theme.js"></script>
+    <script>
+      (() => {
+        const requestedTheme = new URLSearchParams(window.location.search).get(
+          "theme",
+        );
+        let theme = ["light", "dark"].includes(requestedTheme)
+          ? requestedTheme
+          : null;
+
+        if (!theme) {
+          try {
+            const storedTheme = localStorage.getItem("aero-p2p-chat.theme");
+            theme = ["light", "dark"].includes(storedTheme)
+              ? storedTheme
+              : null;
+          } catch {
+            // Storage may be unavailable in a restricted web context.
+          }
+        }
+
+        theme ||= "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <style>
       :root {
         --boot-bg: #eaf1f5;
@@ -1205,6 +1228,17 @@
             <div id="contact-nickname-list" class="contact-nickname-list"></div>
             <span class="label">Blocked users</span>
             <div id="blocked-list" class="blocked-list"></div>
+          </section>
+
+          <section class="settings-section settings-reset-section">
+            <h3>Reset</h3>
+            <button
+              id="reset-all-settings"
+              class="ghost-button danger"
+              type="button"
+            >
+              Reset all settings
+            </button>
           </section>
         </div>
       </section>
