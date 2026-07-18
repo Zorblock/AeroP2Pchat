@@ -967,8 +967,8 @@ async function installWindowsUpdate(
 function createWindow({ hidden = false } = {}) {
   const initialTheme = appConfig?.appSettings?.theme === "dark" ? "dark" : "light";
   const win = new BrowserWindow({
-    width: 760,
-    height: 560,
+    width: 980,
+    height: 680,
     minWidth: 620,
     minHeight: 440,
     title: appDisplayName,

@@ -4,7 +4,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json" with { type: "json" };
 import { createPlatformApi } from "./platform.js";
-import "./styles.css";
+import "./design.css";
 
 const projectConfig = __PROJECT_CONFIG__;
 
@@ -558,6 +558,10 @@ function applyPlatformUi() {
   ]) {
     element?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
   }
+
+  autostartToggle
+    ?.closest(".settings-section")
+    ?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
 
   if (!platformApi.hasDesktopIntegration) {
     appMenuUpdate.querySelector("span").textContent = "Open latest release";
@@ -5967,10 +5971,12 @@ function openAppMenu(event) {
   appMenu.style.left = `${Math.min(rect.left, window.innerWidth - 164)}px`;
   appMenu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 44)}px`;
   appMenu.classList.remove("hidden");
+  titlebarLogo.setAttribute("aria-expanded", "true");
 }
 
 function closeAppMenu() {
   appMenu.classList.add("hidden");
+  titlebarLogo.setAttribute("aria-expanded", "false");
 }
 
 function openMessageMenu(event, messageItem) {
@@ -8026,6 +8032,12 @@ copyUpdateCommands.forEach((button) => {
 titlebarLogo.addEventListener("contextmenu", openAppMenu);
 
 titlebarLogo.addEventListener("click", openAppMenu);
+
+titlebarLogo.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    openAppMenu(event);
+  }
+});
 
 appMenuSettings.addEventListener("click", () => {
   if (platformApi.isElectron) {

@@ -9,26 +9,26 @@
     <script type="module" src="/boot-theme.js"></script>
     <style>
       :root {
-        --boot-bg: #eef4f7;
+        --boot-bg: #eaf1f5;
         --boot-panel: #ffffff;
-        --boot-line: #cfdee6;
-        --boot-text: #0d2f43;
-        --boot-muted: #55707d;
-        --boot-track: #dbe8ee;
-        --boot-fill: #167daa;
+        --boot-line: #d7e2e7;
+        --boot-text: #102936;
+        --boot-muted: #6a818c;
+        --boot-track: #d7e2e7;
+        --boot-fill: #147fa6;
         background: var(--boot-bg);
         color: var(--boot-text);
-        font-family: "Segoe UI", system-ui, sans-serif;
+        font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
       }
 
       html[data-theme="dark"] {
-        --boot-bg: #070b10;
-        --boot-panel: #101923;
-        --boot-line: #263847;
-        --boot-text: #edf4f7;
-        --boot-muted: #9db0bb;
-        --boot-track: #172531;
-        --boot-fill: #5f9db9;
+        --boot-bg: #091117;
+        --boot-panel: #14222c;
+        --boot-line: #263a45;
+        --boot-text: #edf6f8;
+        --boot-muted: #91aab4;
+        --boot-track: #263a45;
+        --boot-fill: #54b3d3;
       }
 
       html,
@@ -67,6 +67,10 @@
         gap: 14px;
         min-width: 210px;
         padding: 22px 24px;
+        border: 1px solid var(--boot-line);
+        border-radius: 24px;
+        background: var(--boot-panel);
+        box-shadow: 0 12px 32px rgba(18, 45, 58, 0.12);
       }
 
       .boot-logo {
@@ -201,16 +205,21 @@
     <div class="window-frame">
       <header class="titlebar">
         <div class="titlebar-brand">
-          <div class="titlebar-avatar" aria-hidden="true">
+          <div class="titlebar-avatar">
             <img
               id="titlebar-logo"
               class="titlebar-logo"
-              alt=""
-              aria-hidden="true"
+              alt="Open app menu"
+              role="button"
+              tabindex="0"
+              aria-haspopup="menu"
+              aria-controls="app-menu"
+              aria-expanded="false"
             />
             <span
               id="titlebar-presence"
               class="titlebar-presence online"
+              aria-hidden="true"
             ></span>
           </div>
           <div>
@@ -607,7 +616,10 @@
           <div
             id="messages"
             class="messages empty"
+            role="log"
             aria-live="polite"
+            aria-relevant="additions text"
+            aria-atomic="false"
             data-empty="Share your Aero ID or connect to a contact."
           ></div>
 
@@ -639,7 +651,13 @@
           </form>
         </section>
       
-    <div id="incoming-call-screen" class="incoming-call-screen hidden">
+    <div
+      id="incoming-call-screen"
+      class="incoming-call-screen hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="incoming-call-name"
+    >
       <div class="incoming-call-content">
         <h2 id="incoming-call-name" class="incoming-call-name">Caller Name</h2>
         <p class="incoming-call-subtitle">Incoming Voice Call...</p>
