@@ -29,7 +29,7 @@ module.exports = {
     // Windows taskbar instead of using electron-builder's default #464646 tile.
     backgroundColor: "transparent",
     languages: ["en-US", "de-DE"],
-    capabilities: ["runFullTrust", "internetClient", "microphone"],
+    capabilities: ["runFullTrust", "internetClient", "microphone", "webcam"],
   },
   linux: {
     target: ["AppImage", "deb", "rpm"],

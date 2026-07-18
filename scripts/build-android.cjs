@@ -7,9 +7,16 @@ const packageInfo = require("../package.json");
 
 const rootDir = join(__dirname, "..");
 const androidDir = join(rootDir, "android");
-const releaseOutputDir = join(rootDir, "dist", "release");
+const isPlayBuild = process.argv.includes("--play");
+const androidDistribution = isPlayBuild ? "play" : "direct";
+const artifactOutputDir = join(
+  rootDir,
+  "dist",
+  isPlayBuild ? "store" : "release",
+);
 const isWindows = process.platform === "win32";
 const buildEnv = { ...process.env };
+buildEnv.VITE_ANDROID_DISTRIBUTION = androidDistribution;
 
 // Keep Android's Gradle transforms independent from a machine-wide cache. This
 // avoids reusing classes produced by a newer, incompatible JDK.
@@ -151,6 +158,13 @@ function run(command, args, options = {}) {
   }
 }
 
+if (process.argv.includes("--help")) {
+  console.log("Usage: node scripts/build-android.cjs [--play]");
+  console.log("  default  Build the signed direct-download APK in dist/release.");
+  console.log("  --play   Build the signed Google Play AAB in dist/store.");
+  process.exit(0);
+}
+
 if (!existsSync(androidDir)) {
   console.error("Android project not found. Run `npx cap add android` first.");
   process.exit(1);
@@ -160,33 +174,49 @@ assertReleaseKeystore();
 run("npx", ["vite", "build"]);
 run("npx", ["cap", "sync", "android"]);
 run(isWindows ? "gradlew.bat" : "./gradlew", [
-  "assembleDirectRelease",
+  isPlayBuild ? "bundlePlayRelease" : "assembleDirectRelease",
   `-PaeroAndroidVersionName=${packageInfo.version}`,
   `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
 ], {
   cwd: androidDir,
 });
 
-const gradleApkPath = join(
-    androidDir,
-    "app",
-    "build",
-    "outputs",
-    "apk",
-    "direct",
-    "release",
-    "app-direct-release.apk",
-  );
-const namedApkPath = join(
-    releaseOutputDir,
-    projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
-  );
+const gradleArtifactPath = isPlayBuild
+  ? join(
+      androidDir,
+      "app",
+      "build",
+      "outputs",
+      "bundle",
+      "playRelease",
+      "app-play-release.aab",
+    )
+  : join(
+      androidDir,
+      "app",
+      "build",
+      "outputs",
+      "apk",
+      "direct",
+      "release",
+      "app-direct-release.apk",
+    );
+const namedArtifactPath = join(
+  artifactOutputDir,
+  isPlayBuild
+    ? projectConfig.release.androidPlayAsset || "Aero-P2P-Chat-Android.aab"
+    : projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
+);
 
-if (!existsSync(gradleApkPath)) {
-  console.error(`Signed Android APK was not created: ${gradleApkPath}`);
+if (!existsSync(gradleArtifactPath)) {
+  console.error(
+    `Signed Android ${isPlayBuild ? "AAB" : "APK"} was not created: ${gradleArtifactPath}`,
+  );
   process.exit(1);
 }
 
-mkdirSync(releaseOutputDir, { recursive: true });
-copyFileSync(gradleApkPath, namedApkPath);
-console.log(`Android direct-download APK created: ${namedApkPath}`);
+mkdirSync(artifactOutputDir, { recursive: true });
+copyFileSync(gradleArtifactPath, namedArtifactPath);
+console.log(
+  `Android ${isPlayBuild ? "Google Play AAB" : "direct-download APK"} created: ${namedArtifactPath}`,
+);

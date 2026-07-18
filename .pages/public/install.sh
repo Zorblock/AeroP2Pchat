@@ -27,6 +27,7 @@ ICON_SIZE="512x512"
 ICON_DIR="${DATA_HOME}/icons/hicolor/${ICON_SIZE}/apps"
 OLD_ICON_DIR="${DATA_HOME}/icons/hicolor/256x256/apps"
 APP_DATA_DIR="${CONFIG_HOME}/Aero P2P Chat"
+AUTOSTART_PATH="${CONFIG_HOME}/autostart/aero-p2p-chat.desktop"
 
 APPIMAGE_PATH="$INSTALL_DIR/${APPIMAGE_INSTALL_NAME}"
 VERSION_PATH="$INSTALL_DIR/version"
@@ -844,7 +845,7 @@ show_status() {
 
 uninstall_app() {
     title
-    if ! has_any_installation && [ ! -e "$BIN_PATH" ] && [ ! -e "$CLI_PATH" ] && [ ! -e "$DESKTOP_PATH" ]; then
+    if ! has_any_installation && [ ! -e "$BIN_PATH" ] && [ ! -e "$CLI_PATH" ] && [ ! -e "$DESKTOP_PATH" ] && [ ! -e "$AUTOSTART_PATH" ]; then
         warn "${APP_NAME} is not installed."
         return
     fi
@@ -858,7 +859,7 @@ uninstall_app() {
     remove_appimage_installation
     remove_deb_package
     remove_rpm_package
-    rm -f "$BIN_PATH" "$CLI_PATH"
+    rm -f "$BIN_PATH" "$CLI_PATH" "$AUTOSTART_PATH"
     refresh_desktop_integration
     
     ok "${APP_NAME} uninstalled."

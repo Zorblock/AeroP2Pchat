@@ -1,4 +1,4 @@
-import { Capacitor, CapacitorHttp } from "@capacitor/core";
+import { Capacitor, CapacitorHttp, registerPlugin } from "@capacitor/core";
 import { Clipboard } from "@capacitor/clipboard";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { Preferences } from "@capacitor/preferences";
@@ -7,7 +7,8 @@ import { FileOpener } from "@capacitor-community/file-opener";
 import { App } from "@capacitor/app";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { StatusBar, Style } from "@capacitor/status-bar";
-import { BackgroundMode } from "@anuradev/capacitor-background-mode";
+
+const BackgroundMode = registerPlugin("AeroBackgroundMode");
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 
@@ -72,6 +73,28 @@ async function requestLocalNotificationPermission() {
   return requested.display === "granted";
 }
 
+function getAndroidNotificationId(value) {
+  const text = String(value || "notification");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash & 0x7fffffff) || 1;
+}
+
+async function applyMobileSystemTheme(theme) {
+  if (!isNativeCapacitor()) {
+    return;
+  }
+
+  const dark = theme === "dark";
+  await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
+  if (getCapacitorPlatform() === "android") {
+    await StatusBar.setBackgroundColor({ color: dark ? "#000000" : "#eaf1f5" });
+  }
+}
+
 async function showWebNotification({ title, body }) {
   if (!("Notification" in window)) {
     return { ok: false, unsupported: true };
@@ -97,6 +120,8 @@ export function createPlatformApi() {
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
   const isWindowsStore = Boolean(electron?.isWindowsStore);
+  const isAndroidPlay =
+    isAndroid && import.meta.env.VITE_ANDROID_DISTRIBUTION === "play";
   let androidUpdateProgressCallback = null;
 
   return {
@@ -104,11 +129,13 @@ export function createPlatformApi() {
     isAndroid,
     isElectron,
     isWindowsStore,
+    isAndroidPlay,
     isChromeExtension,
     hasNativeWindowControls: isElectron,
     hasDesktopIntegration: isElectron,
     supportsAutostart: isElectron,
     supportsCloseToTray: isElectron,
+    supportsUpdateChecks: isElectron || (isAndroid && !isAndroidPlay),
     supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
     supportsDesktopScreenSources: isElectron,
 
@@ -199,10 +226,13 @@ export function createPlatformApi() {
           return { ok: false, denied: true };
         }
 
+        const notificationKey =
+          details.id ||
+          `${details.kind || "notification"}-${Date.now()}-${Math.random()}`;
         await LocalNotifications.schedule({
           notifications: [
             {
-              id: Math.floor(Date.now() % 2147483647),
+              id: getAndroidNotificationId(notificationKey),
               title: details.title || "Aero P2P Chat",
               body: details.body || "",
               // Android requires a monochrome small icon in the status bar.
@@ -210,7 +240,15 @@ export function createPlatformApi() {
               smallIcon: "ic_stat_aero",
               schedule: { at: new Date(Date.now() + 100) },
               sound: details.silent ? undefined : "default",
-              extra: details.extra || null
+              extra: {
+                ...(details.extra && typeof details.extra === "object"
+                  ? details.extra
+                  : {}),
+                id: details.id || "",
+                kind: details.kind || "",
+                peerId: details.peerId || "",
+                callId: details.callId || "",
+              },
             },
           ],
         });
@@ -223,6 +261,11 @@ export function createPlatformApi() {
     async closeNotification(id) {
       if (electron?.closeNotification) {
         return electron.closeNotification(id);
+      }
+      if (isNativeCapacitor() && id) {
+        await LocalNotifications.cancel({
+          notifications: [{ id: getAndroidNotificationId(id) }],
+        });
       }
       return { ok: true };
     },
@@ -406,10 +449,9 @@ export function createPlatformApi() {
     async initMobile() {
       if (!isNativeCapacitor()) return;
       try {
-        await StatusBar.setStyle({ style: Style.Dark });
-        if (isAndroid) {
-          await StatusBar.setBackgroundColor({ color: "#09090b" });
-        }
+        await applyMobileSystemTheme(
+          document.documentElement.dataset.theme || "light",
+        );
         
         LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
           const extra = notificationAction.notification.extra;
@@ -420,27 +462,46 @@ export function createPlatformApi() {
       } catch (e) {}
     },
 
+    async setSystemTheme(theme) {
+      try {
+        await applyMobileSystemTheme(theme);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error?.message || String(error) };
+      }
+    },
+
     async enableBackgroundMode(activeConnections = 0) {
-      if (!isNativeCapacitor()) return;
+      if (!isNativeCapacitor()) return { ok: false, unsupported: true };
+      const permitted = await requestLocalNotificationPermission();
+      if (!permitted) {
+        return { ok: false, denied: true };
+      }
       try {
         await BackgroundMode.enable({
           title: "Aero P2P Chat",
           text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
           hidden: false,
-          silent: true,
+          silent: false,
           icon: "ic_stat_aero",
           allowClose: true,
           closeTitle: "Beenden",
           disableWebViewOptimization: true
         });
-      } catch (e) {}
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error?.message || String(error) };
+      }
     },
 
     async disableBackgroundMode() {
-      if (!isNativeCapacitor()) return;
+      if (!isNativeCapacitor()) return { ok: false, unsupported: true };
       try {
         await BackgroundMode.disable();
-      } catch (e) {}
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error?.message || String(error) };
+      }
     },
 
     async updateBackgroundNotification(activeConnections = 0) {
@@ -451,7 +512,10 @@ export function createPlatformApi() {
           text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
           icon: "ic_stat_aero",
         });
-      } catch (e) {}
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error?.message || String(error) };
+      }
     }
   };
 }

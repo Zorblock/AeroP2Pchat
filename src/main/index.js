@@ -252,9 +252,10 @@ function getAutostartArgs() {
 }
 
 function getLinuxAutostartPath() {
+  const configHome =
+    process.env.XDG_CONFIG_HOME || join(app.getPath("home"), ".config");
   return join(
-    app.getPath("home"),
-    ".config",
+    configHome,
     "autostart",
     autostartDesktopFileName,
   );
@@ -287,6 +288,10 @@ async function applyLinuxAutostartSettings() {
 }
 
 async function applyAutostartSettings() {
+  if (!app.isPackaged && process.env.AERO_CHAT_APPLY_DEV_AUTOSTART !== "1") {
+    return;
+  }
+
   if (process.platform === "linux") {
     await applyLinuxAutostartSettings();
     return;
@@ -975,7 +980,7 @@ function createWindow({ hidden = false } = {}) {
     icon: windowIcon,
     frame: false,
     titleBarStyle: "hidden",
-    backgroundColor: initialTheme === "dark" ? "#070b10" : "#eef4f7",
+    backgroundColor: initialTheme === "dark" ? "#000000" : "#eef4f7",
     autoHideMenuBar: true,
     show: !hidden,
     webPreferences: {

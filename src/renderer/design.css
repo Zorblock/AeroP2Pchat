@@ -549,11 +549,12 @@ input:focus, select:focus, textarea:focus {
 }
 .peer-chip {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "label badges unread";
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   width: 100%;
-  padding: 4px 8px 4px 6px;
+  padding: 4px 8px;
   text-align: left;
 }
 .contact-item {
@@ -564,9 +565,10 @@ input:focus, select:focus, textarea:focus {
 }
 .contact-name {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label badges";
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   min-width: 0;
   height: 36px;
   padding: 0;
@@ -578,9 +580,10 @@ input:focus, select:focus, textarea:focus {
 .request-item { display: grid; gap: 7px; padding: 8px; }
 .request-item > span:first-child {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label badges";
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 .peer-chip:hover:not(.pending), .contact-item:hover, .contact-item:focus-within {
   border-color: var(--line);
@@ -592,53 +595,48 @@ input:focus, select:focus, textarea:focus {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .peer-chip.active::after {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+  content: none;
+  display: none;
 }
 .peer-chip.pending { color: var(--muted); cursor: default; }
 .contact-badges {
-  position: relative;
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
-  border-radius: 11px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  grid-area: badges;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  width: auto;
+  height: auto;
+  min-width: 0;
 }
 .contact-badges::before {
-  content: "\f007";
-  font-family: "Font Awesome 7 Free";
-  font-size: 13px;
-  font-weight: 900;
-  opacity: 0.9;
+  content: none;
+  display: none;
 }
 .contact-badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  display: none;
-  width: 14px;
-  height: 14px;
+  display: grid;
+  width: 16px;
+  height: 16px;
   place-items: center;
-  border: 2px solid var(--sidebar);
+  border: 0;
   border-radius: 50%;
   background: var(--surface-raised);
   color: var(--muted);
-  font-size: 6px;
+  font-size: 7px;
 }
-.contact-badge:first-child { display: grid; }
-.contact-badge.online { background: var(--success); color: var(--success); }
+.contact-badge.online {
+  width: 8px;
+  height: 8px;
+  margin: 0 3px;
+  background: var(--success);
+  color: var(--success);
+}
 .contact-badge.online i { opacity: 0; }
 .contact-badge.waiting, .contact-badge.pinned { background: var(--warning-soft); color: var(--warning); }
 .contact-badge.trusted { background: var(--success-soft); color: var(--success); }
 .contact-badge.blocked { background: var(--danger-soft); color: var(--danger); }
 .contact-label {
+  grid-area: label;
   display: block;
   overflow: hidden;
   min-width: 0;
@@ -656,6 +654,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: none;
 }
 .unread-count {
+  grid-area: unread;
   display: grid;
   min-width: 19px;
   height: 19px;
@@ -1773,6 +1772,16 @@ body.platform-android .app-shell {
 body.platform-android .connection-panel, body.platform-android .chat-panel { border: 0; }
 body.platform-android .connection-panel {
   padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+}
+body.platform-android .contact-item {
+  grid-template-columns: minmax(0, 1fr) 44px;
+}
+body.platform-android .contact-menu-button,
+body.platform-android .request-actions button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px !important;
+  min-height: 44px;
 }
 body.platform-android .mobile-tabbar {
   position: fixed;

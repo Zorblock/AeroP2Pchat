@@ -318,6 +318,7 @@ messageAudio.preload = "auto";
 ringtoneAudio.preload = "auto";
 ringtoneAudio.loop = true;
 let localVoiceAudioContext = null;
+let voiceCaptureGeneration = 0;
 let localVoiceMeterFrame = 0;
 let localVoiceNoiseFloor = 0.01;
 let localVoiceGateNode = null;
@@ -1322,6 +1323,7 @@ function applyAppTheme(theme = DEFAULT_THEME) {
   const nextTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = nextTheme;
   document.body.dataset.theme = nextTheme;
+  void platformApi.setSystemTheme(nextTheme);
 }
 
 function renderAppSettings() {
@@ -1877,6 +1879,10 @@ function migrateContactIdentity(previousIds, nextId, nickname = "") {
       oldContacts.some((contact) => contact.blocked) ||
       existingTarget?.blocked ||
       false,
+    playbackVolume:
+      existingTarget?.playbackVolume ?? preferred.playbackVolume ?? 100,
+    showVideoName:
+      existingTarget?.showVideoName ?? preferred.showVideoName ?? true,
   };
 
   contacts = contacts.filter((contact) => !oldIds.includes(contact.id));
@@ -1999,6 +2005,7 @@ function createBadge(iconClass, title, state = "") {
   const badge = document.createElement("span");
   badge.className = `contact-badge ${state}`.trim();
   badge.title = title;
+  badge.setAttribute("aria-label", title);
   badge.append(renderIcon(iconClass));
   return badge;
 }
@@ -2094,15 +2101,12 @@ function showUnreachablePeerFeedback(peerId, { label = "", reason = "" } = {}) {
       pendingConnections.get(peerId)?.conn || connections.get(peerId),
     );
   const pending = pendingConnections.get(peerId);
-  if (pending?.conn) {
+  const established = connections.get(peerId);
+  removePeer(peerId, { silent: true });
+  if (pending?.conn && pending.conn !== established) {
     pending.conn.close();
   }
-  pendingConnections.delete(peerId);
-  connections.delete(peerId);
-  if (activePeerId === peerId) {
-    activePeerId = connections.keys().next().value ?? null;
-    renderChatHistory();
-  }
+  established?.close();
 
   showConnectRetry(peerId);
   setStatus(
@@ -2148,14 +2152,16 @@ function startConnectTimeout(peerId, conn) {
   );
 }
 
-function getOutgoingPendingPeerId() {
-  for (const [peerId, entry] of pendingConnections) {
-    if (entry.direction === "outgoing") {
-      return peerId;
-    }
-  }
+function getOutgoingPendingPeerId(error) {
+  const outgoingPeerIds = [...pendingConnections]
+    .filter(([, entry]) => entry.direction === "outgoing")
+    .map(([peerId]) => peerId);
+  const errorMessage = String(error?.message || "").toLowerCase();
+  const matchingPeerId = outgoingPeerIds.find((peerId) =>
+    errorMessage.includes(peerId.toLowerCase()),
+  );
 
-  return "";
+  return matchingPeerId || (outgoingPeerIds.length === 1 ? outgoingPeerIds[0] : "");
 }
 
 function clearOutgoingMessageQueue(peerId) {
@@ -2398,8 +2404,9 @@ function sendReadReceiptsForActiveChat() {
     if (item.sender !== "them" || item.readReceiptSent || !item.id) {
       continue;
     }
-    item.readReceiptSent = true;
-    sendProtocolMessage(conn, "message-read", { messageId: item.id });
+    if (sendProtocolMessage(conn, "message-read", { messageId: item.id })) {
+      item.readReceiptSent = true;
+    }
   }
 }
 
@@ -2854,8 +2861,10 @@ function addChatMessage({ id, text, sender, peerId, time }) {
     return;
   }
 
-  unreadCounts.set(peerId, (unreadCounts.get(peerId) || 0) + 1);
-  refreshPeers();
+  if (sender !== "me") {
+    unreadCounts.set(peerId, (unreadCounts.get(peerId) || 0) + 1);
+    refreshPeers();
+  }
 }
 
 function showAppNotification(details) {
@@ -3824,8 +3833,8 @@ function refreshCallUi() {
     remoteCallStatus.muted ? "muted" : "",
     remoteCallStatus.deafened ? "deafened" : "",
   ].filter(Boolean);
-  callPeerStatus.textContent = "";
-  callPeerStatus.classList.add("hidden");
+  callPeerStatus.textContent = remoteStates.join(" · ");
+  callPeerStatus.classList.toggle("hidden", remoteStates.length === 0);
   setCallHealthUi({ visible: false });
 
   incomingCallScreen?.classList.toggle("hidden", callState.status !== "incoming");
@@ -3912,9 +3921,24 @@ function scheduleOutgoingCallTimeout() {
   }, OUTGOING_CALL_TIMEOUT_MS);
 }
 
+function isCurrentCallSession(peerId, callId, allowedStatuses = null) {
+  return Boolean(
+    callState.peerId === peerId &&
+      callState.callId === callId &&
+      (!allowedStatuses || allowedStatuses.includes(callState.status)),
+  );
+}
+
+function stopCallStreamCandidate(stream) {
+  stream?._rawVoiceStream?.getTracks().forEach((track) => track.stop());
+  stream?.getTracks().forEach((track) => stopMediaTrack(track));
+}
+
 function resetCallState() {
+  voiceCaptureGeneration += 1;
   clearOutgoingCallTimeout();
   stopCallHealthMonitor();
+  closeStreamSetup();
   stopLocalScreenShare({ notifyPeer: false });
   stopRemoteScreenShare();
   const mediaConn = callState.mediaConn;
@@ -4261,6 +4285,35 @@ function createCameraVideoConstraints() {
   }
 
   return video;
+}
+
+function isUnavailableMediaDeviceError(error) {
+  return ["NotFoundError", "DevicesNotFoundError", "OverconstrainedError"].includes(
+    String(error?.name || ""),
+  );
+}
+
+async function getUserMediaWithDeviceFallback(
+  createConstraints,
+  deviceConfigKey,
+) {
+  normalizeAudioConfig();
+  const selectedDeviceId = appConfig.audio[deviceConfigKey];
+  try {
+    return await navigator.mediaDevices.getUserMedia(createConstraints());
+  } catch (error) {
+    if (
+      !selectedDeviceId ||
+      selectedDeviceId === "default" ||
+      !isUnavailableMediaDeviceError(error)
+    ) {
+      throw error;
+    }
+
+    appConfig.audio[deviceConfigKey] = "default";
+    saveAudioConfig();
+    return navigator.mediaDevices.getUserMedia(createConstraints());
+  }
 }
 
 function formatCameraError(error) {
@@ -4748,23 +4801,46 @@ function attachRemoteStreamHealthHandlers(stream, peerId, callId) {
 }
 
 async function getVoiceStream() {
-  const rawStream = await navigator.mediaDevices.getUserMedia({
-    audio: createVoiceAudioConstraints(),
-    video: false,
-  });
+  const captureGeneration = ++voiceCaptureGeneration;
+  const rawStream = await getUserMediaWithDeviceFallback(
+    () => ({
+      audio: createVoiceAudioConstraints(),
+      video: false,
+    }),
+    "inputDeviceId",
+  );
+  if (captureGeneration !== voiceCaptureGeneration) {
+    rawStream.getTracks().forEach((track) => track.stop());
+    const error = new Error("Voice capture was superseded.");
+    error.name = "AbortError";
+    throw error;
+  }
   await refreshAudioDevices();
+  if (captureGeneration !== voiceCaptureGeneration) {
+    rawStream.getTracks().forEach((track) => track.stop());
+    const error = new Error("Voice capture was superseded.");
+    error.name = "AbortError";
+    throw error;
+  }
 
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (typeof AudioContextClass !== "function") {
     return rawStream;
   }
 
+  let voiceAudioContext = null;
   try {
     resetVoiceProcessingState();
     localVoiceAudioContext?.close().catch(() => {});
-    localVoiceAudioContext = new AudioContextClass();
+    voiceAudioContext = new AudioContextClass();
+    localVoiceAudioContext = voiceAudioContext;
     localVoiceProcessingContext = localVoiceAudioContext;
     await localVoiceAudioContext.resume().catch(() => {});
+    if (captureGeneration !== voiceCaptureGeneration) {
+      const error = new Error("Voice capture was superseded.");
+      error.name = "AbortError";
+      throw error;
+    }
     const source = localVoiceAudioContext.createMediaStreamSource(rawStream);
     const destination = localVoiceAudioContext.createMediaStreamDestination();
     const profile = appConfig.audio.micProfile;
@@ -4847,10 +4923,17 @@ async function getVoiceStream() {
     }
     destination.stream._rawVoiceStream = rawStream;
     return destination.stream;
-  } catch {
+  } catch (error) {
+    if (captureGeneration !== voiceCaptureGeneration) {
+      voiceAudioContext?.close().catch(() => {});
+      rawStream.getTracks().forEach((track) => track.stop());
+      throw error;
+    }
     resetVoiceProcessingState();
-    localVoiceAudioContext?.close().catch(() => {});
-    localVoiceAudioContext = null;
+    voiceAudioContext?.close().catch(() => {});
+    if (localVoiceAudioContext === voiceAudioContext) {
+      localVoiceAudioContext = null;
+    }
     return rawStream;
   }
 }
@@ -4930,17 +5013,23 @@ async function setLocalCameraEnabled(enabled) {
     return;
   }
 
+  const peerId = callState.peerId;
+  const callId = callState.callId;
+  const localStream = callState.localStream;
   const nextEnabled = Boolean(enabled);
-  const currentVideoTrack = callState.localStream.getVideoTracks()[0] || null;
+  const currentVideoTrack = localStream.getVideoTracks()[0] || null;
   let replacementTrack = null;
   let cameraStream = null;
 
   try {
     if (nextEnabled) {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: createCameraVideoConstraints(),
-      });
+      cameraStream = await getUserMediaWithDeviceFallback(
+        () => ({
+          audio: false,
+          video: createCameraVideoConstraints(),
+        }),
+        "cameraDeviceId",
+      );
       replacementTrack = cameraStream.getVideoTracks()[0] || null;
       if (!replacementTrack) {
         cameraStream.getTracks().forEach((track) => track.stop());
@@ -4953,11 +5042,28 @@ async function setLocalCameraEnabled(enabled) {
       }
     }
 
-    await replaceOutgoingVideoTrack(replacementTrack);
-    if (currentVideoTrack) {
-      callState.localStream.removeTrack(currentVideoTrack);
+    if (
+      !isCurrentCallSession(peerId, callId) ||
+      callState.localStream !== localStream
+    ) {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      stopMediaTrack(replacementTrack);
+      return;
     }
-    callState.localStream.addTrack(replacementTrack);
+
+    await replaceOutgoingVideoTrack(replacementTrack);
+    if (
+      !isCurrentCallSession(peerId, callId) ||
+      callState.localStream !== localStream
+    ) {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      stopMediaTrack(replacementTrack);
+      return;
+    }
+    if (currentVideoTrack) {
+      localStream.removeTrack(currentVideoTrack);
+    }
+    localStream.addTrack(replacementTrack);
     stopMediaTrack(currentVideoTrack);
     stopLocalCameraCapture();
     callState.localCameraStream = cameraStream;
@@ -4973,6 +5079,9 @@ async function setLocalCameraEnabled(enabled) {
     sendLocalCameraState();
   } catch (error) {
     cameraStream?.getTracks().forEach((track) => track.stop());
+    if (!isCurrentCallSession(peerId, callId)) {
+      return;
+    }
     const message = nextEnabled
       ? formatCameraError(error)
       : error?.message || "Could not disable your camera.";
@@ -4986,13 +5095,27 @@ async function applyVoiceSettingsToActiveCall() {
     return;
   }
 
+  const peerId = callState.peerId;
+  const callId = callState.callId;
+  const localStream = callState.localStream;
   let nextStream = null;
   try {
     nextStream = await getVoiceStream();
   } catch (error) {
+    if (!isCurrentCallSession(peerId, callId)) {
+      return;
+    }
     callState.localAudioAvailable = false;
     callState.localErrorMessage = formatMicrophoneError(error);
     refreshCallStage();
+    return;
+  }
+
+  if (
+    !isCurrentCallSession(peerId, callId) ||
+    callState.localStream !== localStream
+  ) {
+    stopCallStreamCandidate(nextStream);
     return;
   }
 
@@ -5032,12 +5155,20 @@ async function applyVoiceSettingsToActiveCall() {
     }
   }
 
+  if (
+    !isCurrentCallSession(peerId, callId) ||
+    callState.localStream !== localStream
+  ) {
+    stopCallStreamCandidate(nextStream);
+    return;
+  }
+
   if (attemptedReplacement && !replacedAny) {
     nextStream.getTracks().forEach((track) => track.stop());
     return;
   }
 
-  const previousStream = callState.localStream;
+  const previousStream = localStream;
   const currentVideoTrack = previousStream?.getVideoTracks?.()[0] || null;
   const combinedStream = new MediaStream([
     ...nextStream.getAudioTracks(),
@@ -5077,6 +5208,16 @@ function attachMediaConnectionHandlers(mediaConn, peerId, callId) {
     setRemoteVolume(getPeerPlaybackVolume(peerId), { persist: false });
     remoteAudio.muted = callState.deafened;
     await applyAudioOutputDevice();
+    if (
+      !isCurrentCallSession(peerId, callId) ||
+      callState.remoteStream !== stream
+    ) {
+      if (remoteAudio.srcObject === stream) {
+        remoteAudio.srcObject = null;
+      }
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     remoteAudio.play().catch(() => {});
     startRemoteVoiceMeter(stream).catch(() => {});
     if (!callState.joined) {
@@ -5379,6 +5520,8 @@ async function startLocalScreenShare(
   }
 
   const peerId = callState.peerId;
+  const callId = callState.callId;
+  const callPeer = peer;
   const conn = connections.get(peerId);
   if (!conn?.open) {
     setStatus("offline", "The active peer is not ready yet.");
@@ -5388,6 +5531,15 @@ async function startLocalScreenShare(
   let stream = null;
   try {
     stream = await getScreenCaptureStream(source.id, { quality, fps, audio });
+    if (
+      !isCurrentCallSession(peerId, callId) ||
+      peer !== callPeer ||
+      connections.get(peerId) !== conn ||
+      !conn.open
+    ) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     const videoTrack = stream.getVideoTracks()[0] || null;
     if (!videoTrack) {
       throw new Error("No screen video track available.");
@@ -5415,11 +5567,11 @@ async function startLocalScreenShare(
     screenShareState.audioEnabled = Boolean(stream.getAudioTracks().length);
     screenShareState.remoteViewerWatching = true;
 
-    const mediaConn = peer.call(peerId, stream, {
+    const mediaConn = callPeer.call(peerId, stream, {
       metadata: {
         ...createChatMetadata(),
         kind: "screen",
-        callId: callState.callId,
+        callId,
         sourceName: screenShareState.sourceName,
         quality: screenShareState.quality,
         fps: screenShareState.fps,
@@ -5439,6 +5591,14 @@ async function startLocalScreenShare(
       }
     });
     await tuneScreenShareConnection(mediaConn);
+    if (
+      !isCurrentCallSession(peerId, callId) ||
+      screenShareState.localMediaConn !== mediaConn
+    ) {
+      mediaConn.close();
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     startScreenQualityMonitor();
     sendScreenShareState({ active: true });
     addSystemMessage(`Streaming ${screenShareState.sourceName}.`);
@@ -5601,6 +5761,10 @@ async function acceptVoiceCall() {
   try {
     const { stream, audioAvailable, audioErrorMessage } =
       await createCallLocalStream();
+    if (!isCurrentCallSession(peerId, callId, ["connecting"])) {
+      stopCallStreamCandidate(stream);
+      return;
+    }
     setCallState("connecting", {
       peerId,
       callId,
@@ -5625,6 +5789,9 @@ async function acceptVoiceCall() {
       );
     }
   } catch (error) {
+    if (!isCurrentCallSession(peerId, callId, ["connecting"])) {
+      return;
+    }
     closeCallNotification(callId);
     addSystemMessage(`Could not start call: ${error.message}`);
     resetCallState();
@@ -5646,10 +5813,11 @@ function declineVoiceCall() {
 }
 
 async function handleCallAccepted(peerId, data) {
+  const callId = data.callId;
   if (
     callState.status !== "outgoing" ||
     callState.peerId !== peerId ||
-    callState.callId !== data.callId
+    callState.callId !== callId
   ) {
     return;
   }
@@ -5663,14 +5831,23 @@ async function handleCallAccepted(peerId, data) {
   try {
     const { stream, audioAvailable, audioErrorMessage } =
       await createCallLocalStream();
+    if (
+      !isCurrentCallSession(peerId, callId, ["outgoing"]) ||
+      !peer?.open
+    ) {
+      stopCallStreamCandidate(stream);
+      return;
+    }
     const mediaConn = peer.call(peerId, stream, {
       metadata: {
         ...createChatMetadata(),
-        callId: callState.callId,
+        callId,
       },
       sdpTransform: improveVoiceSdp,
     });
     setCallState("connecting", {
+      peerId,
+      callId,
       localStream: stream,
       mediaConn,
       localAudioAvailable: audioAvailable,
@@ -5680,11 +5857,14 @@ async function handleCallAccepted(peerId, data) {
       setStatus("pending", "Joined call without microphone.");
       addSystemMessage(`Joined call without microphone: ${audioErrorMessage}.`);
     }
-    attachMediaConnectionHandlers(mediaConn, peerId, callState.callId);
+    attachMediaConnectionHandlers(mediaConn, peerId, callId);
   } catch (error) {
+    if (!isCurrentCallSession(peerId, callId, ["outgoing", "connecting"])) {
+      return;
+    }
     addSystemMessage(`Could not start call: ${error.message}`);
     sendProtocolMessage(connections.get(peerId), "call-ended", {
-      callId: callState.callId,
+      callId,
     });
     resetCallState();
   }
@@ -5788,6 +5968,7 @@ function setSelectValueOrDefault(select, value) {
   if (select.value !== value) {
     select.value = "default";
   }
+  return select.value;
 }
 
 async function refreshAudioDevices() {
@@ -5855,9 +6036,28 @@ async function refreshAudioDevices() {
     );
   }
 
-  setSelectValueOrDefault(microphoneSelect, appConfig.audio.inputDeviceId);
-  setSelectValueOrDefault(cameraSelect, appConfig.audio.cameraDeviceId);
-  setSelectValueOrDefault(speakerSelect, appConfig.audio.outputDeviceId);
+  const nextInputDeviceId = setSelectValueOrDefault(
+    microphoneSelect,
+    appConfig.audio.inputDeviceId,
+  );
+  const nextCameraDeviceId = setSelectValueOrDefault(
+    cameraSelect,
+    appConfig.audio.cameraDeviceId,
+  );
+  const nextOutputDeviceId = setSelectValueOrDefault(
+    speakerSelect,
+    appConfig.audio.outputDeviceId,
+  );
+  if (
+    nextInputDeviceId !== appConfig.audio.inputDeviceId ||
+    nextCameraDeviceId !== appConfig.audio.cameraDeviceId ||
+    nextOutputDeviceId !== appConfig.audio.outputDeviceId
+  ) {
+    appConfig.audio.inputDeviceId = nextInputDeviceId;
+    appConfig.audio.cameraDeviceId = nextCameraDeviceId;
+    appConfig.audio.outputDeviceId = nextOutputDeviceId;
+    saveAppConfig();
+  }
 }
 
 function isSupportedDataChannel() {
@@ -6403,6 +6603,7 @@ function removePeer(peerId, { silent = false } = {}) {
   }
   lastTypingSentAt.delete(peerId);
   remoteReadReceiptsEnabled.delete(peerId);
+  remoteIdentities.delete(peerId);
   if (callState.peerId === peerId) {
     endVoiceCall({
       notifyPeer: false,
@@ -6592,6 +6793,16 @@ function refreshPeers() {
     label.textContent = conn.open ? peerLabel : `${peerLabel} ...`;
     button.append(label);
     const unread = unreadCounts.get(peerId) || 0;
+    button.setAttribute(
+      "aria-label",
+      unread > 0
+        ? `${peerLabel}, ${unread} unread message${unread === 1 ? "" : "s"}`
+        : peerLabel,
+    );
+    button.setAttribute(
+      "aria-current",
+      peerId === activePeerId ? "true" : "false",
+    );
     if (unread > 0) {
       const unreadBadge = document.createElement("span");
       unreadBadge.className = "unread-count";
@@ -6719,7 +6930,6 @@ function attachConnectionHandlers(conn, peerId, direction) {
   conn.on("open", () => {
     hideConnectRetry();
     platformApi.vibrate("heavy");
-    console.log("Connection opened with", remotePeerId);
     sendReceiptSettings(conn);
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
@@ -6891,7 +7101,12 @@ function attachConnectionHandlers(conn, peerId, direction) {
     }
 
     if (data?.type === "delete-message" && typeof data.messageId === "string") {
-      deleteMessageLocally(peerId, data.messageId);
+      const item = ensureChatHistory(peerId).find(
+        (entry) => entry.id === data.messageId,
+      );
+      if (item?.sender === "them") {
+        deleteMessageLocally(peerId, data.messageId);
+      }
       return;
     }
 
@@ -6922,10 +7137,12 @@ function attachConnectionHandlers(conn, peerId, direction) {
       const item = ensureChatHistory(peerId).find(
         (entry) => entry.id === message.id,
       );
-      if (item) {
+      if (
+        item &&
+        sendProtocolMessage(conn, "message-read", { messageId: message.id })
+      ) {
         item.readReceiptSent = true;
       }
-      sendProtocolMessage(conn, "message-read", { messageId: message.id });
     }
     notifyIncomingMessage(peerId, message.text);
   });
@@ -6977,16 +7194,15 @@ function registerConnection(conn, options = {}) {
     conn.close();
     return;
   }
-  if (direction === "incoming") {
-    rememberConnectionIdentity(peerId, conn.metadata);
-  }
-  const peerIdentityId = getPeerIdentityId(peerId, conn);
-
   if (!isKnownChatConnection(conn)) {
     addSystemMessage(`Rejected unsupported connection from ${peerId}.`);
     conn.close();
     return;
   }
+  if (direction === "incoming") {
+    rememberConnectionIdentity(peerId, conn.metadata);
+  }
+  const peerIdentityId = getPeerIdentityId(peerId, conn);
 
   if (direction === "incoming" && isBlocked(peerIdentityId)) {
     conn.close();
@@ -7271,7 +7487,7 @@ function createPeer() {
       return;
     }
 
-    const outgoingPeerId = getOutgoingPendingPeerId();
+    const outgoingPeerId = getOutgoingPendingPeerId(error);
     if (isPeerUnreachableError(error) && outgoingPeerId) {
       showUnreachablePeerFeedback(outgoingPeerId, {
         reason: "That contact is offline or cannot be reached right now.",
@@ -7385,10 +7601,11 @@ messageForm.addEventListener("submit", (event) => {
 
 clearChat.addEventListener("click", async () => {
   if (activePeerId) {
-    const activeConn = connections.get(activePeerId);
+    const peerId = activePeerId;
+    const activeConn = connections.get(peerId);
     const confirmed = await showAppDialog({
       title: "Clear chat",
-      message: `Clear chat with ${getPeerLabel(activePeerId, activeConn)}?`,
+      message: `Clear chat with ${getPeerLabel(peerId, activeConn)}?`,
       confirmText: "Clear",
       cancelText: "Cancel",
       danger: true,
@@ -7396,7 +7613,7 @@ clearChat.addEventListener("click", async () => {
     if (!confirmed) {
       return;
     }
-    chatHistory.set(activePeerId, []);
+    chatHistory.set(peerId, []);
   }
   renderChatHistory();
 });
@@ -7923,8 +8140,16 @@ async function installAvailableUpdate() {
         sha256: availableUpdate.windowsSha256,
         sha512: availableUpdate.windowsSha512,
       });
-      setUpdateButtonText("Setup started");
-      setStatus("pending", "Setup started. The app will restart.");
+      if (platformApi.isAndroid) {
+        setUpdateButtonText("Installer opened");
+        setStatus(
+          "pending",
+          "Android installer opened. Complete installation to update.",
+        );
+      } else {
+        setUpdateButtonText("Setup started");
+        setStatus("pending", "Setup started. The app will restart.");
+      }
     } catch (error) {
       stopUpdateProgressListener();
       updateButton.disabled = false;
@@ -7955,6 +8180,8 @@ updateIgnoreButton.addEventListener("click", ignoreAvailableUpdateHint);
 appMenuUpdate.addEventListener("click", () => {
   if (availableUpdate) {
     installAvailableUpdate();
+  } else if (!platformApi.supportsUpdateChecks) {
+    window.open(latestReleaseUrl, "_blank", "noopener");
   } else {
     checkForUpdates({ manual: true });
   }
@@ -7993,9 +8220,34 @@ windowMinimize.addEventListener("click", () => {
   platformApi.windowControl("minimize");
 });
 
+function updateWindowMaximizeButton(maximized) {
+  const label = maximized ? "Restore" : "Maximize";
+  windowMaximize.title = label;
+  windowMaximize.setAttribute("aria-label", label);
+  const icon = windowMaximize.querySelector("i");
+  if (icon) {
+    icon.className = maximized
+      ? "fa-regular fa-window-restore"
+      : "fa-regular fa-square";
+  }
+}
+
+async function syncWindowMaximizeButton(action = "status") {
+  const result = await platformApi.windowControl(action);
+  if (result?.ok) {
+    updateWindowMaximizeButton(Boolean(result.maximized));
+  }
+}
+
 windowMaximize.addEventListener("click", () => {
-  platformApi.windowControl("maximize");
+  void syncWindowMaximizeButton("maximize");
 });
+
+window.addEventListener("resize", () => {
+  void syncWindowMaximizeButton();
+});
+
+void syncWindowMaximizeButton();
 
 windowClose.addEventListener("click", () => {
   platformApi.windowControl("close");
@@ -8277,10 +8529,11 @@ setBootProgress(82, "Rendering chat");
 updateNetworkAvailabilityUi();
 peer = isNetworkOffline() ? null : createPeer();
 setBootProgress(90, "Starting peer");
-setBootProgress(90, "Starting peer");
-if (!platformApi.isWindowsStore) {
-  checkForUpdates();
-  setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
+if (platformApi.supportsUpdateChecks) {
+  if (!platformApi.isWindowsStore) {
+    checkForUpdates();
+    setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
+  }
   platformApi.onCheckForUpdates(() => checkForUpdates({ manual: true }));
 }
 platformApi.onDisconnect(() => cleanupRealtimeConnections());
@@ -8317,15 +8570,15 @@ platformApi.onTrayAction(({ action, value }) => {
   } else if (action === "toggle-theme") {
     appConfig.appSettings.theme = appConfig.appSettings.theme === "light" ? "dark" : "light";
     renderAppSettings();
-    platformApi.saveConfig(appConfig).catch(() => {});
+    saveAppConfig();
   } else if (action === "toggle-autostart") {
     appConfig.appSettings.autostart = !appConfig.appSettings.autostart;
     renderAppSettings();
-    platformApi.saveConfig(appConfig).catch(() => {});
+    saveAppConfig();
   } else if (action === "toggle-close-to-tray") {
     appConfig.appSettings.closeToTray = !appConfig.appSettings.closeToTray;
     renderAppSettings();
-    platformApi.saveConfig(appConfig).catch(() => {});
+    saveAppConfig();
   }
   syncTrayState();
 });
@@ -8348,24 +8601,76 @@ finishBootScreen();
 // Mobile integrations
 platformApi.initMobile();
 platformApi.onBackButton(() => {
-  // If a dialog or modal is open, we could ideally close it, but for now:
-  if (activePeerId) {
-    platformApi.minimizeApp();
-  } else {
-    platformApi.minimizeApp();
+  if (!appDialog.classList.contains("hidden")) {
+    appDialogCancel.click();
+    return;
   }
+  if (
+    callState.status === "incoming" &&
+    !incomingCallScreen.classList.contains("hidden")
+  ) {
+    screenCallIgnore.click();
+    return;
+  }
+  if (!streamModal.classList.contains("hidden")) {
+    closeStreamSetup();
+    return;
+  }
+  if (!updateModal.classList.contains("hidden")) {
+    updateModal.classList.add("hidden");
+    return;
+  }
+  if (!settingsModal.classList.contains("hidden")) {
+    settingsClose.click();
+    return;
+  }
+
+  const openMenu = [
+    appMenu,
+    contactMenu,
+    messageMenu,
+    participantMenu,
+    streamMenu,
+  ].some((menu) => !menu.classList.contains("hidden"));
+  if (openMenu) {
+    closeAppMenu();
+    closeContactMenu();
+    closeMessageMenu();
+    closeParticipantMenu();
+    closeStreamMenu();
+    return;
+  }
+  if (streamFullscreenTarget) {
+    setStreamFullscreenTarget("");
+    return;
+  }
+  if (document.body.dataset.mobileTab !== "contacts") {
+    setMobileTab("contacts");
+    return;
+  }
+  platformApi.minimizeApp();
 });
 
-function syncBackgroundMode() {
+let lastBackgroundConnectionCount = -1;
+async function syncBackgroundMode() {
+  if (!platformApi.isAndroid) {
+    return;
+  }
   const activeCount = Array.from(connections.values()).filter(c => c?.open).length;
+  if (activeCount === lastBackgroundConnectionCount) {
+    return;
+  }
+  lastBackgroundConnectionCount = activeCount;
   if (activeCount > 0) {
-    platformApi.enableBackgroundMode(activeCount);
-    platformApi.updateBackgroundNotification(activeCount);
+    await platformApi.enableBackgroundMode(activeCount);
   } else {
-    platformApi.disableBackgroundMode();
+    await platformApi.disableBackgroundMode();
   }
 }
-setInterval(syncBackgroundMode, 3000);
+if (platformApi.isAndroid) {
+  syncBackgroundMode();
+  setInterval(syncBackgroundMode, 3000);
+}
 
 window.addEventListener("aero:open-chat", (e) => {
   if (e.detail && e.detail.peerId) {
