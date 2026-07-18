@@ -22,13 +22,13 @@
       }
 
       html[data-theme="dark"] {
-        --boot-bg: #091117;
-        --boot-panel: #14222c;
-        --boot-line: #263a45;
-        --boot-text: #edf6f8;
-        --boot-muted: #91aab4;
-        --boot-track: #263a45;
-        --boot-fill: #54b3d3;
+        --boot-bg: #000000;
+        --boot-panel: #0a0a0a;
+        --boot-line: #242424;
+        --boot-text: #f5f5f5;
+        --boot-muted: #9a9a9a;
+        --boot-track: #242424;
+        --boot-fill: #f2f2f2;
       }
 
       html,
@@ -71,6 +71,10 @@
         border-radius: 24px;
         background: var(--boot-panel);
         box-shadow: 0 12px 32px rgba(18, 45, 58, 0.12);
+      }
+
+      html[data-theme="dark"] .boot-panel {
+        box-shadow: 0 18px 46px rgba(0, 0, 0, 0.72);
       }
 
       .boot-logo {

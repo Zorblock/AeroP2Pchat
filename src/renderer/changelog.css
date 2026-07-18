@@ -10,6 +10,7 @@
   --text: #102936;
   --text-soft: #365664;
   --muted: #6a818c;
+  --on-accent: #ffffff;
   --accent: #147fa6;
   --accent-hover: #0f6d90;
   --accent-soft: #e0f2f8;
@@ -21,20 +22,21 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #091117;
-  --surface: #14222c;
-  --surface-subtle: #101c24;
-  --surface-hover: #1b2d38;
-  --line: #263a45;
-  --line-strong: #38515e;
-  --text: #edf6f8;
-  --text-soft: #c4d6dc;
-  --muted: #91aab4;
-  --accent: #54b3d3;
-  --accent-hover: #72c5df;
-  --accent-soft: #153746;
-  --danger: #ef869b;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --canvas: #000000;
+  --surface: #0a0a0a;
+  --surface-subtle: #0e0e0e;
+  --surface-hover: #1a1a1a;
+  --line: #232323;
+  --line-strong: #383838;
+  --text: #f5f5f5;
+  --text-soft: #d0d0d0;
+  --muted: #9a9a9a;
+  --on-accent: #050505;
+  --accent: #f2f2f2;
+  --accent-hover: #ffffff;
+  --accent-soft: #1b1b1b;
+  --danger: #f07b91;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.58);
 }
 
 * { box-sizing: border-box; }
@@ -113,7 +115,7 @@ button:disabled { cursor: wait; opacity: 0.52; }
 .page-actions #back {
   border-color: var(--accent);
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 .page-actions #back:hover { background: var(--accent-hover); }
 
