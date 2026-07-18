@@ -104,6 +104,42 @@ const appDialogMessage = document.querySelector("#app-dialog-message");
 const appDialogClose = document.querySelector("#app-dialog-close");
 const appDialogCancel = document.querySelector("#app-dialog-cancel");
 const appDialogConfirm = document.querySelector("#app-dialog-confirm");
+const welcomeScreen = document.querySelector("#welcome-screen");
+const welcomeStepLabel = document.querySelector("#welcome-step-label");
+const welcomePages = Array.from(
+  document.querySelectorAll("[data-welcome-step]"),
+);
+const welcomeProgress = Array.from(
+  document.querySelectorAll("[data-welcome-progress]"),
+);
+const welcomeNickname = document.querySelector("#welcome-nickname");
+const welcomeNicknameError = document.querySelector(
+  "#welcome-nickname-error",
+);
+const welcomeThemeLight = document.querySelector("#welcome-theme-light");
+const welcomeThemeDark = document.querySelector("#welcome-theme-dark");
+const welcomeMicrophoneSelect = document.querySelector(
+  "#welcome-microphone-select",
+);
+const welcomeCameraSelect = document.querySelector("#welcome-camera-select");
+const welcomeSpeakerSelect = document.querySelector("#welcome-speaker-select");
+const welcomeDetectDevices = document.querySelector("#welcome-detect-devices");
+const welcomeDeviceStatus = document.querySelector("#welcome-device-status");
+const welcomeAutostartToggle = document.querySelector(
+  "#welcome-autostart-toggle",
+);
+const welcomeAutostartOpen = document.querySelector("#welcome-autostart-open");
+const welcomeAutostartHidden = document.querySelector(
+  "#welcome-autostart-hidden",
+);
+const welcomeAutostartModes = document.querySelector(
+  "#welcome-autostart-modes",
+);
+const welcomeAutostartUnavailable = document.querySelector(
+  "#welcome-autostart-unavailable",
+);
+const welcomeBack = document.querySelector("#welcome-back");
+const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
 const nicknameInput = document.querySelector("#nickname-input");
@@ -282,6 +318,7 @@ let availableUpdate = null;
 let ignoredUpdateVersion = "";
 let updateCheckInFlight = false;
 let updateMenuResetTimer = null;
+let currentWelcomeStep = 0;
 let contacts = [];
 const connectionHeartbeats = new Map();
 let contextContactId = "";
@@ -1265,6 +1302,7 @@ function normalizeAppSettings() {
 
   appConfig.appSettings = {
     ...appConfig.appSettings,
+    welcomeScreen: appConfig.appSettings.welcomeScreen !== false,
     autostart: appConfig.appSettings.autostart !== false,
     startHidden: appConfig.appSettings.startHidden !== false,
     closeToTray: appConfig.appSettings.closeToTray !== false,
@@ -1324,6 +1362,114 @@ function applyAppTheme(theme = DEFAULT_THEME) {
   document.documentElement.dataset.theme = nextTheme;
   document.body.dataset.theme = nextTheme;
   void platformApi.setSystemTheme(nextTheme);
+}
+
+function renderWelcomeSettings() {
+  if (!welcomeScreen) {
+    return;
+  }
+
+  const settings = appConfig.appSettings || {};
+  welcomeThemeLight.checked = settings.theme !== "dark";
+  welcomeThemeDark.checked = settings.theme === "dark";
+  welcomeAutostartToggle.checked = Boolean(settings.autostart);
+  welcomeAutostartToggle.disabled = !platformApi.supportsAutostart;
+  welcomeAutostartOpen.checked = !settings.startHidden;
+  welcomeAutostartHidden.checked = Boolean(settings.startHidden);
+
+  const disableAutostartModes =
+    !platformApi.supportsAutostart || !settings.autostart;
+  welcomeAutostartOpen.disabled = disableAutostartModes;
+  welcomeAutostartHidden.disabled = disableAutostartModes;
+  welcomeAutostartModes.classList.toggle("disabled", disableAutostartModes);
+  welcomeAutostartUnavailable.classList.toggle(
+    "hidden",
+    platformApi.supportsAutostart,
+  );
+}
+
+function renderWelcomeStep() {
+  const lastStep = welcomePages.length - 1;
+  currentWelcomeStep = Math.max(0, Math.min(lastStep, currentWelcomeStep));
+
+  for (const [index, page] of welcomePages.entries()) {
+    page.classList.toggle("hidden", index !== currentWelcomeStep);
+  }
+  for (const [index, progress] of welcomeProgress.entries()) {
+    progress.classList.toggle("active", index <= currentWelcomeStep);
+  }
+
+  welcomeStepLabel.textContent = `Step ${currentWelcomeStep + 1} of ${welcomePages.length}`;
+  welcomeBack.disabled = currentWelcomeStep === 0;
+  welcomeNext.querySelector("span").textContent =
+    currentWelcomeStep === lastStep ? "Finish setup" : "Continue";
+
+  requestAnimationFrame(() => {
+    if (currentWelcomeStep === 0) {
+      welcomeNickname.focus();
+    } else {
+      welcomePages[currentWelcomeStep]
+        ?.querySelector("input:not(:disabled), select:not(:disabled), button:not(:disabled)")
+        ?.focus();
+    }
+  });
+}
+
+function openWelcomeScreen() {
+  if (!appConfig.appSettings?.welcomeScreen) {
+    return;
+  }
+
+  currentWelcomeStep = 0;
+  welcomeNickname.value = identity.nickname || "";
+  welcomeNicknameError.classList.add("hidden");
+  renderWelcomeSettings();
+  renderWelcomeStep();
+  welcomeScreen.classList.remove("hidden");
+  void refreshAudioDevices();
+}
+
+async function saveWelcomeNickname() {
+  const nextNickname = sanitizeNickname(welcomeNickname.value);
+  if (!nextNickname) {
+    welcomeNicknameError.classList.remove("hidden");
+    welcomeNickname.focus();
+    return false;
+  }
+
+  welcomeNicknameError.classList.add("hidden");
+  welcomeNickname.value = nextNickname;
+  identity.nickname = nextNickname;
+  appConfig.identity = identity;
+  nicknameInput.value = nextNickname;
+  refreshCallStage();
+  await saveAppConfig();
+  return true;
+}
+
+async function detectWelcomeDevices() {
+  welcomeDetectDevices.disabled = true;
+  welcomeDeviceStatus.textContent = "Requesting microphone and camera access...";
+  let permissionStream = null;
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Media device access is unavailable.");
+    }
+    permissionStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: true,
+    });
+    welcomeDeviceStatus.textContent = "Devices detected. Choose the ones you want to use.";
+  } catch {
+    welcomeDeviceStatus.textContent =
+      "Device access was not granted. You can continue with the default devices.";
+  } finally {
+    for (const track of permissionStream?.getTracks?.() || []) {
+      track.stop();
+    }
+    await refreshAudioDevices();
+    welcomeDetectDevices.disabled = false;
+  }
 }
 
 function renderAppSettings() {
@@ -1386,6 +1532,7 @@ function renderAppSettings() {
       ?.classList.toggle("disabled", !appConfig.soundSettings.enabled);
   }
 
+  renderWelcomeSettings();
   syncPresenceStatusIndicator();
 }
 
@@ -1618,7 +1765,7 @@ function saveAppSettings(updates = {}) {
   }
   normalizeAppSettings();
   renderAppSettings();
-  saveAppConfig();
+  return saveAppConfig();
 }
 
 function closeAllPeerConnections() {
@@ -5971,6 +6118,12 @@ function setSelectValueOrDefault(select, value) {
   return select.value;
 }
 
+function copyDeviceOptions(source, target) {
+  target.replaceChildren(
+    ...Array.from(source.options, (option) => option.cloneNode(true)),
+  );
+}
+
 async function refreshAudioDevices() {
   if (!navigator.mediaDevices?.enumerateDevices) {
     microphoneSelect.replaceChildren(
@@ -5982,6 +6135,9 @@ async function refreshAudioDevices() {
     speakerSelect.replaceChildren(
       createDeviceOption("default", "Default output"),
     );
+    copyDeviceOptions(microphoneSelect, welcomeMicrophoneSelect);
+    copyDeviceOptions(cameraSelect, welcomeCameraSelect);
+    copyDeviceOptions(speakerSelect, welcomeSpeakerSelect);
     return;
   }
 
@@ -6036,6 +6192,10 @@ async function refreshAudioDevices() {
     );
   }
 
+  copyDeviceOptions(microphoneSelect, welcomeMicrophoneSelect);
+  copyDeviceOptions(cameraSelect, welcomeCameraSelect);
+  copyDeviceOptions(speakerSelect, welcomeSpeakerSelect);
+
   const nextInputDeviceId = setSelectValueOrDefault(
     microphoneSelect,
     appConfig.audio.inputDeviceId,
@@ -6048,6 +6208,9 @@ async function refreshAudioDevices() {
     speakerSelect,
     appConfig.audio.outputDeviceId,
   );
+  setSelectValueOrDefault(welcomeMicrophoneSelect, nextInputDeviceId);
+  setSelectValueOrDefault(welcomeCameraSelect, nextCameraDeviceId);
+  setSelectValueOrDefault(welcomeSpeakerSelect, nextOutputDeviceId);
   if (
     nextInputDeviceId !== appConfig.audio.inputDeviceId ||
     nextCameraDeviceId !== appConfig.audio.cameraDeviceId ||
@@ -7832,6 +7995,103 @@ disconnectChat.addEventListener("click", () => {
   refreshPeers();
 });
 
+welcomeNickname.addEventListener("input", () => {
+  if (sanitizeNickname(welcomeNickname.value)) {
+    welcomeNicknameError.classList.add("hidden");
+  }
+});
+
+welcomeNickname.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    welcomeNext.click();
+  }
+});
+
+welcomeThemeLight.addEventListener("change", () => {
+  if (welcomeThemeLight.checked) {
+    saveAppSettings({ theme: "light" });
+  }
+});
+
+welcomeThemeDark.addEventListener("change", () => {
+  if (welcomeThemeDark.checked) {
+    saveAppSettings({ theme: "dark" });
+  }
+});
+
+welcomeMicrophoneSelect.addEventListener("change", () => {
+  appConfig.audio.inputDeviceId = welcomeMicrophoneSelect.value || "default";
+  microphoneSelect.value = appConfig.audio.inputDeviceId;
+  saveAudioConfig();
+  scheduleVoiceSettingsReapply();
+});
+
+welcomeCameraSelect.addEventListener("change", () => {
+  appConfig.audio.cameraDeviceId = welcomeCameraSelect.value || "default";
+  cameraSelect.value = appConfig.audio.cameraDeviceId;
+  saveAudioConfig();
+  if (callState.localCameraEnabled) {
+    setLocalCameraEnabled(true);
+  }
+});
+
+welcomeSpeakerSelect.addEventListener("change", async () => {
+  appConfig.audio.outputDeviceId = welcomeSpeakerSelect.value || "default";
+  speakerSelect.value = appConfig.audio.outputDeviceId;
+  saveAudioConfig();
+  await applyAudioOutputDevice();
+});
+
+welcomeDetectDevices.addEventListener("click", detectWelcomeDevices);
+
+welcomeAutostartToggle.addEventListener("change", () => {
+  saveAppSettings({ autostart: welcomeAutostartToggle.checked });
+});
+
+welcomeAutostartOpen.addEventListener("change", () => {
+  if (welcomeAutostartOpen.checked) {
+    saveAppSettings({ startHidden: false });
+  }
+});
+
+welcomeAutostartHidden.addEventListener("change", () => {
+  if (welcomeAutostartHidden.checked) {
+    saveAppSettings({ startHidden: true });
+  }
+});
+
+welcomeBack.addEventListener("click", () => {
+  if (currentWelcomeStep > 0) {
+    currentWelcomeStep -= 1;
+    renderWelcomeStep();
+  }
+});
+
+welcomeNext.addEventListener("click", async () => {
+  welcomeNext.disabled = true;
+  try {
+    if (currentWelcomeStep === 0 && !(await saveWelcomeNickname())) {
+      return;
+    }
+
+    if (currentWelcomeStep < welcomePages.length - 1) {
+      currentWelcomeStep += 1;
+      renderWelcomeStep();
+      if (currentWelcomeStep === 2) {
+        await refreshAudioDevices();
+      }
+      return;
+    }
+
+    await saveAppSettings({ welcomeScreen: false });
+    welcomeScreen.classList.add("hidden");
+    remoteIdInput.focus();
+  } finally {
+    welcomeNext.disabled = false;
+  }
+});
+
 microphoneSelect.addEventListener("change", () => {
   appConfig.audio.inputDeviceId = microphoneSelect.value || "default";
   saveAudioConfig();
@@ -8524,6 +8784,7 @@ window.addEventListener("beforeunload", () => {
 
 refreshPeers();
 refreshAudioDevices();
+openWelcomeScreen();
 clearUpdateAvailableUi();
 setBootProgress(82, "Rendering chat");
 updateNetworkAvailabilityUi();
@@ -8601,6 +8862,12 @@ finishBootScreen();
 // Mobile integrations
 platformApi.initMobile();
 platformApi.onBackButton(() => {
+  if (!welcomeScreen.classList.contains("hidden")) {
+    if (currentWelcomeStep > 0) {
+      welcomeBack.click();
+    }
+    return;
+  }
   if (!appDialog.classList.contains("hidden")) {
     appDialogCancel.click();
     return;

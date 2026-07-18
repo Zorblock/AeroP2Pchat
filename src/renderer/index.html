@@ -790,6 +790,129 @@
     </div>
 
     <div
+      id="welcome-screen"
+      class="modal-layer welcome-layer hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-title"
+    >
+      <section class="welcome-panel">
+        <header class="welcome-header">
+          <strong id="welcome-title">Aero setup</strong>
+          <span id="welcome-step-label" class="welcome-step-label">Step 1 of 4</span>
+        </header>
+
+        <div class="welcome-progress" aria-hidden="true">
+          <span class="active" data-welcome-progress="0"></span>
+          <span data-welcome-progress="1"></span>
+          <span data-welcome-progress="2"></span>
+          <span data-welcome-progress="3"></span>
+        </div>
+
+        <div class="welcome-pages">
+          <section class="welcome-page" data-welcome-step="0">
+            <div class="welcome-copy">
+              <h2>Nickname</h2>
+            </div>
+            <label class="welcome-field" for="welcome-nickname">
+              <span>Nickname</span>
+              <input
+                id="welcome-nickname"
+                type="text"
+                maxlength="32"
+                autocomplete="nickname"
+                placeholder="Enter your nickname"
+              />
+            </label>
+            <p id="welcome-nickname-error" class="welcome-error hidden" role="alert">
+              Please enter a nickname to continue.
+            </p>
+          </section>
+
+          <section class="welcome-page hidden" data-welcome-step="1">
+            <div class="welcome-copy">
+              <h2>Theme</h2>
+            </div>
+            <div class="welcome-theme-options" role="radiogroup" aria-label="Choose a theme">
+              <label>
+                <input id="welcome-theme-light" type="radio" name="welcome-theme" value="light" />
+                <span class="welcome-theme-card light-preview">
+                  <strong>Light</strong>
+                </span>
+              </label>
+              <label>
+                <input id="welcome-theme-dark" type="radio" name="welcome-theme" value="dark" />
+                <span class="welcome-theme-card dark-preview">
+                  <strong>Dark</strong>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <section class="welcome-page hidden" data-welcome-step="2">
+            <div class="welcome-copy">
+              <h2>Devices</h2>
+            </div>
+            <div class="welcome-device-grid">
+              <label for="welcome-microphone-select">
+                <span>Microphone</span>
+                <select id="welcome-microphone-select"></select>
+              </label>
+              <label for="welcome-camera-select">
+                <span>Camera</span>
+                <select id="welcome-camera-select"></select>
+              </label>
+              <label for="welcome-speaker-select" class="welcome-device-output">
+                <span>Output</span>
+                <select id="welcome-speaker-select"></select>
+              </label>
+            </div>
+            <div class="welcome-device-detection">
+              <button id="welcome-detect-devices" class="ghost-button" type="button">
+                Detect devices
+              </button>
+              <span id="welcome-device-status">Defaults work without device access.</span>
+            </div>
+          </section>
+
+          <section class="welcome-page hidden" data-welcome-step="3">
+            <div class="welcome-copy">
+              <h2>Autostart</h2>
+            </div>
+            <div class="welcome-startup-card">
+              <label class="settings-check welcome-startup-toggle">
+                <input id="welcome-autostart-toggle" type="checkbox" />
+                <span>Start Aero when I sign in</span>
+              </label>
+              <div id="welcome-autostart-modes" class="settings-choice welcome-startup-modes">
+                <label>
+                  <input id="welcome-autostart-open" type="radio" name="welcome-autostart-mode" value="open" />
+                  <span>Start opened</span>
+                </label>
+                <label>
+                  <input id="welcome-autostart-hidden" type="radio" name="welcome-autostart-mode" value="hidden" />
+                  <span>Start minimized to tray</span>
+                </label>
+              </div>
+              <p id="welcome-autostart-unavailable" class="welcome-platform-note hidden">
+                Autostart is only available in the Windows and Linux desktop app.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <footer class="welcome-footer">
+          <button id="welcome-back" class="ghost-button" type="button" disabled>
+            Back
+          </button>
+          <button id="welcome-next" type="button">
+            <span>Continue</span>
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div
       id="settings-modal"
       class="modal-layer hidden"
       role="dialog"

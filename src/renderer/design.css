@@ -1214,6 +1214,172 @@ input:focus, select:focus, textarea:focus {
 }
 .copy-update-command { height: 32px !important; font-size: 10px; }
 
+/* First-run setup */
+.welcome-layer {
+  z-index: 900;
+  padding: 22px;
+  background: var(--overlay);
+}
+.welcome-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: min(600px, calc(100vw - 32px));
+  min-height: min(430px, calc(100vh - 32px));
+  max-height: min(600px, calc(100vh - 32px));
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+.welcome-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 13px;
+}
+.welcome-header > strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+.welcome-step-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.welcome-step-label {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--text-soft);
+}
+.welcome-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 20px;
+}
+.welcome-progress span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 160ms ease, transform 160ms ease;
+}
+.welcome-progress span.active { background: var(--accent); }
+.welcome-pages {
+  min-height: 0;
+  padding: 28px 42px 20px;
+  overflow-y: auto;
+}
+.welcome-page {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  min-height: 100%;
+}
+.welcome-copy { max-width: 500px; text-align: center; }
+.welcome-copy h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.welcome-field {
+  display: grid;
+  width: min(410px, 100%);
+  gap: 7px;
+}
+.welcome-field span,
+.welcome-device-grid label > span {
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 740;
+}
+.welcome-field input { height: 46px; padding-inline: 14px; font-size: 13px; }
+.welcome-error { width: min(410px, 100%); margin: -7px 0 0; color: var(--danger); font-size: 10px; font-weight: 700; }
+.welcome-theme-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(480px, 100%);
+  gap: 12px;
+}
+.welcome-theme-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.welcome-theme-card {
+  display: grid;
+  min-height: 82px;
+  padding: 14px;
+  place-items: center;
+  align-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.welcome-theme-card strong { font-size: 13px; }
+.welcome-theme-card.light-preview { border-color: #dce7eb; background: #f7fbfc; color: #17323f; }
+.welcome-theme-card.dark-preview { border-color: #282828; background: #090909; color: #f3f3f3; }
+.welcome-theme-options input:checked + .welcome-theme-card {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.welcome-theme-options input:focus-visible + .welcome-theme-card { outline: 2px solid var(--accent); outline-offset: 3px; }
+.welcome-device-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 10px;
+}
+.welcome-device-grid label { display: grid; min-width: 0; gap: 6px; }
+.welcome-device-output { grid-column: 1 / -1; }
+.welcome-device-detection {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+.welcome-device-detection button { min-height: 34px; flex: 0 0 auto; }
+.welcome-device-detection span { color: var(--muted); font-size: 9px; font-weight: 600; line-height: 1.4; }
+.welcome-startup-card {
+  display: grid;
+  width: min(430px, 100%);
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-subtle);
+}
+.welcome-startup-toggle { min-height: 34px; font-size: 12px; }
+.welcome-startup-modes { margin-left: 43px; }
+.welcome-platform-note { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 62px;
+  padding: 11px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-subtle);
+}
+.welcome-footer > button { min-width: 96px; min-height: 38px; }
+
 /* Settings */
 #settings-modal .modal-panel {
   display: grid;
@@ -1722,6 +1888,7 @@ input[type="range"]::-webkit-slider-thumb {
   .message-form { padding: 8px 10px 10px; }
   .settings-grid { grid-template-columns: minmax(0, 1fr); }
   .settings-section:nth-child(4), .settings-section:nth-child(7) { grid-column: auto; }
+  .welcome-pages { padding-inline: 26px; }
 }
 
 @media (min-width: 980px) {
@@ -1885,6 +2052,28 @@ body.platform-android .stream-controls { grid-template-columns: minmax(0, 1fr); 
 body.platform-android .stream-audio-toggle { min-height: 44px; }
 
 @media (max-width: 520px) {
+  .welcome-layer { padding: 0; }
+  .welcome-panel {
+    width: 100%;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  .welcome-header { padding: max(14px, env(safe-area-inset-top)) 14px 12px; }
+  .welcome-progress { padding-inline: 14px; }
+  .welcome-pages { padding: 20px 17px 14px; }
+  .welcome-copy h2 { font-size: 19px; }
+  .welcome-theme-options { gap: 8px; }
+  .welcome-theme-card { min-height: 78px; padding: 12px; }
+  .welcome-device-grid { grid-template-columns: minmax(0, 1fr); }
+  .welcome-device-output { grid-column: auto; }
+  .welcome-device-detection { align-items: stretch; flex-direction: column; }
+  .welcome-footer {
+    min-height: calc(68px + env(safe-area-inset-bottom));
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  }
+  .welcome-footer > button { min-width: 0; padding-inline: 12px; }
   body.platform-android .incoming-call-content { padding: 24px 16px; }
   body.platform-android .incoming-call-actions { gap: 7px; }
   body.platform-android .screen-call-action { padding-inline: 4px; }

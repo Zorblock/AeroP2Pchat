@@ -110,6 +110,7 @@ function getConfigBackupPath() {
 
 function getDefaultAppSettings() {
   return {
+    welcomeScreen: true,
     autostart: true,
     startHidden: true,
     closeToTray: true,
@@ -147,6 +148,9 @@ function normalizeConfig(config = {}) {
 
   config.appSettings = {
     ...settings,
+    // Missing means setup has never been completed. This also onboards
+    // existing installations once when they first receive this setting.
+    welcomeScreen: settings.welcomeScreen !== false,
     autostart: Boolean(settings.autostart),
     startHidden: Boolean(settings.startHidden),
     closeToTray: settings.closeToTray !== false,
