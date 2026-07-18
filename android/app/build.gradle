@@ -28,15 +28,6 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    flavorDimensions += "distribution"
-    productFlavors {
-        direct {
-            dimension "distribution"
-        }
-        play {
-            dimension "distribution"
-        }
-    }
     signingConfigs {
         release {
             if (hasReleaseKeystore) {

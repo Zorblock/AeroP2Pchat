@@ -320,7 +320,7 @@ function collectStoreFiles() {
     .map((name) => path.join(storeDir, name))
     .filter(
       (filePath) =>
-        fs.statSync(filePath).isFile() && /\.(appx|msix|aab)$/i.test(filePath),
+        fs.statSync(filePath).isFile() && /\.(appx|msix)$/i.test(filePath),
     );
 }
 
@@ -408,18 +408,6 @@ function printArtifactLinks(releaseFiles) {
       [color.yellow],
     );
     revealInExplorer(appx);
-  }
-
-  const playBundle = findStoreFile(".aab");
-  if (playBundle) {
-    console.log(`\n${colored("GOOGLE PLAY — ACTION REQUIRED", color.bold, color.yellow)}`);
-    printArtifact(
-      "UPLOAD THIS .AAB TO PLAY CONSOLE",
-      playBundle,
-      "Play Console → Testing (start with Internal testing) → Create new release → upload. Do not upload the APK here.",
-      [color.yellow],
-    );
-    revealInExplorer(playBundle);
   }
 
   const windows = findReleaseFile(".exe");

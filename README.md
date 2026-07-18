@@ -57,10 +57,6 @@ curl -sSL https://aero.zorblock.de/install.sh | bash
 
 Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) and install it directly on your device.
 
-For Google Play releases, build the separately signed Android App Bundle with
-`npm run android:play`. Upload the resulting `.aab` from `dist/store/` to Play
-Console; keep the `.apk` from `dist/release/` for direct downloads.
-
 > **Note:** If you prefer downloading manually, you can grab the `.exe`
 > (Windows), `.AppImage`, `.deb`, or `.rpm` (Linux), or `.apk` (Android) directly from our
 > [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the

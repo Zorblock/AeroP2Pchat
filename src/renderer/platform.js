@@ -120,8 +120,6 @@ export function createPlatformApi() {
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
   const isWindowsStore = Boolean(electron?.isWindowsStore);
-  const isAndroidPlay =
-    isAndroid && import.meta.env.VITE_ANDROID_DISTRIBUTION === "play";
   let androidUpdateProgressCallback = null;
 
   return {
@@ -129,13 +127,12 @@ export function createPlatformApi() {
     isAndroid,
     isElectron,
     isWindowsStore,
-    isAndroidPlay,
     isChromeExtension,
     hasNativeWindowControls: isElectron,
     hasDesktopIntegration: isElectron,
     supportsAutostart: isElectron,
     supportsCloseToTray: isElectron,
-    supportsUpdateChecks: isElectron || (isAndroid && !isAndroidPlay),
+    supportsUpdateChecks: isElectron || isAndroid,
     supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
     supportsDesktopScreenSources: isElectron,
 
