@@ -177,7 +177,11 @@ function collectReleaseFiles() {
   const files = fs
     .readdirSync(releaseDir)
     .map((name) => path.join(releaseDir, name))
-    .filter((filePath) => fs.statSync(filePath).isFile());
+    .filter(
+      (filePath) =>
+        fs.statSync(filePath).isFile() &&
+        !/\.(appx|msix)$/i.test(filePath),
+    );
 
   if (files.length === 0) {
     throw new Error("No release artifacts found in dist/release/.");
@@ -324,22 +328,6 @@ function collectStoreFiles() {
     );
 }
 
-function copyStoreAppxToRelease() {
-  const appxFiles = collectStoreFiles().filter((filePath) =>
-    filePath.toLowerCase().endsWith(".appx"),
-  );
-  if (appxFiles.length === 0) {
-    throw new Error("The Microsoft Store build did not create an .appx package.");
-  }
-
-  fs.mkdirSync(releaseDir, { recursive: true });
-  for (const appxPath of appxFiles) {
-    const releasePath = path.join(releaseDir, path.basename(appxPath));
-    fs.copyFileSync(appxPath, releasePath);
-    console.log(`Microsoft Store package copied to ${path.relative(root, releasePath)}`);
-  }
-}
-
 function terminalFolderLink(filePath) {
   const folderPath = path.dirname(path.resolve(filePath));
   const normalizedPath = folderPath.replace(/\\/g, "/");
@@ -398,7 +386,7 @@ function printArtifactLinks(releaseFiles) {
   console.log(`\n${colored("════════════ RELEASE FILES ════════════", color.bold, color.cyan)}`);
   console.log(colored("Open containing folder to reveal a release artifact.", color.dim));
 
-  const appx = findReleaseFile(".appx") || findStoreFile(".appx");
+  const appx = findStoreFile(".appx");
   if (appx) {
     console.log(`\n${colored("MICROSOFT STORE — ACTION REQUIRED", color.bold, color.yellow)}`);
     printArtifact(
@@ -552,7 +540,6 @@ function main() {
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
     run("npm", ["run", "build:store"]);
-    copyStoreAppxToRelease();
     run("npm", ["run", "build:chromeaddon"]);
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
