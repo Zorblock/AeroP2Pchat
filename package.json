@@ -8,7 +8,7 @@
     "url": "https://aero.zorblock.de"
   },
   "main": "out/main/index.js",
-  "desktopName": "aero-p2p-chat",
+  "desktopName": "de.zorblock.aerop2pchat.desktop",
   "scripts": {
     "dev": "node scripts/run-electron-vite.cjs dev",
     "dev:2": "node scripts/dev-two.cjs",

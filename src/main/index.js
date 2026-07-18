@@ -21,11 +21,22 @@ const { basename, dirname, join } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
 const projectConfig = __PROJECT_CONFIG__;
 
-const windowIcon = nativeImage.createFromPath(
+const packagedWindowIconPath = join(
+  process.resourcesPath,
+  process.platform === "win32" ? "app-icon.ico" : "app-icon.png",
+);
+const bundledWindowIconPath =
   process.platform === "win32"
     ? join(__dirname, "../../assets/app.ico")
-    : join(__dirname, "../../assets/linux-icons/512x512.png")
-);
+    : join(__dirname, "../../assets/linux-icons/512x512.png");
+let windowIconPath = app.isPackaged
+  ? packagedWindowIconPath
+  : bundledWindowIconPath;
+let windowIcon = nativeImage.createFromPath(windowIconPath);
+if (windowIcon.isEmpty() && windowIconPath !== bundledWindowIconPath) {
+  windowIconPath = bundledWindowIconPath;
+  windowIcon = nativeImage.createFromPath(windowIconPath);
+}
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
@@ -60,10 +71,13 @@ let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.name = projectConfig.app.name || "Aero P2P Chat";
-// Windows uses this ID to associate a running window with its taskbar icon.
-// Set it in development too; otherwise Electron's default icon is shown.
-if (process.platform === "win32") {
+// Keep the runtime window identity aligned with the installed launcher. Store
+// packages already receive their AppUserModelID from the AppX manifest.
+if (process.platform === "win32" && !isWindowsStore) {
   app.setAppUserModelId(projectConfig.app.id);
+}
+if (process.platform === "linux") {
+  app.commandLine.appendSwitch("class", projectConfig.app.id);
 }
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
@@ -991,6 +1005,18 @@ function createWindow({ hidden = false } = {}) {
     },
   });
 
+  // Apply the icon after native window creation as well. On Windows this also
+  // sets the taskbar button identity and relaunch icon instead of inheriting
+  // electron.exe's defaults during development or from an old shortcut.
+  win.setIcon(windowIcon);
+  if (process.platform === "win32" && !isWindowsStore) {
+    win.setAppDetails({
+      appId: projectConfig.app.id,
+      appIconPath: windowIconPath,
+      appIconIndex: 0,
+    });
+  }
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -1064,6 +1090,7 @@ app.whenReady().then(async () => {
       };
     }
   });
+
   ipcMain.handle("open-microsoft-store", async () => {
     if (!isWindowsStore) return { ok: false, error: "Microsoft Store is not managing this installation." };
     try {

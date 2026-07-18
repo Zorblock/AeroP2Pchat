@@ -407,7 +407,7 @@ Exec=${APPIMAGE_PATH} %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
-StartupWMClass=${APP_NAME}
+StartupWMClass=${APP_ID}
 EOF
     refresh_desktop_integration
 }

@@ -123,6 +123,7 @@ const result = spawnSync(
       npm_package_version:
         process.env.npm_package_version || packageJson.version,
       AERO_APP_NAME: projectConfig.app.name,
+      AERO_APP_ID: projectConfig.app.id,
       AERO_APP_AUTHOR: packageAuthor || projectConfig.app.name,
       AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
       AERO_CLI_COMMAND_NAME: projectConfig.app.cliCommandName,

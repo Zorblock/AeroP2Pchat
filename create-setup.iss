@@ -3,6 +3,7 @@
 ; ================================
 
 #define MyAppName GetEnv("AERO_APP_NAME")
+#define MyAppUserModelId GetEnv("AERO_APP_ID")
 #define MyAppVersion GetEnv("npm_package_version")
 #define MyAppPublisher GetEnv("AERO_APP_AUTHOR")
 #define MyAppURL "https://aero.zorblock.de"
@@ -77,8 +78,8 @@ Source: "dist\installer\cli\{#MyCliName}.cmd"; DestDir: "{app}"; Flags: ignoreve
 Source: "dist\installer\cli\{#MyCliName}.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName} now"; Flags: nowait postinstall
