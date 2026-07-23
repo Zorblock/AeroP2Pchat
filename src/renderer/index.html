@@ -226,9 +226,23 @@
           <span></span>
           <span></span>
           <span></span>
+        
+        <div style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
+          <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--faint);">My Nickname</p>
+          <div class="settings-row" style="display: flex; gap: 8px;">
+            <input
+              id="nickname-input"
+              type="text"
+              maxlength="32"
+              placeholder="Nickname"
+              style="flex: 1; font-size: 14px; border-radius: 8px;"
+            />
+            <button id="save-nickname" class="ghost-button" type="button" style="border-radius: 8px;">Save</button>
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
+  </div>
     <div class="window-frame">
       <header class="titlebar">
         <div class="titlebar-brand">
@@ -980,21 +994,7 @@
           </button>
         </header>
         <div class="settings-grid">
-          <section class="settings-section">
-            <h3>Profile</h3>
-            <div class="settings-field">
-              <span class="label">My nickname</span>
-              <div class="settings-row">
-                <input
-                  id="nickname-input"
-                  type="text"
-                  maxlength="32"
-                  placeholder="Nickname"
-                />
-                <button id="save-nickname" type="button">Save</button>
-              </div>
-            </div>
-          </section>
+          
 
           <section class="settings-section">
             <h3>Appearance</h3>
