@@ -571,6 +571,17 @@ const mobileWebLayoutQuery = window.matchMedia(
 let networkOffline = navigator.onLine === false;
 let debugOfflineMode = false;
 
+let debugSimulateUpdate = false;
+function setDebugSimulateUpdate(enabled) {
+  const nextEnabled = Boolean(enabled);
+  if (debugSimulateUpdate === nextEnabled) {
+    return;
+  }
+  debugSimulateUpdate = nextEnabled;
+  checkForUpdates({ manual: true });
+}
+
+
 document.title = appDisplayName;
 document.querySelectorAll("[data-app-name]").forEach((element) => {
   element.textContent = appDisplayName;
@@ -2939,7 +2950,8 @@ async function checkForUpdates({ manual = false } = {}) {
 
     const manifest = parseManifest(manifestText);
     const latestVersion = manifest.version;
-    if (!latestVersion || compareVersions(latestVersion, currentVersion) <= 0) {
+      const effectiveCurrentVersion = debugSimulateUpdate ? "0.0.0" : currentVersion;
+      if (!latestVersion || compareVersions(latestVersion, effectiveCurrentVersion) <= 0) {
       clearUpdateAvailableUi();
       if (manual) {
         setUpdateMenuStatus("No update found");
@@ -8910,6 +8922,7 @@ function syncTrayState() {
     autostart: Boolean(appConfig.appSettings?.autostart),
     closeToTray: Boolean(appConfig.appSettings?.closeToTray),
     debugOfflineMode,
+    debugSimulateUpdate,
   });
 }
 
@@ -8922,6 +8935,8 @@ platformApi.onTrayAction(({ action, value }) => {
     setCallDeafened(!callState.deafened);
   } else if (action === "set-status") {
     setPresenceStatus(value, { persist: true });
+  } else if (action === "set-debug-simulate-update") {
+    setDebugSimulateUpdate(value);
   } else if (action === "set-debug-offline-mode") {
     setDebugOfflineMode(value);
   } else if (action === "toggle-theme") {

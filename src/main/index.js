@@ -348,6 +348,7 @@ let trayState = {
   autostart: true,
   closeToTray: true,
   debugOfflineMode: false,
+    debugSimulateUpdate: false,
 };
 
 function hasTrayStateChanged(nextState) {
@@ -360,6 +361,7 @@ function hasTrayStateChanged(nextState) {
     "autostart",
     "closeToTray",
     "debugOfflineMode",
+      "debugSimulateUpdate",
   ].some((key) => trayState[key] !== nextState[key]);
 }
 
@@ -475,6 +477,19 @@ function updateTrayMenu() {
               sendTrayAction(
                 "set-debug-offline-mode",
                 trayState.debugOfflineMode,
+              );
+            },
+          },
+          {
+            label: "Simulate Update",
+            type: "checkbox",
+            checked: trayState.debugSimulateUpdate,
+            click: () => {
+              trayState.debugSimulateUpdate = !trayState.debugSimulateUpdate;
+              updateTrayMenu();
+              sendTrayAction(
+                "set-debug-simulate-update",
+                trayState.debugSimulateUpdate,
               );
             },
           },

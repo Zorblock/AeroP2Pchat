@@ -743,20 +743,25 @@
         aria-modal="true"
         aria-labelledby="startup-update-title"
       >
-        <section class="modal-panel">
-          <header class="modal-header">
-            <h2 id="startup-update-title">Update available</h2>
-            <button id="startup-update-close" class="ghost-button" type="button">
-              Close
-            </button>
-          </header>
-          <p id="startup-update-text"></p>
-          <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;">
-            <button id="startup-update-ignore-button" class="ghost-button" type="button">
+        <section class="modal-panel" style="width: min(380px, calc(100vw - 36px)); text-align: center; padding: 28px 24px; position: relative;">
+          <button id="startup-update-close" class="ghost-button" type="button" style="position: absolute; top: 12px; right: 12px; min-width: 32px; height: 32px; padding: 0; border-radius: 50%;" title="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          
+          <div style="font-size: 48px; color: var(--line-accent); margin-bottom: 16px;">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          
+          <h2 id="startup-update-title" style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--text);">Update available</h2>
+          
+          <p id="startup-update-text" style="font-size: 14px; color: var(--text-soft); line-height: 1.5; margin-bottom: 28px;"></p>
+          
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="startup-update-ignore-button" class="ghost-button" type="button" style="flex: 1;">
               Ignore
             </button>
-            <button id="startup-update-button" type="button">
-              Download Update
+            <button id="startup-update-button" type="button" style="flex: 1; background: var(--text); color: var(--surface); border: none; border-radius: var(--radius-sm); font-weight: 600;">
+              Install update
             </button>
           </div>
         </section>
