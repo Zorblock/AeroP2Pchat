@@ -24,8 +24,7 @@
     "setup": "npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
-    "pages": "node scripts/deploy-pages.cjs",
-    "web": "npm run dev --prefix .pages"
+    "pages": "node scripts/deploy-pages.cjs"
   },
   "devDependencies": {
     "@capacitor/android": "^8.4.1",
