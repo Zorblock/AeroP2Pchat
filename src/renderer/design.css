@@ -1135,8 +1135,11 @@ input:focus, select:focus, textarea:focus {
 
 /* Shared modal surfaces */
 .modal-layer, .incoming-call-screen {
-  position: fixed;
-  inset: 0;
+    position: fixed;
+    top: var(--titlebar-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
   z-index: 500;
   display: grid;
   padding: 24px;
@@ -2099,7 +2102,13 @@ body.platform-android .stream-audio-toggle { min-height: 44px; }
   body.platform-android .screen-source-list { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (prefers-reduced-motion: reduce) {
+
+  body.platform-android .modal-layer,
+  body.platform-android .incoming-call-screen {
+    top: calc(54px + env(safe-area-inset-top));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
