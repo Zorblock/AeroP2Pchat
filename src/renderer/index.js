@@ -8406,19 +8406,19 @@ function startUpdateProgressListener() {
           ? `${progress.percent}%`
           : "...";
         setUpdateButtonText(`Downloading ${percentText}`);
-        setStatus("pending", `Downloading update ${percentText}`);
+        startupUpdateButton.textContent = `Downloading ${percentText}`;
         return;
       }
 
       if (progress?.phase === "install") {
         setUpdateButtonText("Starting setup...");
-        setStatus("pending", "Starting update setup...");
+        startupUpdateButton.textContent = "Starting setup...";
         return;
       }
 
       if (progress?.phase === "verify") {
         setUpdateButtonText("Verifying...");
-        setStatus("pending", "Verifying update download...");
+        startupUpdateButton.textContent = "Verifying...";
       }
     }) || null;
 }
@@ -8439,7 +8439,7 @@ async function installAvailableUpdate() {
     headerUpdateButton.disabled = true;
     startUpdateProgressListener();
     setUpdateButtonText("Downloading 0%");
-    setStatus("pending", "Downloading update...");
+    startupUpdateButton.textContent = "Downloading 0%";
 
     try {
       const androidUrl = platformApi.isAndroid
@@ -8454,13 +8454,10 @@ async function installAvailableUpdate() {
       });
       if (platformApi.isAndroid) {
         setUpdateButtonText("Installer opened");
-        setStatus(
-          "pending",
-          "Android installer opened. Complete installation to update.",
-        );
+        startupUpdateButton.textContent = "Installer opened";
       } else {
         setUpdateButtonText("Setup started");
-        setStatus("pending", "Setup started. The app will restart.");
+        startupUpdateButton.textContent = "Setup started";
       }
     } catch (error) {
       stopUpdateProgressListener();
@@ -8468,6 +8465,10 @@ async function installAvailableUpdate() {
       headerUpdateButton.disabled = false;
       updateButton.textContent = "Install update";
       headerUpdateButton.textContent = "Update";
+      startupUpdateButton.disabled = false;
+      startupUpdateIgnoreButton.classList.remove("hidden");
+      startupUpdateClose.classList.remove("hidden");
+      startupUpdateButton.textContent = "Retry update";
       setStatus("offline", error.message || "Update failed.");
     }
     return;
@@ -8493,23 +8494,36 @@ startupUpdateClose.addEventListener("click", () => {
   startupUpdateModal.classList.add("hidden");
 });
 startupUpdateModal.addEventListener("click", (event) => {
-  if (event.target === startupUpdateModal) {
-    startupUpdateModal.classList.add("hidden");
-  }
-});
+    if (event.target === startupUpdateModal && !startupUpdateButton.disabled) {
+      startupUpdateModal.classList.add("hidden");
+    }
+  });
 startupUpdateButton.addEventListener("click", () => {
-  startupUpdateModal.classList.add("hidden");
-  installAvailableUpdate();
-});
+    if (platformApi.supportsNativeUpdateInstall || platformApi.isAndroid) {
+      startupUpdateButton.disabled = true;
+      startupUpdateIgnoreButton.classList.add("hidden");
+      startupUpdateClose.classList.add("hidden");
+    } else {
+      startupUpdateModal.classList.add("hidden");
+    }
+    installAvailableUpdate();
+  });
 startupUpdateIgnoreButton.addEventListener("click", () => {
   startupUpdateModal.classList.add("hidden");
   ignoreAvailableUpdateHint();
 });
 
 appMenuUpdate.addEventListener("click", () => {
-  if (availableUpdate) {
-    installAvailableUpdate();
-  } else if (!platformApi.supportsUpdateChecks) {
+    if (availableUpdate) {
+      startupUpdateModalShownForVersion = availableUpdate.version;
+      startupUpdateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+      startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
+        ? "Install update"
+        : platform === "linux"
+          ? "Show command"
+          : "Open release";
+      startupUpdateModal.classList.remove("hidden");
+    } else if (!platformApi.supportsUpdateChecks) {
     window.open(latestReleaseUrl, "_blank", "noopener");
   } else {
     checkForUpdates({ manual: true });
