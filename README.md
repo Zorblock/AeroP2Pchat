@@ -38,20 +38,16 @@ terminal. This downloads the latest version, installs the app, and sets up the
 Open PowerShell as Administrator (or just standard user) and run:
 
 ```powershell
-iwr -useb https://aero.zorblock.de/install.ps1 | iex
+iwr -useb https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex
 ```
-
-*(Alternative mirror if blocked: replace `aero.zorblock.de` with `zorblock.github.io/AeroP2Pchat`)*
 
 ### 🐧 Linux (Bash)
 
 Open your terminal and run:
 
 ```bash
-curl -sSL https://aero.zorblock.de/install.sh | bash
+curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
 ```
-
-*(Alternative mirror if blocked: replace `aero.zorblock.de` with `zorblock.github.io/AeroP2Pchat`)*
 
 ### 📱 Android
 
@@ -60,7 +56,7 @@ Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/
 > **Note:** If you prefer downloading manually, you can grab the `.exe`
 > (Windows), `.AppImage`, `.deb`, or `.rpm` (Linux), or `.apk` (Android) directly from our
 > [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the
-> [Official Website](https://aero.zorblock.de).
+> [Official Website](https://zorblock.github.io/AeroP2Pchat).
 
 ---
 

@@ -10,7 +10,7 @@ APPIMAGE_RELEASE_NAME="Aero-P2P-Chat-Linux-x64.AppImage"
 APPIMAGE_INSTALL_NAME="Aero-P2P-Chat.AppImage"
 REPO="Zorblock/AeroP2Pchat"
 RELEASE_BASE="https://github.com/${REPO}/releases/latest/download"
-PAGES_BASE="https://aero.zorblock.de"
+PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 FALLBACK_PAGES_BASE="https://zorblock.github.io/AeroP2Pchat"
 
 APPIMAGE_URL="${RELEASE_BASE}/${APPIMAGE_RELEASE_NAME}"

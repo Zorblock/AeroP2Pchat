@@ -547,7 +547,7 @@ const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const statusPageUrl = "https://status.zorblock.de/";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const linuxWebsiteUpdateCommand =
-  "bash <(curl -fsSL https://aero.zorblock.de/install.sh) update";
+  "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
 const linuxMirrorUpdateCommand =
   "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
 const linuxUpdateCommands = {

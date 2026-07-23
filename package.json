@@ -5,7 +5,7 @@
   "author": {
     "name": "Zorblock",
     "email": "zorblock@users.noreply.github.com",
-    "url": "https://aero.zorblock.de"
+    "url": "https://zorblock.github.io/AeroP2Pchat"
   },
   "main": "out/main/index.js",
   "desktopName": "de.zorblock.aerop2pchat.desktop",

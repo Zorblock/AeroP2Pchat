@@ -22,7 +22,7 @@ $ReleaseBase        = "https://github.com/$Repo/releases/latest/download"
 $ManifestUrl        = "$ReleaseBase/latest.yml"
 $SetupAsset         = "Aero-P2P-Chat-Windows-x64-Setup.exe"
 $SetupUrl           = "$ReleaseBase/$SetupAsset"
-$InstallUrl         = "https://aero.zorblock.de/install.ps1"
+$InstallUrl         = "https://zorblock.github.io/AeroP2Pchat/install.ps1"
 $FallbackInstallUrl = "https://zorblock.github.io/AeroP2Pchat/install.ps1"
 $MsStoreId          = "9MTXC0M7P403"
 
