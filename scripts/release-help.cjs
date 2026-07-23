@@ -265,7 +265,6 @@ function createReleaseNotes(tag, files) {
     downloadRows,
     "",
     "- **Windows** and **Linux AppImage** receive in-app automatic updates.",
-    "- **Microsoft Store** updates are delivered separately after Store certification.",
     metadata.length > 0 ? "" : "",
     metadata.length > 0 ? "### Update metadata" : "",
     metadata.length > 0 ? "| File | Purpose | Size |" : "",
@@ -315,18 +314,7 @@ function uploadReleaseFiles(tag, files) {
   }
 }
 
-function collectStoreFiles() {
-  const storeDir = path.join(root, "dist", "store");
-  if (!fs.existsSync(storeDir)) return [];
 
-  return fs
-    .readdirSync(storeDir)
-    .map((name) => path.join(storeDir, name))
-    .filter(
-      (filePath) =>
-        fs.statSync(filePath).isFile() && /\.(appx|msix)$/i.test(filePath),
-    );
-}
 
 function terminalFolderLink(filePath) {
   const folderPath = path.dirname(path.resolve(filePath));
@@ -377,26 +365,11 @@ function printArtifact(label, filePath, note, styles) {
 }
 
 function printArtifactLinks(releaseFiles) {
-  const storeFiles = collectStoreFiles();
   const findReleaseFile = (extension) =>
     releaseFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
-  const findStoreFile = (extension) =>
-    storeFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
 
   console.log(`\n${colored("════════════ RELEASE FILES ════════════", color.bold, color.cyan)}`);
   console.log(colored("Open containing folder to reveal a release artifact.", color.dim));
-
-  const appx = findStoreFile(".appx");
-  if (appx) {
-    console.log(`\n${colored("MICROSOFT STORE — ACTION REQUIRED", color.bold, color.yellow)}`);
-    printArtifact(
-      "UPLOAD THIS .APPX TO PARTNER CENTER",
-      appx,
-      "Partner Center → submission → Packages → upload. Do not upload the .msix copy.",
-      [color.yellow],
-    );
-    revealInExplorer(appx);
-  }
 
   const windows = findReleaseFile(".exe");
   if (windows) {
@@ -461,10 +434,6 @@ function printArtifactLinks(releaseFiles) {
     }
   }
 
-  const msix = findStoreFile(".msix");
-  if (msix) {
-    console.log(`\n${colored("Store .msix copy", color.dim)} ${colored("not needed for the manual Partner Center upload", color.dim)}`);
-  }
 }
 
 function buildLinuxWithDocker(version) {
@@ -539,8 +508,7 @@ function main() {
     ]);
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
-    run("npm", ["run", "build:store"]);
-    run("npm", ["run", "build:chromeaddon"]);
+
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);
@@ -587,10 +555,9 @@ function main() {
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, Linux, and Microsoft Store packages were built before publishing.",
+      "Windows, Android, and Linux packages were built before publishing.",
     );
     console.log("Website deployment was triggered after the source push.");
-    console.log("Upload the .appx in Partner Center.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);
   } catch (err) {
@@ -607,7 +574,7 @@ function main() {
       );
     } else {
       console.log(
-        "The source commit was pushed so GitHub could build Linux, but no Store or GitHub release was created.",
+        "The source commit was pushed so GitHub could build Linux, but no GitHub release was created.",
       );
     }
     throw err;
