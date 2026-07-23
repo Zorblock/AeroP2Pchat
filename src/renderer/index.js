@@ -8709,24 +8709,57 @@ accountClose.addEventListener("click", () => {
 
 accountSave.addEventListener("click", () => {
     const newId = accountUserIdInput.value.trim();
-    const changed = identity.accountUserId !== newId;
-    identity.accountUserId = newId;
-    appConfig.identity = identity;
-    saveAppConfig();
-    accountModal.classList.add("hidden");
     
-    if (changed) {
+    const finalizeSave = () => {
+      const changed = identity.accountUserId !== newId;
+      identity.accountUserId = newId;
+      appConfig.identity = identity;
+      saveAppConfig();
+      accountModal.classList.add("hidden");
+      
+      if (changed) {
         window.avatarCacheBuster = Date.now();
         updateTitlebarLogo();
         for (const [peerId, conn] of connections.entries()) {
-        sendProtocolMessage(conn, "connection-ping");
-      }
-      for (const [peerId, entry] of pendingConnections.entries()) {
-        if (entry.conn && entry.conn.open) {
-          sendProtocolMessage(entry.conn, "connection-ping");
+          sendProtocolMessage(conn, "connection-ping");
+        }
+        for (const [peerId, entry] of pendingConnections.entries()) {
+          if (entry.conn && entry.conn.open) {
+            sendProtocolMessage(entry.conn, "connection-ping");
+          }
         }
       }
+    };
+
+    if (!newId || newId === identity.accountUserId) {
+      finalizeSave();
+      return;
     }
+
+    accountSave.textContent = "Checking...";
+    accountSave.disabled = true;
+
+    const checkImg = new Image();
+    checkImg.onload = () => {
+      accountSave.textContent = "Save";
+      accountSave.disabled = false;
+      finalizeSave();
+    };
+    checkImg.onerror = async () => {
+      accountSave.textContent = "Save";
+      accountSave.disabled = false;
+      const confirm = await showAppDialog({
+        title: "Image not found",
+        message: "No profile picture was found for this ID on the server. Make sure you have uploaded one. Do you want to save the ID anyway?",
+        confirmText: "Save anyway",
+        cancelText: "Cancel",
+        danger: true
+      });
+      if (confirm) {
+        finalizeSave();
+      }
+    };
+    checkImg.src = `https://aero.zorblock.de/account/pfp/${newId}.webp?t=${Date.now()}`;
   });
 
 appMenuSettings.addEventListener("click", () => {
