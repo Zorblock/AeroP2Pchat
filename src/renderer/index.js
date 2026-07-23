@@ -784,6 +784,7 @@ const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
 ownId.textContent = identity.id;
+  updateTitlebarLogo();
 nicknameInput.value = identity.nickname || "";
 normalizeAudioConfig();
 applySidebarWidth(appConfig.appSettings.sidebarWidth);
@@ -2204,11 +2205,26 @@ function createBadge(iconClass, title, state = "") {
   return badge;
 }
 
+function updateTitlebarLogo() {
+  if (identity && identity.accountUserId) {
+    titlebarLogo.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
+    titlebarLogo.style.objectFit = "cover";
+    titlebarLogo.style.borderRadius = "50%";
+    titlebarLogo.onerror = () => {
+      titlebarLogo.src = appLogo;
+      titlebarLogo.style.borderRadius = "0";
+    };
+  } else {
+    titlebarLogo.src = appLogo;
+    titlebarLogo.style.borderRadius = "0";
+  }
+}
+
 function createAvatar(label, id, accountUserId) {
   if (accountUserId) {
     const img = document.createElement("img");
     img.className = "contact-avatar";
-    img.src = `https://aero.zorblock.de/account/pfp/${accountUserId}.webp`;
+    img.src = `https://aero.zorblock.de/account/pfp/${accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
     img.onerror = () => {
       const fallback = createCssAvatar(label, id);
       img.replaceWith(fallback);
@@ -6336,20 +6352,27 @@ function rememberConnectionIdentity(peerId, metadata = {}) {
 
   const nickname = sanitizeNickname(metadata.nickname);
   migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
-  remoteIdentities.set(peerId, { identityId, nickname, accountUserId });
+  const oldRemote = remoteIdentities.get(peerId);
+    remoteIdentities.set(peerId, { identityId, nickname, accountUserId });
+    if (oldRemote && oldRemote.accountUserId !== accountUserId) {
+      window.avatarCacheBuster = Date.now();
+      updateTitlebarLogo();
+      refreshPeers();
+    }
   if (nickname) {
     rememberRemoteIdentity(identityId, nickname, accountUserId);
     return;
   }
 
   const existing = findContact(identityId);
-  if (
-    existing &&
-    !existing.customLabel &&
-    existing.label === identity.nickname
-  ) {
-    upsertContact(identityId, { label: identityId, pinned: existing.pinned });
-  }
+    if (existing) {
+      const updates = { accountUserId: accountUserId || existing.accountUserId || "" };
+      if (!existing.customLabel && existing.label === identity.nickname) {
+        updates.label = identityId;
+        updates.pinned = existing.pinned;
+      }
+      upsertContact(identityId, updates);
+    }
 }
 
 function getPeerLabel(peerId, conn) {
@@ -6957,7 +6980,7 @@ function refreshPeers() {
       const name = document.createElement("span");
       const identityId = getPeerIdentityId(peerId, entry.conn);
       const contact = findContact(identityId);
-      name.append(createAvatar(peerLabel, identityId, contact?.accountUserId));
+      name.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
         name.append(
           createContactBadges({
             pinned: Boolean(contact?.pinned),
@@ -7001,7 +7024,7 @@ function refreshPeers() {
     waiting.className = "peer-chip pending";
     const identityId = getPeerIdentityId(peerId, entry.conn);
     const contact = findContact(identityId);
-    waiting.append(createAvatar(peerLabel, identityId, contact?.accountUserId));
+    waiting.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
       waiting.append(
         createContactBadges({
           pinned: Boolean(contact?.pinned),
@@ -7035,7 +7058,7 @@ function refreshPeers() {
         peerId === activePeerId ? "peer-chip active" : "peer-chip";
       const identityId = getPeerIdentityId(peerId, conn);
       const contact = findContact(identityId);
-      button.append(createAvatar(peerLabel, identityId, contact?.accountUserId));
+      button.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
       button.append(
         createContactBadges({
         pinned: Boolean(contact?.pinned),
@@ -8685,11 +8708,25 @@ accountClose.addEventListener("click", () => {
 });
 
 accountSave.addEventListener("click", () => {
-  identity.accountUserId = accountUserIdInput.value.trim();
-  appConfig.identity = identity;
-  saveAppConfig();
-  accountModal.classList.add("hidden");
-});
+    const newId = accountUserIdInput.value.trim();
+    const changed = identity.accountUserId !== newId;
+    identity.accountUserId = newId;
+    appConfig.identity = identity;
+    saveAppConfig();
+    accountModal.classList.add("hidden");
+    
+    if (changed) {
+      window.avatarCacheBuster = Date.now();
+      for (const [peerId, conn] of connections.entries()) {
+        sendProtocolMessage(conn, "connection-ping");
+      }
+      for (const [peerId, entry] of pendingConnections.entries()) {
+        if (entry.conn && entry.conn.open) {
+          sendProtocolMessage(entry.conn, "connection-ping");
+        }
+      }
+    }
+  });
 
 appMenuSettings.addEventListener("click", () => {
   if (platformApi.isElectron) {
