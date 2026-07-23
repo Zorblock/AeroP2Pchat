@@ -92,6 +92,14 @@ const updateText = document.querySelector("#update-text");
 const updateButton = document.querySelector("#update-button");
 const updateIgnoreButton = document.querySelector("#update-ignore-button");
 const updateModal = document.querySelector("#update-modal");
+const startupUpdateModal = document.querySelector("#startup-update-modal");
+const startupUpdateTitle = document.querySelector("#startup-update-title");
+const startupUpdateText = document.querySelector("#startup-update-text");
+const startupUpdateClose = document.querySelector("#startup-update-close");
+const startupUpdateIgnoreButton = document.querySelector("#startup-update-ignore-button");
+const startupUpdateButton = document.querySelector("#startup-update-button");
+let startupUpdateModalShownForVersion = "";
+
 const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
 const linuxCommand = document.querySelector("#linux-command");
@@ -2821,7 +2829,17 @@ function syncAvailableUpdateUi() {
   updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
   updateIgnoreButton.disabled = isIgnored;
   headerUpdateButton.classList.add("hidden");
-  titlebarLogo.classList.toggle("update-available", !isIgnored);
+  titlebarLogo.classList.add("update-available");
+    if (!isIgnored && startupUpdateModalShownForVersion !== availableUpdate.version) {
+      startupUpdateModalShownForVersion = availableUpdate.version;
+      startupUpdateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+      startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
+        ? "Install update"
+        : platform === "linux"
+          ? "Show command"
+          : "Open release";
+      startupUpdateModal.classList.remove("hidden");
+    }
   titlebarLogo.title = isIgnored
     ? `Update ${availableUpdate.version} available`
     : `Update ${availableUpdate.version} available`;
@@ -8459,6 +8477,23 @@ async function installAvailableUpdate() {
 headerUpdateButton.addEventListener("click", installAvailableUpdate);
 updateButton.addEventListener("click", installAvailableUpdate);
 updateIgnoreButton.addEventListener("click", ignoreAvailableUpdateHint);
+startupUpdateClose.addEventListener("click", () => {
+  startupUpdateModal.classList.add("hidden");
+});
+startupUpdateModal.addEventListener("click", (event) => {
+  if (event.target === startupUpdateModal) {
+    startupUpdateModal.classList.add("hidden");
+  }
+});
+startupUpdateButton.addEventListener("click", () => {
+  startupUpdateModal.classList.add("hidden");
+  installAvailableUpdate();
+});
+startupUpdateIgnoreButton.addEventListener("click", () => {
+  startupUpdateModal.classList.add("hidden");
+  ignoreAvailableUpdateHint();
+});
+
 appMenuUpdate.addEventListener("click", () => {
   if (availableUpdate) {
     installAvailableUpdate();

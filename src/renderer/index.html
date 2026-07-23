@@ -736,9 +736,34 @@
         </button>
       </nav>
     </div>
+      <div
+        id="startup-update-modal"
+        class="modal-layer hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="startup-update-title"
+      >
+        <section class="modal-panel">
+          <header class="modal-header">
+            <h2 id="startup-update-title">Update available</h2>
+            <button id="startup-update-close" class="ghost-button" type="button">
+              Close
+            </button>
+          </header>
+          <p id="startup-update-text"></p>
+          <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;">
+            <button id="startup-update-ignore-button" class="ghost-button" type="button">
+              Ignore
+            </button>
+            <button id="startup-update-button" type="button">
+              Download Update
+            </button>
+          </div>
+        </section>
+      </div>
 
-    <div
-      id="update-modal"
+      <div
+        id="update-modal"
       class="modal-layer hidden"
       role="dialog"
       aria-modal="true"
