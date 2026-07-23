@@ -988,11 +988,28 @@ async function installWindowsUpdate(
     "/FORCECLOSEAPPLICATIONS",
     "/RESTARTAPPLICATIONS",
   ];
-  const updater = spawn(setupPath, setupArgs, {
-    detached: true,
-    stdio: "ignore",
-    windowsHide: false,
-  });
+  let updater;
+  let spawnError;
+  for (let attempt = 1; attempt <= 10; attempt += 1) {
+    try {
+      updater = spawn(setupPath, setupArgs, {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: false,
+      });
+      break;
+    } catch (error) {
+      spawnError = error;
+      if (attempt < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+
+  if (!updater) {
+    throw spawnError || new Error("Could not spawn updater process.");
+  }
+
   updater.unref();
 
   setTimeout(() => {
@@ -1012,6 +1029,9 @@ function createWindow({ hidden = false } = {}) {
     title: appDisplayName,
     icon: windowIcon,
     frame: false,
+      thickFrame: true,
+      backgroundMaterial: "none",
+      transparent: false,
     titleBarStyle: "hidden",
     backgroundColor: initialTheme === "dark" ? "#000000" : "#eef4f7",
     autoHideMenuBar: true,
