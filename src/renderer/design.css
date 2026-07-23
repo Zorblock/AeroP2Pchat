@@ -279,8 +279,8 @@ body.app-boot-finish .window-frame { opacity: 1; }
 
 /* Main application layout */
 .app-shell {
-  --sidebar-width: 252px;
-  --sidebar-min-width: 190px;
+  --sidebar-width: 280px;
+  --sidebar-min-width: 230px;
   --chat-min-width: 320px;
   position: relative;
   display: grid;
@@ -548,9 +548,9 @@ input:focus, select:focus, textarea:focus {
   transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
 }
 .peer-chip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas: "label badges unread";
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    grid-template-areas: "avatar label badges unread";
   align-items: center;
   gap: 7px;
   width: 100%;
@@ -564,9 +564,9 @@ input:focus, select:focus, textarea:focus {
   padding: 3px 4px 3px 5px;
 }
 .contact-name {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "label badges";
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas: "avatar label badges";
   align-items: center;
   gap: 7px;
   min-width: 0;
@@ -2097,4 +2097,23 @@ body.platform-android .stream-audio-toggle { min-height: 44px; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.contact-avatar {
+  grid-area: avatar;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  text-transform: uppercase;
+  user-select: none;
+  background-color: var(--surface-hover);
+  object-fit: cover;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
 }

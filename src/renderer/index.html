@@ -1329,7 +1329,11 @@
         <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
         <span>Status</span>
       </button>
-      <button id="app-menu-settings" type="button" role="menuitem">
+      <button id="app-menu-account" type="button" role="menuitem">
+          <i class="fa-solid fa-user" aria-hidden="true"></i>
+          <span>Account</span>
+        </button>
+        <button id="app-menu-settings" type="button" role="menuitem">
         <i class="fa-solid fa-gear" aria-hidden="true"></i>
         <span>Settings</span>
       </button>
@@ -1518,5 +1522,24 @@
         </div>
       </div>
     </div>
-    </body>
-</html>
+    
+<div id="account-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
+  <section class="modal-panel" style="max-width: 320px; padding: 24px; border-radius: 16px;">
+    <header class="modal-header" style="border-bottom: none; padding: 0 0 16px 0; min-height: auto;">
+      <h2 id="account-title" style="font-size: 1.1rem; margin: 0;">Account</h2>
+      <button id="account-close" class="ghost-button" type="button" style="width: 28px; height: 28px; padding: 0; border-radius: 50%;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </header>
+    <div>
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--faint); line-height: 1.4;">
+        Enter your Aero User ID to display your profile picture.
+      </p>
+      <div class="input-group" style="margin-bottom: 16px;">
+        <input id="account-userid-input" type="text" placeholder="User ID (e.g. L35n...)" spellcheck="false" autocomplete="off" style="text-align: center; font-family: monospace; letter-spacing: 1px; font-size: 14px; border-radius: 8px;" />
+      </div>
+      <button id="account-save" class="accent-button" type="button" style="width: 100%; border-radius: 8px;">Save</button>
+    </div>
+  </section>
+</div>
+</body>
