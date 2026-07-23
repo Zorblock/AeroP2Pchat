@@ -8716,8 +8716,9 @@ accountSave.addEventListener("click", () => {
     accountModal.classList.add("hidden");
     
     if (changed) {
-      window.avatarCacheBuster = Date.now();
-      for (const [peerId, conn] of connections.entries()) {
+        window.avatarCacheBuster = Date.now();
+        updateTitlebarLogo();
+        for (const [peerId, conn] of connections.entries()) {
         sendProtocolMessage(conn, "connection-ping");
       }
       for (const [peerId, entry] of pendingConnections.entries()) {
