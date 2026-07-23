@@ -917,8 +917,9 @@ function loadContacts() {
         ? Math.max(0, Math.min(150, Math.round(contact.playbackVolume)))
         : 100,
       showVideoName: contact.showVideoName !== false,
-      pinnedAt: contact.pinnedAt || new Date().toISOString(),
-    }));
+        pinnedAt: contact.pinnedAt || new Date().toISOString(),
+        accountUserId: contact.accountUserId || "",
+      }));
 }
 
 function saveContacts() {
@@ -2012,8 +2013,9 @@ function upsertContact(id, updates = {}) {
         ? Math.max(0, Math.min(150, Math.round(updates.playbackVolume)))
         : 100,
       showVideoName: updates.showVideoName !== false,
-      pinnedAt: new Date().toISOString(),
-    });
+        pinnedAt: new Date().toISOString(),
+        accountUserId: updates.accountUserId || "",
+      });
   }
 
   contacts = contacts.sort((left, right) => {
