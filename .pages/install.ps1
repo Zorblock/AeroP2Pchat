@@ -121,14 +121,6 @@ function Get-InstalledVersion {
         } catch {}
     }
 
-    # Check if installed via winget
-    if (Get-Command "winget.exe" -ErrorAction SilentlyContinue) {
-        $wingetOutput = winget.exe list --id $MsStoreId --source msstore --accept-source-agreements 2>$null
-        if ($wingetOutput -match "$MsStoreId") {
-            return "MS Store Version"
-        }
-    }
-
     return "not installed"
 }
 
@@ -204,15 +196,16 @@ if exist "$ExePath" (
     Determines the best available installation method (Winget vs EXE).
 #>
 function Get-BestFormat {
-    if (Get-Command "winget.exe" -ErrorAction SilentlyContinue) {
-        return "msstore"
-    }
+    return "exe"
+}
     return "exe"
 }
 
 function Format-Name {
     param([string]$Format)
-    if ($Format -eq "msstore") { return "Microsoft Store (Winget)" }
+    if ($Format -eq "exe")     { return "Standard Setup (.exe from GitHub)" }
+    return $Format
+}
     if ($Format -eq "exe")     { return "Standard Setup (.exe from GitHub)" }
     return $Format
 }
@@ -225,18 +218,6 @@ function Install-App {
     param(
         [string]$Format = $(Get-BestFormat)
     )
-
-    if ($Format -eq "msstore") {
-        Write-Info "Installing from Microsoft Store using winget.exe..."
-        try {
-            winget.exe install --id $MsStoreId --source msstore --exact --accept-package-agreements --accept-source-agreements
-            Write-Ok "$AppName installed successfully via Microsoft Store!"
-            Write-TerminalCommand
-        } catch {
-            Write-ErrorMsg "Winget installation failed."
-        }
-        return
-    }
 
     Write-Info "Fetching latest release info..."
     $latest = Get-LatestVersion
@@ -287,15 +268,6 @@ function Uninstall-App {
         
         $uninstalled = $true
     }
-    
-    if (Get-Command "winget.exe" -ErrorAction SilentlyContinue) {
-        $wingetOutput = winget.exe list --id $MsStoreId --source msstore --accept-source-agreements 2>$null
-        if ($wingetOutput -match "$MsStoreId") {
-            Write-Info "Uninstalling Microsoft Store version via winget.exe..."
-            winget.exe uninstall --id $MsStoreId --exact --accept-source-agreements
-            $uninstalled = $true
-        }
-    }
 
     if ($uninstalled) {
         if (Test-Path -Path $CliPath) {
@@ -321,9 +293,7 @@ function Show-Status {
     Write-Host "   Latest GitHub:     " -NoNewline; Write-Color $latest "Cyan"
     Write-Host ""
 
-    if ($installed -eq "MS Store Version") {
-        Write-Color "   [OK] Managed by Microsoft Store (Auto-Updates enabled)." "Green"
-    } elseif ($installed -ne "not installed" -and $installed -ne $latest -and $latest -ne "Unknown") {
+    if ($installed -ne "not installed" -and $installed -ne $latest -and $latest -ne "Unknown") {
         Write-Color "   [!] An update is available on GitHub!" "Yellow"
     } elseif ($installed -eq $latest) {
         Write-Color "   [OK] You are up to date." "Green"
@@ -351,9 +321,7 @@ function Show-TerminalMenu {
         Write-Host "   Status: " -NoNewline; Write-Color "Not Installed" "Yellow"
         Write-Host "   Latest: " -NoNewline; Write-Color "v$latest" "Cyan"
     } else {
-        if ($installed -eq "MS Store Version") {
-            Write-Host "   Status: " -NoNewline; Write-Color "Installed via Microsoft Store" "Green"
-        } elseif ($installed -eq $latest) {
+        if ($installed -eq $latest) {
             Write-Host "   Status: " -NoNewline; Write-Color "Installed & Up-to-date (v$installed)" "Green"
         } else {
             Write-Host "   Status: " -NoNewline; Write-Color "Installed (v$installed)" "Green"
@@ -365,9 +333,7 @@ function Show-TerminalMenu {
     $options = @()
     
     $recName = Format-Name $bestFormat
-    $options += [PSCustomObject]@{ Label = "Auto Install [Recommended: $recName]"; Action = { Install-App $bestFormat } }
-    $options += [PSCustomObject]@{ Label = "Install Microsoft Store Version (Winget)"; Action = { Install-App "msstore" } }
-    $options += [PSCustomObject]@{ Label = "Install Standard Setup (.exe from GitHub)"; Action = { Install-App "exe" } }
+    $options += [PSCustomObject]@{ Label = "Install / Update $AppName (.exe from GitHub)"; Action = { Install-App "exe" } }
     
     if ($installed -ne "not installed") {
         $options += [PSCustomObject]@{ Label = "Uninstall $AppName"; Action = { Uninstall-App } }

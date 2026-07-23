@@ -283,24 +283,7 @@ remove_rpm_package() {
 # Keep settings in ~/.config/Aero P2P Chat untouched while changing the
 # delivery format. The download is always verified before this function runs.
 prepare_target_format() {
-    target_format="$1"
     close_running_instances
-
-    case "$target_format" in
-        appimage)
-            remove_deb_package
-            remove_rpm_package
-            ;;
-        deb)
-            remove_rpm_package
-            remove_appimage_installation
-            ;;
-        rpm)
-            remove_deb_package
-            remove_appimage_installation
-            ;;
-        *) fail "Unsupported installer format: $target_format" ;;
-    esac
 }
 
 
@@ -531,16 +514,12 @@ close_running_instances() {
 }
 
 detect_best_format() {
-    if command -v apt-get >/dev/null 2>&1; then echo "deb"; return; fi
-    if command -v dnf >/dev/null 2>&1 || command -v zypper >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then echo "rpm"; return; fi
     echo "appimage"
 }
 
 format_name() {
     case "$1" in
-        deb) echo "DEB (Debian/Ubuntu/Mint)" ;;
-        rpm) echo "RPM (Fedora/RedHat/SUSE)" ;;
-        appimage) echo "AppImage (Portable)" ;;
+                appimage) echo "AppImage (Portable)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -590,7 +569,7 @@ show_terminal_menu() {
     printf '   %s\n' "$(color bold "1) Auto Install [Recommended: $(format_name "$best_format")]")"
     printf '   %s\n' "$(color cyan '2) Install DEB (Debian/Ubuntu/Mint)')"
     printf '   %s\n' "$(color cyan '3) Install RPM (Fedora/RedHat/SUSE)')"
-    printf '   %s\n' "$(color cyan '4) Install AppImage (Portable, automatic updates)')"
+    printf '   %s\n' "$(color cyan '2) Install AppImage (Portable, automatic updates)')"
     
     opt_uninstall=0
     opt_index=5
@@ -612,9 +591,7 @@ show_terminal_menu() {
     
     case "$choice" in
         1) install_app "$best_format" "$latest_version" ;;
-        2) install_app "deb" "$latest_version" ;;
-        3) install_app "rpm" "$latest_version" ;;
-        4) install_app "appimage" "$latest_version" ;;
+        2) install_app "appimage" "$latest_version" ;;
         $opt_uninstall)
             if [ "$opt_uninstall" -gt 0 ]; then
                 if confirm_action "Run Uninstall?"; then
@@ -688,73 +665,9 @@ install_app() {
     if [ "$format" = "appimage" ]; then
         install_appimage
         return
-    fi
-    
-    tmp_manifest="$(mktemp)"
-    if fetch_manifest "$tmp_manifest"; then
-        if [ "$target_version" = "unknown" ] || [ -z "$target_version" ]; then
-        target_version="$(get_latest_version "$tmp_manifest")"
-        fi
     else
-        rm -f "$tmp_manifest"
-        fail "Could not retrieve latest release metadata."
+        fail "Unsupported installer format: $format"
     fi
-    
-    file_name="Aero-P2P-Chat-Linux-x64.${format}"
-    case "$format" in
-        deb)
-            download_url="$(read_manifest_value "linuxDebUrl" "$tmp_manifest")"
-            expected_sha256="$(read_manifest_value "linuxDebSha256" "$tmp_manifest")"
-            ;;
-        rpm)
-            download_url="$(read_manifest_value "linuxRpmUrl" "$tmp_manifest")"
-            expected_sha256="$(read_manifest_value "linuxRpmSha256" "$tmp_manifest")"
-            ;;
-        *)
-            rm -f "$tmp_manifest"
-            fail "Unsupported installer format: $format"
-            ;;
-    esac
-    rm -f "$tmp_manifest"
-    [ -n "$download_url" ] || download_url="${RELEASE_BASE}/${file_name}"
-    tmp_dir="$(mktemp -d)"
-    # APT runs downloads as the restricted _apt user. mktemp creates a 0700
-    # directory by default, so make this temporary package readable to _apt.
-    chmod 755 "$tmp_dir"
-    tmp_file="${tmp_dir}/${file_name}"
-    
-    info "Downloading $(format_name "$format") v${target_version}..."
-    download "$download_url" "$tmp_file"
-    verify_sha256 "$tmp_file" "${expected_sha256:-}" "$(format_name "$format")"
-    chmod 644 "$tmp_file"
-    
-    # Only remove the previous format after the new file was downloaded and
-    # verified. App data in ~/.config/Aero P2P Chat is deliberately retained.
-    prepare_target_format "$format"
-    info "Installing $(format_name "$format")... (sudo may be required)"
-    case "$format" in
-        deb)
-            sudo apt-get install -y "$tmp_file"
-            ;;
-        rpm)
-            if command -v dnf >/dev/null 2>&1; then
-                sudo dnf install -y "$tmp_file"
-            elif command -v zypper >/dev/null 2>&1; then
-                sudo zypper install -y "$tmp_file"
-            elif command -v yum >/dev/null 2>&1; then
-                sudo yum install -y "$tmp_file"
-            else
-                sudo rpm -U "$tmp_file"
-            fi
-            ;;
-    esac
-    
-    rm -rf "$tmp_dir"
-    write_launcher
-    write_terminal_command
-    refresh_desktop_integration
-    ok "Installation complete. Your existing settings were kept."
-    print_paths
 }
 
 install_appimage() {

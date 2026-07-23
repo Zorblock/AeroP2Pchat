@@ -33,7 +33,7 @@ module.exports = {
   },
 
   linux: {
-    target: ["AppImage", "deb", "rpm"],
+    target: ["AppImage"],
     icon: "assets/linux-icons",
     category: "Network",
     syncDesktopName: true,

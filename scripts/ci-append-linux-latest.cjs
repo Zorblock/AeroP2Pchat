@@ -53,19 +53,6 @@ function main() {
     `linuxSize: ${asset.size}`,
   ];
 
-  for (const [extension, prefix] of [
-    [".deb", "linuxDeb"],
-    [".rpm", "linuxRpm"],
-  ]) {
-    const packageAsset = assetFor(extension);
-    if (!packageAsset) continue;
-    lines.push(
-      `${prefix}Url: ${yamlQuote(releaseUrl(tag, packageAsset.name))}`,
-      `${prefix}Sha256: ${yamlQuote(packageAsset.sha256)}`,
-      `${prefix}Size: ${packageAsset.size}`,
-    );
-  }
-
   let existing = fs.readFileSync(latestYmlPath, "utf8");
 
   // Insert Linux lines before the final productName line

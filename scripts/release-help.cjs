@@ -211,12 +211,6 @@ function describeReleaseFile(filePath) {
   if (lowerName.endsWith(".appimage")) {
     return { description: "Linux portable app · automatic updates", download: true };
   }
-  if (lowerName.endsWith(".deb")) {
-    return { description: "Debian / Ubuntu package", download: true };
-  }
-  if (lowerName.endsWith(".rpm")) {
-    return { description: "Fedora / RHEL package", download: true };
-  }
   if (lowerName.endsWith(".apk")) {
     return { description: "Android direct-install package", download: true };
   }
@@ -383,34 +377,14 @@ function printArtifactLinks(releaseFiles) {
   }
 
   const appImage = findReleaseFile(".appimage");
-  const deb = findReleaseFile(".deb");
-  const rpm = findReleaseFile(".rpm");
-  if (appImage || deb || rpm) {
+  if (appImage) {
     console.log(`\n${colored("LINUX DOWNLOADS", color.bold, color.magenta)}`);
-    if (appImage) {
-      printArtifact(
-        "AppImage (recommended)",
-        appImage,
-        "Already included in the GitHub release. Supports the app's automatic updates.",
-        [color.magenta],
-      );
-    }
-    if (deb) {
-      printArtifact(
-        "Debian/Ubuntu package (.deb)",
-        deb,
-        "Already included in the GitHub release. Manual package-manager install.",
-        [color.magenta],
-      );
-    }
-    if (rpm) {
-      printArtifact(
-        "Fedora/RHEL package (.rpm)",
-        rpm,
-        "Already included in the GitHub release. Manual package-manager install.",
-        [color.magenta],
-      );
-    }
+    printArtifact(
+      "AppImage",
+      appImage,
+      "Already included in the GitHub release. Supports the app's automatic updates.",
+      [color.magenta],
+    );
   }
 
   const apk = findReleaseFile(".apk");

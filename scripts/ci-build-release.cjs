@@ -158,7 +158,7 @@ function buildLinux(version) {
     "never",
   ]);
 
-  const extensions = [".AppImage", ".flatpak", ".snap", ".deb", ".rpm"];
+  const extensions = [".AppImage"];
   const assets = [];
 
   for (const ext of extensions) {
