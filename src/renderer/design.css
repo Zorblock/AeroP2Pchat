@@ -279,7 +279,7 @@ body.app-boot-finish .window-frame { opacity: 1; }
 
 /* Main application layout */
 .app-shell {
-  --sidebar-width: 280px;
+  --sidebar-width: 360px;
   --sidebar-min-width: 230px;
   --chat-min-width: 320px;
   position: relative;
