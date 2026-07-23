@@ -1321,10 +1321,7 @@
         <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>
         <span>Ignore update hint</span>
       </button>
-      <button id="app-menu-changelog" type="button" role="menuitem">
-        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
-        <span>Changelog</span>
-      </button>
+      
       <button id="app-menu-status" type="button" role="menuitem">
         <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
         <span>Status</span>
@@ -1539,8 +1536,13 @@
       <div class="input-group" style="margin-bottom: 16px;">
         <input id="account-userid-input" type="text" placeholder="User ID (e.g. L35n...)" spellcheck="false" autocomplete="off" style="text-align: center; font-family: monospace; letter-spacing: 1px; font-size: 14px; border-radius: 8px;" />
       </div>
-      <button id="account-save" class="accent-button" type="button" style="width: 100%; border-radius: 8px;">Save</button>
+      <div style="display: flex; gap: 8px;">
+          <button id="account-save" class="accent-button" type="button" style="flex: 1; border-radius: 8px;">Save ID</button>
+          <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px;">Update Picture</button>
+        </div>
     </div>
   </section>
 </div>
-</body>
+
+  
+  </body>

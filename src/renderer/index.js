@@ -151,6 +151,8 @@ const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
+const refreshAllPfpsBtn = document.querySelector("#refresh-all-pfps");
+const accountUpdatePfpBtn = document.querySelector("#account-update-pfp");
 const nicknameInput = document.querySelector("#nickname-input");
 const saveNickname = document.querySelector("#save-nickname");
 const themeLight = document.querySelector("#theme-light");
@@ -210,7 +212,11 @@ const appMenuDnd = document.querySelector("#app-menu-dnd");
 const appMenuOffline = document.querySelector("#app-menu-offline");
 const appMenuUpdate = document.querySelector("#app-menu-update");
 const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
-const appMenuChangelog = document.querySelector("#app-menu-changelog");
+
+
+
+
+
 const appMenuStatus = document.querySelector("#app-menu-status");
 const appMenuSettings = document.querySelector("#app-menu-settings");
 const appMenuAccount = document.querySelector("#app-menu-account");
@@ -7254,6 +7260,13 @@ function attachConnectionHandlers(conn, peerId, direction) {
     rememberConnectionIdentity(peerId, data);
     markConnectionHeartbeat(peerId);
 
+    if (data?.type === "profile-update") {
+      window.avatarCacheBuster = Date.now();
+      updateTitlebarLogo();
+      refreshPeers();
+      return;
+    }
+
     if (data?.type === "connection-ping") {
       sendProtocolMessage(conn, "connection-pong");
       return;
@@ -8764,7 +8777,29 @@ accountSave.addEventListener("click", () => {
     checkImg.src = `https://aero.zorblock.de/account/pfp/${newId}.webp?t=${Date.now()}`;
   });
 
-appMenuSettings.addEventListener("click", () => {
+refreshAllPfpsBtn?.addEventListener("click", () => {
+    window.avatarCacheBuster = Date.now();
+    updateTitlebarLogo();
+    refreshPeers();
+    showAppDialog({ title: "Refreshed", message: "All profile pictures have been refreshed." });
+  });
+
+  accountUpdatePfpBtn?.addEventListener("click", () => {
+    window.avatarCacheBuster = Date.now();
+    updateTitlebarLogo();
+    for (const [peerId, conn] of connections.entries()) {
+      sendProtocolMessage(conn, "profile-update");
+    }
+    for (const [peerId, entry] of pendingConnections.entries()) {
+      if (entry.conn && entry.conn.open) {
+        sendProtocolMessage(entry.conn, "profile-update");
+      }
+    }
+    accountModal.classList.add("hidden");
+    showAppDialog({ title: "Updated", message: "Your profile picture was refreshed and updated for all active chats!" });
+  });
+
+  appMenuSettings.addEventListener("click", () => {
   if (platformApi.isElectron) {
     openSettings();
   } else {
