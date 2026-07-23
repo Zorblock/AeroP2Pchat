@@ -8612,11 +8612,7 @@ appMenuUpdateIgnore.addEventListener("click", () => {
   ignoreAvailableUpdateHint();
   closeAppMenu();
 });
-appMenuChangelog.addEventListener("click", () => {
-  closeAppMenu();
-  const theme = appConfig.appSettings?.theme === "dark" ? "dark" : "light";
-  window.location.assign(`changelog.html?theme=${theme}`);
-});
+
 appMenuStatus.addEventListener("click", () => {
   closeAppMenu();
   window.open(statusPageUrl, "_blank", "noopener");

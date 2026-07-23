@@ -1425,10 +1425,11 @@ input:focus, select:focus, textarea:focus {
   font-weight: 720;
 }
 .settings-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+  }
 .settings-row button { height: 38px; }
 .theme-switcher {
   display: grid;
@@ -1480,8 +1481,12 @@ input:focus, select:focus, textarea:focus {
 .settings-check input[type="checkbox"] {
   position: relative;
   width: 34px;
-  height: 20px;
-  flex: 0 0 auto;
+    height: 20px;
+    min-width: 34px;
+    max-width: 34px;
+    min-height: 20px;
+    max-height: 20px;
+    flex: none;
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -1508,8 +1513,12 @@ input:focus, select:focus, textarea:focus {
 .settings-choice { display: grid; gap: 6px; margin-left: 43px; }
 .settings-choice input[type="radio"] {
   width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
+    height: 17px;
+    min-width: 17px;
+    max-width: 17px;
+    min-height: 17px;
+    max-height: 17px;
+    flex: none;
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 50%;
