@@ -31,21 +31,13 @@ jobs:
             package-lock.json
             .pages/package-lock.json
 
-      - name: Build Website
-        run: |
-          npm ci
-          cd .pages
-          npm ci
-          cd ..
-          npm run build:web
-
       - name: Configure Pages
         uses: actions/configure-pages@v4
 
       - name: Upload dist
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .pages/dist
+          path: .pages
 
       - name: Deploy
         id: deployment
