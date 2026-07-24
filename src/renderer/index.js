@@ -120,10 +120,10 @@ const welcomePages = Array.from(
 const welcomeProgress = Array.from(
   document.querySelectorAll("[data-welcome-progress]"),
 );
-const welcomeNickname = document.querySelector("#welcome-nickname");
-const welcomeNicknameError = document.querySelector(
-  "#welcome-nickname-error",
-);
+const welcomeLoginUsername = document.querySelector("#welcome-login-username");
+const welcomeLoginPassword = document.querySelector("#welcome-login-password");
+const welcomeLoginError = document.querySelector("#welcome-login-error");
+const welcomeSkipBtn = document.querySelector("#welcome-skip-btn");
 const welcomeThemeLight = document.querySelector("#welcome-theme-light");
 const welcomeThemeDark = document.querySelector("#welcome-theme-dark");
 const welcomeMicrophoneSelect = document.querySelector(
@@ -153,8 +153,20 @@ const settingsClose = document.querySelector("#settings-close");
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
 const refreshAllPfpsBtn = document.querySelector("#refresh-all-pfps");
 const accountUpdatePfpBtn = document.querySelector("#account-update-pfp");
-const nicknameInput = document.querySelector("#nickname-input");
-const saveNickname = document.querySelector("#save-nickname");
+const loginView = document.querySelector("#account-login-view");
+const profileView = document.querySelector("#account-profile-view");
+const loginForm = document.querySelector("#account-login-form");
+const loginUsernameInput = document.querySelector("#login-username");
+const loginPasswordInput = document.querySelector("#login-password");
+const loginError = document.querySelector("#login-error");
+const loginBtn = document.querySelector("#account-login-btn");
+const guestNicknameSection = document.querySelector("#guest-nickname-section");
+const guestNicknameInput = document.querySelector("#guest-nickname-input");
+const saveGuestNickname = document.querySelector("#save-guest-nickname");
+const profileUsername = document.querySelector("#account-profile-username");
+const profileId = document.querySelector("#account-profile-id");
+const profilePic = document.querySelector("#account-profile-pic");
+const logoutBtn = document.querySelector("#account-logout-btn");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const microphoneSelect = document.querySelector("#microphone-select");
@@ -222,8 +234,7 @@ const appMenuSettings = document.querySelector("#app-menu-settings");
 const appMenuAccount = document.querySelector("#app-menu-account");
 const accountModal = document.querySelector("#account-modal");
 const accountClose = document.querySelector("#account-close");
-const accountSave = document.querySelector("#account-save");
-const accountUserIdInput = document.querySelector("#account-userid-input");
+
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
 const menuPin = document.querySelector("#menu-pin");
@@ -791,8 +802,7 @@ setBootProgress(55, "Loading identity");
 
 ownId.textContent = identity.id;
   updateTitlebarLogo();
-nicknameInput.value = identity.nickname || "";
-normalizeAudioConfig();
+  normalizeAudioConfig();
 applySidebarWidth(appConfig.appSettings.sidebarWidth);
 renderAudioSettings();
 setupSidebarResizer();
@@ -1460,7 +1470,7 @@ function renderWelcomeStep() {
 
   requestAnimationFrame(() => {
     if (currentWelcomeStep === 0) {
-      welcomeNickname.focus();
+      welcomeLoginUsername.focus();
     } else {
       welcomePages[currentWelcomeStep]
         ?.querySelector("input:not(:disabled), select:not(:disabled), button:not(:disabled)")
@@ -1475,8 +1485,9 @@ function openWelcomeScreen() {
   }
 
   currentWelcomeStep = 0;
-  welcomeNickname.value = identity.nickname || "";
-  welcomeNicknameError.classList.add("hidden");
+  welcomeLoginUsername.value = "";
+  welcomeLoginPassword.value = "";
+  welcomeLoginError.classList.add("hidden");
   renderWelcomeSettings();
   renderWelcomeStep();
   welcomeScreen.classList.remove("hidden");
@@ -1484,21 +1495,66 @@ function openWelcomeScreen() {
 }
 
 async function saveWelcomeNickname() {
-  const nextNickname = sanitizeNickname(welcomeNickname.value);
-  if (!nextNickname) {
-    welcomeNicknameError.classList.remove("hidden");
-    welcomeNickname.focus();
+  const username = welcomeLoginUsername.value.trim();
+  const password = welcomeLoginPassword.value;
+
+  if (!username || !password) {
+    welcomeLoginError.textContent = "Please enter both username and password.";
+    welcomeLoginError.classList.remove("hidden");
+    welcomeLoginUsername.focus();
     return false;
   }
 
-  welcomeNicknameError.classList.add("hidden");
-  welcomeNickname.value = nextNickname;
-  identity.nickname = nextNickname;
-  appConfig.identity = identity;
-  nicknameInput.value = nextNickname;
-  refreshCallStage();
-  await saveAppConfig();
-  return true;
+  try {
+    const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response from backend:", text);
+      throw new Error("Invalid JSON response");
+    }
+
+    if (data.success) {
+      welcomeLoginError.classList.add("hidden");
+      identity.loggedIn = true;
+      identity.accountUserId = data.user_id;
+      identity.nickname = data.username;
+      appConfig.identity = identity;
+      updateTitlebarLogo();
+      ownId.textContent = identity.id;
+      
+      // Complete restart of peer connection to use the new ID
+      for (const conn of connections.values()) { conn.close(); }
+      for (const entry of pendingConnections.values()) { entry.conn?.close(); }
+      connections.clear();
+      pendingConnections.clear();
+      renderChatHistory();
+      refreshPeers();
+      createPeer();
+      
+      setStatus("success", `Logged in as ${data.username}`);
+      await saveAppConfig();
+      return true;
+    } else {
+      welcomeLoginError.textContent = data.error || "Login failed";
+      welcomeLoginError.classList.remove("hidden");
+      return false;
+    }
+  } catch (err) {
+    console.error("Backend Login Error (Welcome):", err);
+    if (window.aeroChat && window.aeroChat.log) {
+      window.aeroChat.log(`Backend Login Error (Welcome): ${err.message || err}`);
+    }
+    welcomeLoginError.textContent = "Could not connect to backend";
+    welcomeLoginError.classList.remove("hidden");
+    return false;
+  }
 }
 
 async function detectWelcomeDevices() {
@@ -7691,7 +7747,6 @@ function renderContactNicknameList() {
 }
 
 function openSettings(focusContactId = "") {
-  nicknameInput.value = identity.nickname || "";
   refreshAudioDevices();
   renderAppSettings();
   renderAudioSettings();
@@ -8125,16 +8180,32 @@ disconnectChat.addEventListener("click", () => {
   refreshPeers();
 });
 
-welcomeNickname.addEventListener("input", () => {
-  if (sanitizeNickname(welcomeNickname.value)) {
-    welcomeNicknameError.classList.add("hidden");
+welcomeLoginUsername.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    welcomeLoginPassword.focus();
   }
 });
 
-welcomeNickname.addEventListener("keydown", (event) => {
+welcomeLoginPassword.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     welcomeNext.click();
+  }
+});
+
+welcomeSkipBtn.addEventListener("click", () => {
+  if (!identity.nickname) {
+    identity.nickname = `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
+    appConfig.identity = identity;
+    saveAppConfig();
+  }
+  welcomeLoginError.classList.add("hidden");
+  // Proceed without login by tricking the saveWelcomeNickname function
+  // We don't call saveWelcomeNickname, we just go to the next step.
+  if (currentWelcomeStep === 0) {
+    currentWelcomeStep += 1;
+    renderWelcomeStep();
   }
 });
 
@@ -8709,7 +8780,22 @@ titlebarLogo.addEventListener("keydown", (event) => {
 });
 
 appMenuAccount.addEventListener("click", () => {
-  accountUserIdInput.value = identity.accountUserId || "";
+  if (identity.loggedIn) {
+    loginView.classList.add("hidden");
+    profileView.classList.remove("hidden");
+    profileUsername.textContent = identity.nickname;
+    profileId.textContent = identity.id;
+    profilePic.src = `https://aero.zorblock.de/account/pfp/${identity.id}.png`;
+    guestNicknameSection.classList.add("hidden");
+  } else {
+    loginView.classList.remove("hidden");
+    profileView.classList.add("hidden");
+    loginUsernameInput.value = "";
+    loginPasswordInput.value = "";
+    loginError.classList.add("hidden");
+    guestNicknameSection.classList.remove("hidden");
+    guestNicknameInput.value = identity.nickname || "";
+  }
   accountModal.classList.remove("hidden");
   closeAppMenu();
 });
@@ -8718,60 +8804,90 @@ accountClose.addEventListener("click", () => {
   accountModal.classList.add("hidden");
 });
 
-accountSave.addEventListener("click", () => {
-    const newId = accountUserIdInput.value.trim();
-    
-    const finalizeSave = () => {
-      const changed = identity.accountUserId !== newId;
-      identity.accountUserId = newId;
-      appConfig.identity = identity;
-      saveAppConfig();
-      accountModal.classList.add("hidden");
-      
-      if (changed) {
-        window.avatarCacheBuster = Date.now();
-        updateTitlebarLogo();
-        for (const [peerId, conn] of connections.entries()) {
-          sendProtocolMessage(conn, "connection-ping");
-        }
-        for (const [peerId, entry] of pendingConnections.entries()) {
-          if (entry.conn && entry.conn.open) {
-            sendProtocolMessage(entry.conn, "connection-ping");
-          }
-        }
-      }
-    };
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Logging in...";
+  loginError.classList.add("hidden");
 
-    if (!newId || newId === identity.accountUserId) {
-      finalizeSave();
-      return;
+  try {
+    const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: loginUsernameInput.value.trim(),
+        password: loginPasswordInput.value
+      })
+    });
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response from backend:", text);
+      throw new Error("Invalid JSON response");
     }
 
-    accountSave.textContent = "Checking...";
-    accountSave.disabled = true;
+    if (data.success) {
+      identity.loggedIn = true;
+      identity.accountUserId = data.user_id;
+      identity.nickname = data.username;
+      appConfig.identity = identity;
+      saveAppConfig();
+      
+      accountModal.classList.add("hidden");
+      updateTitlebarLogo();
+      ownId.textContent = identity.id;
+      
+      // Complete restart of peer connection to use the new ID
+      for (const conn of connections.values()) { conn.close(); }
+      for (const entry of pendingConnections.values()) { entry.conn?.close(); }
+      connections.clear();
+      pendingConnections.clear();
+      renderChatHistory();
+      refreshPeers();
+      createPeer();
+      
+      setStatus("success", `Logged in as ${data.username}`);
+    } else {
+      loginError.textContent = data.error || "Login failed";
+      loginError.classList.remove("hidden");
+    }
+  } catch (err) {
+    console.error("Backend Login Error (Account Modal):", err);
+    if (window.aeroChat && window.aeroChat.log) {
+      window.aeroChat.log(`Backend Login Error (Account): ${err.message || err}`);
+    }
+    loginError.textContent = "Could not connect to backend";
+    loginError.classList.remove("hidden");
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Login";
+  }
+});
 
-    const checkImg = new Image();
-    checkImg.onload = () => {
-      accountSave.textContent = "Save";
-      accountSave.disabled = false;
-      finalizeSave();
-    };
-    checkImg.onerror = async () => {
-      accountSave.textContent = "Save";
-      accountSave.disabled = false;
-      const confirm = await showAppDialog({
-        title: "Image not found",
-        message: "No profile picture was found for this ID on the server. Make sure you have uploaded one. Do you want to save the ID anyway?",
-        confirmText: "Save anyway",
-        cancelText: "Cancel",
-        danger: true
-      });
-      if (confirm) {
-        finalizeSave();
-      }
-    };
-    checkImg.src = `https://aero.zorblock.de/account/pfp/${newId}.webp?t=${Date.now()}`;
-  });
+logoutBtn.addEventListener("click", () => {
+  identity.loggedIn = false;
+  identity.accountUserId = "";
+  identity.nickname = "";
+  appConfig.identity = identity;
+  saveAppConfig();
+  
+  accountModal.classList.add("hidden");
+  updateTitlebarLogo();
+  ownId.textContent = identity.id;
+  
+  for (const conn of connections.values()) { conn.close(); }
+  for (const entry of pendingConnections.values()) { entry.conn?.close(); }
+  connections.clear();
+  pendingConnections.clear();
+  renderChatHistory();
+  refreshPeers();
+  createPeer();
+  
+  setStatus("success", "Logged out successfully");
+});
+
 
 refreshAllPfpsBtn?.addEventListener("click", () => {
     window.avatarCacheBuster = Date.now();
@@ -8849,7 +8965,6 @@ resetAllSettingsButton.addEventListener("click", async () => {
   appConfig.callUi = {};
   identity.nickname = "";
   appConfig.identity = identity;
-  nicknameInput.value = "";
 
   normalizeAppSettings();
   normalizeAudioConfig();
@@ -8868,9 +8983,12 @@ resetAllSettingsButton.addEventListener("click", async () => {
   openWelcomeScreen();
 });
 
-function saveOwnNickname() {
-  identity.nickname = sanitizeNickname(nicknameInput.value);
-  nicknameInput.value = identity.nickname;
+
+
+function saveOwnGuestNickname() {
+  if (identity.loggedIn) return;
+  identity.nickname = sanitizeNickname(guestNicknameInput.value);
+  guestNicknameInput.value = identity.nickname;
   appConfig.identity = identity;
   saveAppConfig();
   refreshCallStage();
@@ -8882,12 +9000,12 @@ function saveOwnNickname() {
   );
 }
 
-saveNickname.addEventListener("click", saveOwnNickname);
+saveGuestNickname.addEventListener("click", saveOwnGuestNickname);
 
-nicknameInput.addEventListener("keydown", (event) => {
+guestNicknameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-    saveOwnNickname();
+    saveOwnGuestNickname();
   }
 });
 
@@ -8895,6 +9013,7 @@ menuTrust.addEventListener("click", () => {
   if (!contextContactId) {
     return;
   }
+
 
   const nextValue = !isTrusted(contextContactId);
   setTrusted(contextContactId, nextValue);

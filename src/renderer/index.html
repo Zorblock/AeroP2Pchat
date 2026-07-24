@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://aero.zorblock.de; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app stun:* turn:*; media-src * blob: mediastream: data:; object-src 'none'; base-uri 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://aero.zorblock.de; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de stun:* turn:*; media-src * blob: mediastream: data:; object-src 'none'; base-uri 'none';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App</title>
     <link rel="preload" href="boot-logo.png" as="image" />
@@ -867,21 +867,36 @@
         <div class="welcome-pages">
           <section class="welcome-page" data-welcome-step="0">
             <div class="welcome-copy">
-              <h2>Nickname</h2>
+              <h2>Account Login</h2>
+              <p style="font-size: 14px; color: var(--faint);">Log in to your Aero backend account.</p>
             </div>
-            <label class="welcome-field" for="welcome-nickname">
-              <span>Nickname</span>
+            <label class="welcome-field" for="welcome-login-username">
+              <span>Username</span>
               <input
-                id="welcome-nickname"
+                id="welcome-login-username"
                 type="text"
-                maxlength="32"
-                autocomplete="nickname"
-                placeholder="Enter your nickname"
+                autocomplete="username"
+                placeholder="Username"
+                required
               />
             </label>
-            <p id="welcome-nickname-error" class="welcome-error hidden" role="alert">
-              Please enter a nickname to continue.
+            <label class="welcome-field" for="welcome-login-password">
+              <span>Password</span>
+              <input
+                id="welcome-login-password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Password"
+                required
+              />
+            </label>
+            <p id="welcome-login-error" class="welcome-error hidden" role="alert" style="margin-top: -8px;">
+              Login failed.
             </p>
+            <p style="margin-top: 16px; font-size: 13px; color: var(--faint);">
+              Don't have an account? <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create one here</a>
+            </p>
+            <button id="welcome-skip-btn" class="ghost-button" type="button" style="width: 100%; border-radius: 8px; margin-top: 8px;">Continue without Account</button>
           </section>
 
           <section class="welcome-page hidden" data-welcome-step="1">
@@ -1516,33 +1531,49 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
     </header>
-    <div>
+    <div id="account-login-view">
       <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--faint); line-height: 1.4;">
-        Enter your Aero User ID to display your profile picture.<br/>
-        <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Get your ID here</a>
+        Log in to sync your Aero ID and Profile.<br/>
+        <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create an account</a>
       </p>
-      <div class="input-group" style="margin-bottom: 16px;">
-        <input id="account-userid-input" type="text" placeholder="User ID (e.g. L35n...)" spellcheck="false" autocomplete="off" style="text-align: center; font-family: monospace; letter-spacing: 1px; font-size: 14px; border-radius: 8px;" />
-      </div>
-      <div style="display: flex; gap: 8px;">
-          <button id="account-save" class="accent-button" type="button" style="flex: 1; border-radius: 8px;">Save ID</button>
-          <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px;">Update Picture</button>
-          </div>
-
-        <div style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
-          <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--faint);">My Nickname</p>
-          <div class="settings-row" style="display: flex; gap: 8px;">
-            <input
-              id="nickname-input"
-              type="text"
-              maxlength="32"
-              placeholder="Nickname"
-              style="flex: 1; font-size: 14px; border-radius: 8px;"
-            />
-            <button id="save-nickname" class="ghost-button" type="button" style="border-radius: 8px;">Save</button>
-          </div>
+      <form id="account-login-form">
+        <div class="input-group" style="margin-bottom: 12px;">
+          <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" style="font-size: 14px; border-radius: 8px;" required />
+        </div>
+        <div class="input-group" style="margin-bottom: 16px;">
+          <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="font-size: 14px; border-radius: 8px;" required />
+        </div>
+        <p id="login-error" class="welcome-error hidden" role="alert" style="margin-top: -8px; margin-bottom: 12px; font-size: 13px;"></p>
+        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; border-radius: 8px;">Login</button>
+      </form>
+      <div id="guest-nickname-section" style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--faint);">Guest Nickname</p>
+        <div class="settings-row" style="display: flex; gap: 8px;">
+          <input
+            id="guest-nickname-input"
+            type="text"
+            maxlength="32"
+            placeholder="Nickname"
+            style="flex: 1; font-size: 14px; border-radius: 8px;"
+          />
+          <button id="save-guest-nickname" class="ghost-button" type="button" style="border-radius: 8px;">Save</button>
         </div>
       </div>
+    </div>
+    
+    <div id="account-profile-view" class="hidden">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 24px;">
+        <img id="account-profile-pic" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); background: var(--surface-hover);" />
+        <div style="text-align: center;">
+          <h3 id="account-profile-username" style="margin: 0; font-size: 18px;">Username</h3>
+          <span id="account-profile-id" style="font-size: 13px; color: var(--faint); font-family: monospace;">Aero ID</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px;">Update Picture</button>
+        <button id="account-logout-btn" class="danger-button" type="button" style="flex: 1; border-radius: 8px; color: #e74c3c; background: rgba(231, 76, 60, 0.1);">Logout</button>
+      </div>
+    </div>
     </section>
   </div>
 

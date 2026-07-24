@@ -82,6 +82,8 @@ if (process.platform === "linux") {
 
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
+} else if (!app.isPackaged) {
+  app.setPath("userData", join(process.cwd(), ".dev-data", "instance-0"));
 }
 
 if (!allowMultipleInstances) {
@@ -1214,6 +1216,9 @@ app.whenReady().then(async () => {
     }
     if (action === "close") win.close();
     return { ok: true, maximized: win.isMaximized() };
+  });
+  ipcMain.on("console-log", (event, msg) => {
+    console.log("[Renderer Log]:", msg);
   });
   createWindow({ hidden: shouldStartHidden() });
 

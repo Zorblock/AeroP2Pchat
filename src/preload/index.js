@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
   },
   realtimeCleanupComplete: () => ipcRenderer.send("realtime-cleanup-complete"),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
+  log: (msg) => ipcRenderer.send("console-log", msg),
 });
 
 contextBridge.exposeInMainWorld("aeroChatNotification", {
