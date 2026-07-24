@@ -516,19 +516,18 @@ input:disabled, select:disabled, textarea:disabled {
   padding-top: 2px;
 }
 .peers-card > .label { margin: 0 2px 8px; }
-.contact-search { flex: 0 0 auto; height: 36px; padding-left: 34px; }
-.peers-card::before {
-  content: "\f002";
+.contact-search-wrapper { position: relative; }
+.contact-search-icon {
   position: absolute;
-  z-index: 2;
-  top: 40px;
-  left: 12px;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
   color: var(--faint);
-  font-family: "Font Awesome 7 Free";
-  font-size: 12px;
-  font-weight: 900;
   pointer-events: none;
 }
+.contact-search { flex: 0 0 auto; height: 36px; padding-left: 32px; width: 100%; }
 .peer-list {
   display: flex;
   flex: 1;

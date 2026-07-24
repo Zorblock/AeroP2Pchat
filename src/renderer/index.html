@@ -379,14 +379,20 @@
 
           <div class="peers-card">
             <span class="label">Contacts</span>
-            <input
-              id="contact-search"
-              class="contact-search"
-              type="search"
-              autocomplete="off"
-              aria-label="Search contacts"
-              placeholder="Search contacts"
-            />
+            <div class="contact-search-wrapper">
+              <svg class="contact-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="contact-search"
+                class="contact-search"
+                type="search"
+                autocomplete="off"
+                aria-label="Search contacts"
+                placeholder="Search contacts"
+              />
+            </div>
             <div id="peer-list" class="peer-list">
               <span class="empty-peer">No contacts yet</span>
             </div>
