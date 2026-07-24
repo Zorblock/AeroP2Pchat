@@ -84,6 +84,8 @@ if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
 } else if (!app.isPackaged) {
   app.setPath("userData", join(process.cwd(), ".dev-data", "instance-0"));
+} else {
+  app.setPath("userData", dirname(process.execPath));
 }
 
 if (!allowMultipleInstances) {
