@@ -2368,6 +2368,23 @@ function createRoleBadge(role) {
   return badge;
 }
 
+function createContactIdentityLabel(labelText, role = null) {
+  const identityLabel = document.createElement("span");
+  identityLabel.className = "contact-identity";
+
+  const label = document.createElement("span");
+  label.className = "contact-label";
+  label.textContent = labelText;
+  identityLabel.append(label);
+
+  const roleBadge = createRoleBadge(role);
+  if (roleBadge) {
+    identityLabel.append(roleBadge);
+  }
+
+  return identityLabel;
+}
+
 function updateTitlebarLogo() {
   if (identity && identity.accountUserId) {
     titlebarLogo.classList.remove("is-app-logo");
@@ -7329,16 +7346,8 @@ function refreshPeers() {
     name.append(createAvatar(contact.label, contact.id, contact.accountUserId));
     name.append(createContactBadges(contact));
     
-    const label = document.createElement("span");
-    label.className = "contact-label";
-    label.textContent = contact.label;
-    name.append(label);
-    
     const role = getRoleByIdentityId(contact.id);
-    if (role) {
-      const roleBadge = createRoleBadge(role);
-      if (roleBadge) name.append(roleBadge);
-    }
+    name.append(createContactIdentityLabel(contact.label, role));
     name.addEventListener("click", () => {
       connectToPeer(contact.id);
     });
@@ -7390,16 +7399,8 @@ function refreshPeers() {
             waiting: true,
           }),
         );
-      const label = document.createElement("span");
-      label.className = "contact-label";
-      label.textContent = peerLabel;
-      name.append(label);
-
       const role = getRoleByIdentityId(identityId);
-      if (role) {
-        const roleBadge = createRoleBadge(role);
-        if (roleBadge) name.append(roleBadge);
-      }
+      name.append(createContactIdentityLabel(peerLabel, role));
 
       const actions = document.createElement("div");
       actions.className = "request-actions";
@@ -7478,16 +7479,13 @@ function refreshPeers() {
         online: conn.open,
       }),
     );
-    const label = document.createElement("span");
-    label.className = "contact-label";
-    label.textContent = conn.open ? peerLabel : `${peerLabel} ...`;
-    button.append(label);
-
     const role = getRoleByIdentityId(identityId);
-    if (role) {
-      const roleBadge = createRoleBadge(role);
-      if (roleBadge) button.append(roleBadge);
-    }
+    button.append(
+      createContactIdentityLabel(
+        conn.open ? peerLabel : `${peerLabel} ...`,
+        role,
+      ),
+    );
     const unread = unreadCounts.get(peerId) || 0;
     button.setAttribute(
       "aria-label",
