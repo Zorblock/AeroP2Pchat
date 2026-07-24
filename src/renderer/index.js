@@ -1878,10 +1878,9 @@ function updateTitlebarPresenceIndicator() {
     titlebarPresence.className = `titlebar-presence ${presenceStatus}`;
   }
   if (titlebarSubtitle) {
-    const statusLabel = getPresenceStatusLabel(presenceStatus);
     titlebarSubtitle.textContent = identity?.loggedIn && identity?.nickname 
-      ? `@${identity.nickname} - ${statusLabel}` 
-      : statusLabel;
+      ? `@${identity.nickname}`
+      : "Guest";
   }
 }
 
@@ -2466,9 +2465,45 @@ function createContactBadges({
 contacts = loadContacts();
 setBootProgress(68, "Loading contacts");
 
+let statusResetTimer = null;
+
+function renderPresenceStatus() {
+  const presenceStatus = isNetworkOffline() ? "offline" : getPresenceStatus();
+  statusDot.className = `status-dot ${presenceStatus}`;
+  statusText.textContent = getPresenceStatusLabel(presenceStatus);
+  statusText.removeAttribute("title");
+}
+
 function setStatus(kind, text) {
+  if (statusResetTimer) {
+    clearTimeout(statusResetTimer);
+    statusResetTimer = null;
+  }
+
+  if (
+    text === "Online" ||
+    text === "DND" ||
+    text === "Do Not Disturb" ||
+    text === "Offline" ||
+    (kind === "offline" && isNetworkOffline())
+  ) {
+    renderPresenceStatus();
+    return;
+  }
+
+  // Keep routine connection progress and success messages out of the compact
+  // titlebar. Actionable errors remain visible briefly before presence returns.
+  if (kind !== "error" && kind !== "offline") {
+    return;
+  }
+
   statusDot.className = `status-dot ${kind}`;
   statusText.textContent = text;
+  statusText.title = text;
+  statusResetTimer = setTimeout(() => {
+    statusResetTimer = null;
+    renderPresenceStatus();
+  }, 4000);
 }
 
 function isActionOnCooldown(key, cooldownMs, feedback = "") {

@@ -308,6 +308,24 @@
               <span class="titlebar-action-label">Settings</span>
             </button>
           </div>
+          <div class="status-region titlebar-status" aria-live="polite">
+            <span
+              id="status-dot"
+              class="status-dot pending"
+              aria-hidden="true"
+            ></span>
+            <span id="status-text">Connecting</span>
+            <button
+              id="retry-connect"
+              class="status-retry hidden"
+              type="button"
+              title="Retry connection"
+              aria-label="Retry connection"
+            >
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              <span class="titlebar-action-label">Retry connection</span>
+            </button>
+          </div>
         </div>
         <div class="window-controls">
           <button
@@ -392,22 +410,6 @@
               </button>
             </div>
           </form>
-
-          <div class="status-region" aria-live="polite">
-            <span
-              id="status-dot"
-              class="status-dot pending"
-              aria-hidden="true"
-            ></span>
-            <span id="status-text">Initializing peer...</span>
-            <button
-              id="retry-connect"
-              class="status-retry hidden"
-              type="button"
-            >
-              Retry
-            </button>
-          </div>
 
           <div id="update-card" class="update-card hidden">
             <span class="label">Update</span>

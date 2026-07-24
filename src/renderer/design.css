@@ -697,15 +697,26 @@ textarea:disabled {
   display: none;
 }
 .status-region {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 24px;
-  padding: 0 3px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 650;
+}
+.titlebar-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(220px, 26vw);
+  padding-left: 9px;
+  border-left: 1px solid var(--line);
+  -webkit-app-region: no-drag;
+}
+.titlebar-status #status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .status-dot,
 .presence-dot {
@@ -733,10 +744,14 @@ textarea:disabled {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent);
 }
 .status-retry {
-  min-height: 24px;
-  padding: 0 8px;
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border-radius: var(--radius-xs);
   font-size: 10px;
-  font-weight: 750;
 }
 
 .update-card .label,
