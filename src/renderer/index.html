@@ -1565,7 +1565,9 @@
     
     <div id="account-profile-view" class="card-content hidden">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px;">
-        <img id="account-profile-pic" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); background: var(--surface-hover); box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+        <div class="avatar" style="width: 88px; height: 88px;">
+          <img id="account-profile-pic" class="avatar-image" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" />
+        </div>
         <div style="text-align: center; display: flex; flex-direction: column; gap: 4px;">
           <h3 id="account-profile-username" class="card-title" style="font-size: 1.2rem;">Username</h3>
           <span id="account-profile-id" class="card-description" style="font-family: monospace;">Aero ID</span>
