@@ -14,7 +14,7 @@ const {
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
 const { copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } = require("node:fs/promises");
-const { createHash } = require("node:crypto");
+const { createHash, createCipheriv, createDecipheriv, randomBytes } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join } = require("node:path");
@@ -44,7 +44,7 @@ const changelogFeedUrl = "https://zorblock.featurebase.app/api/v1/changelog/feed
 const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
 const microsoftStoreProductUrl = "ms-windows-store://pdp/?productid=9MTXC0M7P403";
-const userConfigFileName = "config.json";
+const userConfigFileName = "config.aero";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const defaultSidebarWidth = 230;
@@ -230,12 +230,34 @@ function normalizeConfig(config = {}) {
   return config;
 }
 
+const CONFIG_ENC_KEY = createHash("sha256").update(projectConfig.app.id || "AeroP2Pchat").digest();
+
+function encryptConfigStr(text) {
+  const iv = randomBytes(16);
+  const cipher = createCipheriv("aes-256-cbc", CONFIG_ENC_KEY, iv);
+  let encrypted = cipher.update(text, "utf8", "base64");
+  encrypted += cipher.final("base64");
+  return "ENC:" + iv.toString("hex") + ":" + encrypted;
+}
+
+function decryptConfigStr(text) {
+  if (!text.startsWith("ENC:")) return text; // Plaintext fallback
+  const parts = text.substring(4).split(":");
+  if (parts.length !== 2) throw new Error("Invalid config format");
+  const iv = Buffer.from(parts[0], "hex");
+  const decipher = createDecipheriv("aes-256-cbc", CONFIG_ENC_KEY, iv);
+  let decrypted = decipher.update(parts[1], "base64", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
 async function loadConfig() {
-  const configPaths = [getConfigPath(), getConfigBackupPath()];
+  const configPaths = [getConfigPath(), getConfigBackupPath(), join(app.getPath("userData"), "config.json")];
   let lastError = null;
   for (const configPath of configPaths) {
     try {
-      return normalizeConfig(JSON.parse(await readFile(configPath, "utf8")));
+      const fileData = await readFile(configPath, "utf8");
+      return normalizeConfig(JSON.parse(decryptConfigStr(fileData)));
     } catch (error) {
       if (error.code !== "ENOENT") {
         lastError = error;
@@ -257,7 +279,8 @@ async function saveConfig(config) {
   const backupPath = getConfigBackupPath();
   const tempPath = `${configPath}.${process.pid}.tmp`;
   await mkdir(app.getPath("userData"), { recursive: true });
-  await writeFile(tempPath, `${JSON.stringify(normalizedConfig, null, 2)}`, "utf8");
+  const dataString = encryptConfigStr(JSON.stringify(normalizedConfig, null, 2));
+  await writeFile(tempPath, dataString, "utf8");
   try {
     await copyFile(configPath, backupPath);
   } catch (error) {

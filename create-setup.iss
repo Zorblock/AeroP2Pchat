@@ -154,8 +154,8 @@ var
 begin
   AppDir := ExpandConstant('{app}');
   UninstallerPath := AppDir + '\unins000.exe';
-  ConfigFile := AppDir + '\config.json';
-  TempConfigFile := ExpandConstant('{tmp}\config.json');
+  ConfigFile := AppDir + '\config.aero';
+  TempConfigFile := ExpandConstant('{tmp}\config.aero');
 
   if FileExists(ConfigFile) then begin
     CopyFile(ConfigFile, TempConfigFile, False);
