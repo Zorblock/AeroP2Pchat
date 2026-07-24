@@ -1510,7 +1510,7 @@ async function saveWelcomeNickname() {
     const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, client_name: "AeroP2Pchat" })
     });
     const text = await res.text();
     let data;
@@ -8976,7 +8976,8 @@ loginForm.addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: loginUsernameInput.value.trim(),
-        password: loginPasswordInput.value
+        password: loginPasswordInput.value,
+        client_name: "AeroP2Pchat"
       })
     });
     const text = await res.text();
