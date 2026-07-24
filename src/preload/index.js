@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld("aeroChat", {
       ipcRenderer.removeListener("update-progress", listener);
     };
   },
-  fetchUpdateManifest: (url) => ipcRenderer.invoke("fetch-update-manifest", url),
+  fetchUpdateManifest: (url) =>
+    ipcRenderer.invoke("fetch-update-manifest", url),
   openMicrosoftStore: () => ipcRenderer.invoke("open-microsoft-store"),
   fetchChangelogFeed: () => ipcRenderer.invoke("fetch-changelog-feed"),
   onCheckForUpdates: (callback) => {
@@ -77,5 +78,6 @@ contextBridge.exposeInMainWorld("aeroChatNotification", {
     ipcRenderer.on("close-toast", listener);
     return () => ipcRenderer.removeListener("close-toast", listener);
   },
-  updateToastHeight: (height) => ipcRenderer.send("update-toast-height", height)
+  updateToastHeight: (height) =>
+    ipcRenderer.send("update-toast-height", height),
 });

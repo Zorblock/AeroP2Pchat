@@ -40,7 +40,9 @@ function removeOutputDir() {
     } catch (error) {
       if (attempt === 3) throw error;
       console.warn(
-        `Could not clean build output yet, retrying... (${error.code || error.message})`,
+        `Could not clean build output yet, retrying... (${
+          error.code || error.message
+        })`,
       );
       sleep(1000 * attempt);
     }

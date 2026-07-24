@@ -23,14 +23,16 @@ function closeToast(id) {
     setTimeout(() => {
       toastEl.remove();
       activeToasts.delete(id);
-      
+
       // Update height after removal
       setTimeout(() => {
-        const remaining = document.querySelectorAll('.toast').length;
+        const remaining = document.querySelectorAll(".toast").length;
         if (remaining === 0) {
           window.aeroChatNotification.updateToastHeight(0);
         } else {
-          window.aeroChatNotification.updateToastHeight(document.body.scrollHeight + 30);
+          window.aeroChatNotification.updateToastHeight(
+            document.body.scrollHeight + 30,
+          );
         }
       }, 50);
     }, 300);
@@ -38,7 +40,17 @@ function closeToast(id) {
 }
 
 function showToast(details) {
-  const { id, title, body, kind, peerId, accountUserId, callId, theme, avatarCacheBuster } = details;
+  const {
+    id,
+    title,
+    body,
+    kind,
+    peerId,
+    accountUserId,
+    callId,
+    theme,
+    avatarCacheBuster,
+  } = details;
 
   // Apply theme
   document.body.className = theme === "light" ? "light-theme" : "";
@@ -62,12 +74,12 @@ function showToast(details) {
     toastEl.id = `toast-${id}`;
 
     let html = `<div class="toast-header">`;
-    
+
     // Add avatar if accountUserId is present
     if (accountUserId) {
       html += `<img class="toast-avatar" id="avatar-${id}" src="https://aero.zorblock.de/account/pfp/${accountUserId}.webp?t=${avatarCacheBuster}">`;
     }
-    
+
     html += `<div class="toast-content">
         <h4 class="toast-title">${escapeHtml(title)}</h4>
         <p class="toast-body">${escapeHtml(body)}</p>
@@ -89,13 +101,13 @@ function showToast(details) {
     }
 
     toastEl.innerHTML = html;
-    
+
     // Add error handler for avatar to hide it if broken (bypassing CSP inline issues)
     if (accountUserId) {
       const avatarImg = toastEl.querySelector(`#avatar-${id}`);
       if (avatarImg) {
         avatarImg.onerror = () => {
-          avatarImg.style.display = 'none';
+          avatarImg.style.display = "none";
         };
       }
     }
@@ -111,15 +123,15 @@ function showToast(details) {
 
     // Click events
     toastEl.addEventListener("click", (e) => {
-      if (e.target.tagName === "BUTTON" || e.target.closest('button')) return; // Let button handlers fire
-      
-      window.aeroChatNotification.action({ 
-        type: 'open', 
-        openWindow: true, 
-        id, 
-        kind, 
-        peerId, 
-        callId 
+      if (e.target.tagName === "BUTTON" || e.target.closest("button")) return; // Let button handlers fire
+
+      window.aeroChatNotification.action({
+        type: "open",
+        openWindow: true,
+        id,
+        kind,
+        peerId,
+        callId,
       });
       window.aeroChatNotification.close(id);
     });
@@ -128,30 +140,34 @@ function showToast(details) {
 
     // Button event listeners
     if (kind === "call") {
-      toastEl.querySelector(`#btn-accept-${id}`).addEventListener("click", (e) => {
-        e.stopPropagation();
-        window.aeroChatNotification.action({ 
-          type: 'accept-call', 
-          openWindow: true, 
-          id, 
-          kind, 
-          peerId, 
-          callId 
+      toastEl
+        .querySelector(`#btn-accept-${id}`)
+        .addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.aeroChatNotification.action({
+            type: "accept-call",
+            openWindow: true,
+            id,
+            kind,
+            peerId,
+            callId,
+          });
+          window.aeroChatNotification.close(id);
         });
-        window.aeroChatNotification.close(id);
-      });
-      
-      toastEl.querySelector(`#btn-decline-${id}`).addEventListener("click", (e) => {
-        e.stopPropagation();
-        window.aeroChatNotification.action({ 
-          type: 'decline-call', 
-          id, 
-          kind, 
-          peerId, 
-          callId 
+
+      toastEl
+        .querySelector(`#btn-decline-${id}`)
+        .addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.aeroChatNotification.action({
+            type: "decline-call",
+            id,
+            kind,
+            peerId,
+            callId,
+          });
+          window.aeroChatNotification.close(id);
         });
-        window.aeroChatNotification.close(id);
-      });
     }
   }
 
@@ -165,7 +181,9 @@ function showToast(details) {
 
   // Update window height
   setTimeout(() => {
-    window.aeroChatNotification.updateToastHeight(document.body.scrollHeight + 30);
+    window.aeroChatNotification.updateToastHeight(
+      document.body.scrollHeight + 30,
+    );
   }, 50);
 }
 

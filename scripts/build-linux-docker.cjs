@@ -14,7 +14,9 @@ function parseVersion() {
 
 function main() {
   if (!fs.existsSync(path.join(root, "package-lock.json"))) {
-    throw new Error("package-lock.json is required for the Docker Linux build.");
+    throw new Error(
+      "package-lock.json is required for the Docker Linux build.",
+    );
   }
 
   const version = parseVersion();

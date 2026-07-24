@@ -14,7 +14,11 @@ function yamlQuote(value) {
 }
 
 function releaseUrl(tag, assetName) {
-  return `https://github.com/${config.repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`;
+  return `https://github.com/${
+    config.repo
+  }/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(
+    assetName,
+  )}`;
 }
 
 function main() {

@@ -80,7 +80,7 @@ function getAndroidNotificationId(value) {
     hash ^= text.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return (hash & 0x7fffffff) || 1;
+  return hash & 0x7fffffff || 1;
 }
 
 async function applyMobileSystemTheme(theme) {
@@ -116,7 +116,9 @@ export function createPlatformApi() {
   const electron = getElectronApi();
   const isChromeExtension = Boolean(getChromeStorage());
   const capacitorPlatform = getCapacitorPlatform();
-  const platform = electron?.platform || (isChromeExtension ? "chrome-extension" : capacitorPlatform || "web");
+  const platform =
+    electron?.platform ||
+    (isChromeExtension ? "chrome-extension" : capacitorPlatform || "web");
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
   const isWindowsStore = Boolean(electron?.isWindowsStore);
@@ -272,7 +274,8 @@ export function createPlatformApi() {
         return electron.getNotificationState();
       }
       return {
-        appFocused: document.visibilityState === "visible" && document.hasFocus(),
+        appFocused:
+          document.visibilityState === "visible" && document.hasFocus(),
         systemDnd: false,
       };
     },
@@ -299,8 +302,9 @@ export function createPlatformApi() {
     },
 
     async getDisplayMedia(options = {}) {
-      const displayMedia =
-        navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices);
+      const displayMedia = navigator.mediaDevices?.getDisplayMedia?.bind(
+        navigator.mediaDevices,
+      );
       if (!displayMedia) {
         throw new Error("Screen capture is not available on this platform.");
       }
@@ -331,10 +335,16 @@ export function createPlatformApi() {
 
         let progressListener = null;
         if (androidUpdateProgressCallback) {
-          progressListener = await Filesystem.addListener("progress", (progress) => {
-            const percent = progress.contentLength > 0 ? Math.round((progress.bytes / progress.contentLength) * 100) : 0;
-            androidUpdateProgressCallback({ phase: "download", percent });
-          });
+          progressListener = await Filesystem.addListener(
+            "progress",
+            (progress) => {
+              const percent =
+                progress.contentLength > 0
+                  ? Math.round((progress.bytes / progress.contentLength) * 100)
+                  : 0;
+              androidUpdateProgressCallback({ phase: "download", percent });
+            },
+          );
         }
 
         try {
@@ -370,7 +380,9 @@ export function createPlatformApi() {
     },
 
     windowControl(action) {
-      return electron?.windowControl?.(action) || Promise.resolve({ ok: false });
+      return (
+        electron?.windowControl?.(action) || Promise.resolve({ ok: false })
+      );
     },
 
     updateTrayState(state) {
@@ -385,7 +397,7 @@ export function createPlatformApi() {
       if (electron?.onUpdateProgress) {
         return electron.onUpdateProgress(callback);
       }
-      
+
       if (isAndroid) {
         androidUpdateProgressCallback = callback;
         return () => {
@@ -394,7 +406,7 @@ export function createPlatformApi() {
           }
         };
       }
-      
+
       return null;
     },
 
@@ -403,10 +415,12 @@ export function createPlatformApi() {
     },
 
     openMicrosoftStore() {
-      return electron?.openMicrosoftStore?.() || {
-        ok: false,
-        error: "Microsoft Store is not available.",
-      };
+      return (
+        electron?.openMicrosoftStore?.() || {
+          ok: false,
+          error: "Microsoft Store is not available.",
+        }
+      );
     },
 
     onDisconnect(callback) {
@@ -427,7 +441,12 @@ export function createPlatformApi() {
 
     async vibrate(style = "light") {
       if (!isNativeCapacitor()) return;
-      const hapticStyle = style === "heavy" ? ImpactStyle.Heavy : style === "medium" ? ImpactStyle.Medium : ImpactStyle.Light;
+      const hapticStyle =
+        style === "heavy"
+          ? ImpactStyle.Heavy
+          : style === "medium"
+          ? ImpactStyle.Medium
+          : ImpactStyle.Light;
       try {
         await Haptics.impact({ style: hapticStyle });
       } catch (e) {}
@@ -449,13 +468,20 @@ export function createPlatformApi() {
         await applyMobileSystemTheme(
           document.documentElement.dataset.theme || "light",
         );
-        
-        LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
-          const extra = notificationAction.notification.extra;
-          if (extra && extra.peerId) {
-            window.dispatchEvent(new CustomEvent('aero:open-chat', { detail: { peerId: extra.peerId } }));
-          }
-        });
+
+        LocalNotifications.addListener(
+          "localNotificationActionPerformed",
+          (notificationAction) => {
+            const extra = notificationAction.notification.extra;
+            if (extra && extra.peerId) {
+              window.dispatchEvent(
+                new CustomEvent("aero:open-chat", {
+                  detail: { peerId: extra.peerId },
+                }),
+              );
+            }
+          },
+        );
       } catch (e) {}
     },
 
@@ -477,13 +503,16 @@ export function createPlatformApi() {
       try {
         await BackgroundMode.enable({
           title: "Aero P2P Chat",
-          text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
+          text:
+            activeConnections === 1
+              ? "1 aktive Verbindung"
+              : `${activeConnections} aktive Verbindungen`,
           hidden: false,
           silent: false,
           icon: "ic_stat_aero",
           allowClose: true,
           closeTitle: "Beenden",
-          disableWebViewOptimization: true
+          disableWebViewOptimization: true,
         });
         return { ok: true };
       } catch (error) {
@@ -506,13 +535,16 @@ export function createPlatformApi() {
       try {
         await BackgroundMode.updateNotification({
           title: "Aero P2P Chat",
-          text: activeConnections === 1 ? "1 aktive Verbindung" : `${activeConnections} aktive Verbindungen`,
+          text:
+            activeConnections === 1
+              ? "1 aktive Verbindung"
+              : `${activeConnections} aktive Verbindungen`,
           icon: "ic_stat_aero",
         });
         return { ok: true };
       } catch (error) {
         return { ok: false, error: error?.message || String(error) };
       }
-    }
+    },
   };
 }

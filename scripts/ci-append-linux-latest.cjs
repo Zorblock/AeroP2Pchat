@@ -11,7 +11,11 @@ function yamlQuote(value) {
 }
 
 function releaseUrl(tag, assetName) {
-  return `https://github.com/${config.repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`;
+  return `https://github.com/${
+    config.repo
+  }/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(
+    assetName,
+  )}`;
 }
 
 function main() {
@@ -24,7 +28,9 @@ function main() {
 
   if (!latestYmlPath || !fs.existsSync(latestYmlPath)) {
     throw new Error(
-      `latest.yml not found: ${latestYmlPath || "(no path given)"}. Usage: node ci-append-linux-latest.cjs <latest.yml> [build-dir]`,
+      `latest.yml not found: ${
+        latestYmlPath || "(no path given)"
+      }. Usage: node ci-append-linux-latest.cjs <latest.yml> [build-dir]`,
     );
   }
 

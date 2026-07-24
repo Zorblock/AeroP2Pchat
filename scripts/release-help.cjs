@@ -179,8 +179,7 @@ function collectReleaseFiles() {
     .map((name) => path.join(releaseDir, name))
     .filter(
       (filePath) =>
-        fs.statSync(filePath).isFile() &&
-        !/\.(appx|msix)$/i.test(filePath),
+        fs.statSync(filePath).isFile() && !/\.(appx|msix)$/i.test(filePath),
     );
 
   if (files.length === 0) {
@@ -209,13 +208,19 @@ function describeReleaseFile(filePath) {
     return { description: "Windows 10/11 installer", download: true };
   }
   if (lowerName.endsWith(".appimage")) {
-    return { description: "Linux portable app · automatic updates", download: true };
+    return {
+      description: "Linux portable app · automatic updates",
+      download: true,
+    };
   }
   if (lowerName.endsWith(".apk")) {
     return { description: "Android direct-install package", download: true };
   }
   if (lowerName === "latest.yml") {
-    return { description: "Windows automatic-update metadata", download: false };
+    return {
+      description: "Windows automatic-update metadata",
+      download: false,
+    };
   }
   if (lowerName === "update_manifest_linux.json") {
     return { description: "Linux automatic-update metadata", download: false };
@@ -239,12 +244,18 @@ function createReleaseNotes(tag, files) {
   const downloadRows = downloads
     .map(
       (entry) =>
-        `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(entry.size)} |`,
+        `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(
+          entry.size,
+        )} |`,
     )
     .join("\n");
   const metadataRows = metadata
     .map(
-      (entry) => `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(entry.size)} |`)
+      (entry) =>
+        `| \`${entry.name}\` | ${entry.description} | ${formatFileSize(
+          entry.size,
+        )} |`,
+    )
     .join("\n");
   const checksums = entries
     .map((entry) => `${entry.checksum}  ${entry.name}`)
@@ -289,26 +300,39 @@ function uploadReleaseFiles(tag, files) {
   let uploadedBytes = 0;
 
   console.log(
-    `\n${colored("GITHUB UPLOADS", color.bold, color.cyan)} ${colored(`(${files.length} files, ${formatFileSize(totalBytes)})`, color.dim)}`,
+    `\n${colored("GITHUB UPLOADS", color.bold, color.cyan)} ${colored(
+      `(${files.length} files, ${formatFileSize(totalBytes)})`,
+      color.dim,
+    )}`,
   );
 
   for (const [index, filePath] of files.entries()) {
     const size = fs.statSync(filePath).size;
     const startedAt = Date.now();
     console.log(
-      `${colored(`[${index + 1}/${files.length}]`, color.bold, color.cyan)} Uploading ${path.basename(filePath)} ${colored(`(${formatFileSize(size)})`, color.dim)}`,
+      `${colored(
+        `[${index + 1}/${files.length}]`,
+        color.bold,
+        color.cyan,
+      )} Uploading ${path.basename(filePath)} ${colored(
+        `(${formatFileSize(size)})`,
+        color.dim,
+      )}`,
     );
     run("gh", ["release", "upload", tag, filePath]);
     uploadedBytes += size;
     const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
     const percentage = Math.round((uploadedBytes / totalBytes) * 100);
     console.log(
-      `${colored("  ✓ Uploaded", color.green)} ${colored(`${percentage}% total · ${formatFileSize(uploadedBytes)} / ${formatFileSize(totalBytes)} · ${seconds}s`, color.dim)}`,
+      `${colored("  ✓ Uploaded", color.green)} ${colored(
+        `${percentage}% total · ${formatFileSize(
+          uploadedBytes,
+        )} / ${formatFileSize(totalBytes)} · ${seconds}s`,
+        color.dim,
+      )}`,
     );
   }
 }
-
-
 
 function terminalFolderLink(filePath) {
   const folderPath = path.dirname(path.resolve(filePath));
@@ -349,11 +373,16 @@ function colored(value, ...styles) {
 function printArtifact(label, filePath, note, styles) {
   console.log(`  ${colored(label, color.bold, ...styles)}`);
   console.log(`  ${terminalFolderLink(filePath)}`);
-  console.log(`  ${colored(`Artifact: ${path.basename(filePath)}`, color.dim)}`);
+  console.log(
+    `  ${colored(`Artifact: ${path.basename(filePath)}`, color.dim)}`,
+  );
   console.log(`  ${colored(note, color.dim)}`);
   if (process.platform === "win32") {
     console.log(
-      `  ${colored("Ctrl+click opens the folder. Fallback:", color.dim)} explorer.exe /select,"${path.resolve(filePath)}"`,
+      `  ${colored(
+        "Ctrl+click opens the folder. Fallback:",
+        color.dim,
+      )} explorer.exe /select,"${path.resolve(filePath)}"`,
     );
   }
 }
@@ -362,8 +391,16 @@ function printArtifactLinks(releaseFiles) {
   const findReleaseFile = (extension) =>
     releaseFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
 
-  console.log(`\n${colored("════════════ RELEASE FILES ════════════", color.bold, color.cyan)}`);
-  console.log(colored("Open containing folder to reveal a release artifact.", color.dim));
+  console.log(
+    `\n${colored(
+      "════════════ RELEASE FILES ════════════",
+      color.bold,
+      color.cyan,
+    )}`,
+  );
+  console.log(
+    colored("Open containing folder to reveal a release artifact.", color.dim),
+  );
 
   const windows = findReleaseFile(".exe");
   if (windows) {
@@ -402,12 +439,22 @@ function printArtifactLinks(releaseFiles) {
     /(?:latest\.yml|update_manifest_.*\.json)$/i.test(path.basename(filePath)),
   );
   if (metadataFiles.length > 0) {
-    console.log(`\n${colored("UPDATE METADATA — DO NOT UPLOAD MANUALLY", color.bold, color.dim)}`);
+    console.log(
+      `\n${colored(
+        "UPDATE METADATA — DO NOT UPLOAD MANUALLY",
+        color.bold,
+        color.dim,
+      )}`,
+    );
     for (const filePath of metadataFiles) {
-      console.log(`  ${path.basename(filePath)} ${colored("(used by the automatic updater)", color.dim)}`);
+      console.log(
+        `  ${path.basename(filePath)} ${colored(
+          "(used by the automatic updater)",
+          color.dim,
+        )}`,
+      );
     }
   }
-
 }
 
 function buildLinuxWithDocker(version) {
@@ -415,7 +462,9 @@ function buildLinuxWithDocker(version) {
 
   const linuxManifest = path.join(releaseDir, "update_manifest_linux.json");
   if (!fs.existsSync(linuxManifest)) {
-    throw new Error("The Docker Linux build did not provide update_manifest_linux.json.");
+    throw new Error(
+      "The Docker Linux build did not provide update_manifest_linux.json.",
+    );
   }
 }
 
@@ -429,12 +478,21 @@ function notifyReleaseComplete(tag) {
   ].join("; ");
   const result = spawnSync(
     "powershell.exe",
-    ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", notificationSound],
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-WindowStyle",
+      "Hidden",
+      "-Command",
+      notificationSound,
+    ],
     { cwd: root, stdio: "ignore" },
   );
 
   if (result.status !== 0) {
-    console.log(`Release ${tag} completed, but Windows could not play the completion sound.`);
+    console.log(
+      `Release ${tag} completed, but Windows could not play the completion sound.`,
+    );
   }
 }
 
@@ -465,7 +523,9 @@ function main() {
 
   // Store original package files for rollback
   const originalPkg = fs.readFileSync(packagePath, "utf8");
-  const originalLock = fs.existsSync(lockPath) ? fs.readFileSync(lockPath, "utf8") : null;
+  const originalLock = fs.existsSync(lockPath)
+    ? fs.readFileSync(lockPath, "utf8")
+    : null;
   let commitCreated = false;
   let githubReleaseCreated = false;
 
@@ -482,7 +542,6 @@ function main() {
     ]);
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
-
 
     // 4. Build Linux locally in Docker, keeping the other release files intact.
     buildLinuxWithDocker(nextVersion);

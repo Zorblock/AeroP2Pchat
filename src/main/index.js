@@ -14,8 +14,21 @@ const {
   screen,
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
-const { copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } = require("node:fs/promises");
-const { createHash, createCipheriv, createDecipheriv, randomBytes } = require("node:crypto");
+const {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} = require("node:fs/promises");
+const {
+  createHash,
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+} = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join } = require("node:path");
@@ -41,10 +54,12 @@ if (windowIcon.isEmpty() && windowIconPath !== bundledWindowIconPath) {
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
-const changelogFeedUrl = "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
+const changelogFeedUrl =
+  "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
 const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
-const microsoftStoreProductUrl = "ms-windows-store://pdp/?productid=9MTXC0M7P403";
+const microsoftStoreProductUrl =
+  "ms-windows-store://pdp/?productid=9MTXC0M7P403";
 const userConfigFileName = "config.aero";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
@@ -232,7 +247,9 @@ function normalizeConfig(config = {}) {
   return config;
 }
 
-const CONFIG_ENC_KEY = createHash("sha256").update(projectConfig.app.id || "AeroP2Pchat").digest();
+const CONFIG_ENC_KEY = createHash("sha256")
+  .update(projectConfig.app.id || "AeroP2Pchat")
+  .digest();
 
 function encryptConfigStr(text) {
   const iv = randomBytes(16);
@@ -258,7 +275,7 @@ async function loadConfig() {
     getConfigPath(),
     getConfigBackupPath(),
     join(app.getPath("userData"), "config.json"),
-    join(app.getPath("appData"), app.name, "config.json")
+    join(app.getPath("appData"), app.name, "config.json"),
   ];
   let lastError = null;
   for (const configPath of configPaths) {
@@ -268,7 +285,10 @@ async function loadConfig() {
     } catch (error) {
       if (error.code !== "ENOENT") {
         lastError = error;
-        console.warn(`Could not read saved settings from ${configPath}; trying backup.`, error.message);
+        console.warn(
+          `Could not read saved settings from ${configPath}; trying backup.`,
+          error.message,
+        );
       }
     }
   }
@@ -286,7 +306,9 @@ async function saveConfig(config) {
   const backupPath = getConfigBackupPath();
   const tempPath = `${configPath}.${process.pid}.tmp`;
   await mkdir(app.getPath("userData"), { recursive: true });
-  const dataString = encryptConfigStr(JSON.stringify(normalizedConfig, null, 2));
+  const dataString = encryptConfigStr(
+    JSON.stringify(normalizedConfig, null, 2),
+  );
   await writeFile(tempPath, dataString, "utf8");
   try {
     await copyFile(configPath, backupPath);
@@ -306,11 +328,7 @@ function getAutostartArgs() {
 function getLinuxAutostartPath() {
   const configHome =
     process.env.XDG_CONFIG_HOME || join(app.getPath("home"), ".config");
-  return join(
-    configHome,
-    "autostart",
-    autostartDesktopFileName,
-  );
+  return join(configHome, "autostart", autostartDesktopFileName);
 }
 
 function quoteDesktopValue(value) {
@@ -382,7 +400,7 @@ let trayState = {
   autostart: true,
   closeToTray: true,
   debugOfflineMode: false,
-    debugSimulateUpdate: false,
+  debugSimulateUpdate: false,
 };
 
 function hasTrayStateChanged(nextState) {
@@ -395,7 +413,7 @@ function hasTrayStateChanged(nextState) {
     "autostart",
     "closeToTray",
     "debugOfflineMode",
-      "debugSimulateUpdate",
+    "debugSimulateUpdate",
   ].some((key) => trayState[key] !== nextState[key]);
 }
 
@@ -434,10 +452,25 @@ function updateTrayMenu() {
     {
       label: "Online Status",
       submenu: [
-        { label: "Online", type: "radio", checked: trayState.status === "online", click: () => sendTrayAction("set-status", "online") },
-        { label: "Do Not Disturb", type: "radio", checked: trayState.status === "dnd", click: () => sendTrayAction("set-status", "dnd") },
-        { label: "Offline / Hidden", type: "radio", checked: trayState.status === "offline", click: () => sendTrayAction("set-status", "offline") },
-      ]
+        {
+          label: "Online",
+          type: "radio",
+          checked: trayState.status === "online",
+          click: () => sendTrayAction("set-status", "online"),
+        },
+        {
+          label: "Do Not Disturb",
+          type: "radio",
+          checked: trayState.status === "dnd",
+          click: () => sendTrayAction("set-status", "dnd"),
+        },
+        {
+          label: "Offline / Hidden",
+          type: "radio",
+          checked: trayState.status === "offline",
+          click: () => sendTrayAction("set-status", "offline"),
+        },
+      ],
     },
     { type: "separator" },
     {
@@ -456,10 +489,25 @@ function updateTrayMenu() {
     {
       label: "Quick Settings",
       submenu: [
-        { label: "Dark Mode", type: "checkbox", checked: trayState.theme === "dark", click: () => sendTrayAction("toggle-theme") },
-        { label: "Launch on Startup", type: "checkbox", checked: trayState.autostart, click: () => sendTrayAction("toggle-autostart") },
-        { label: "Close to Tray", type: "checkbox", checked: trayState.closeToTray, click: () => sendTrayAction("toggle-close-to-tray") },
-      ]
+        {
+          label: "Dark Mode",
+          type: "checkbox",
+          checked: trayState.theme === "dark",
+          click: () => sendTrayAction("toggle-theme"),
+        },
+        {
+          label: "Launch on Startup",
+          type: "checkbox",
+          checked: trayState.autostart,
+          click: () => sendTrayAction("toggle-autostart"),
+        },
+        {
+          label: "Close to Tray",
+          type: "checkbox",
+          checked: trayState.closeToTray,
+          click: () => sendTrayAction("toggle-close-to-tray"),
+        },
+      ],
     },
     { type: "separator" },
     {
@@ -661,8 +709,8 @@ function isSystemDoNotDisturbEnabled() {
     process.platform === "win32"
       ? isWindowsNotificationDisabled()
       : process.platform === "linux"
-        ? isLinuxNotificationDisabled()
-        : false;
+      ? isLinuxNotificationDisabled()
+      : false;
   lastSystemDndCheck = { checkedAt: now, enabled };
   return enabled;
 }
@@ -681,10 +729,10 @@ function shouldSuppressNotification({ showWhenFocused = false } = {}) {
 
 function createToastWindow() {
   if (toastWindow) return toastWindow;
-  
+
   const display = screen.getPrimaryDisplay();
   const workArea = display.workArea;
-  
+
   toastWindow = new BrowserWindow({
     width: 380,
     height: 10,
@@ -704,7 +752,7 @@ function createToastWindow() {
       nodeIntegration: false,
     },
   });
-  
+
   toastWindow.setIgnoreMouseEvents(false);
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -729,18 +777,25 @@ function sendNotificationAction(action) {
 }
 
 function showAppNotification(details = {}) {
-  if (shouldSuppressNotification({ showWhenFocused: Boolean(details.showWhenFocused) })) {
+  if (
+    shouldSuppressNotification({
+      showWhenFocused: Boolean(details.showWhenFocused),
+    })
+  ) {
     return { ok: true, suppressed: true };
   }
 
   const kind = details.kind === "call" ? "call" : "message";
-  const notificationId = details.id || `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const notificationId =
+    details.id || `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   if (activeNotifications.has(notificationId)) {
     return { ok: true, id: notificationId, existing: true };
   }
 
-  const title = String(details.title || (kind === "call" ? "Incoming call" : "New message"));
+  const title = String(
+    details.title || (kind === "call" ? "Incoming call" : "New message"),
+  );
   const body = String(details.body || "");
   const peerId = details.peerId || "";
   const callId = details.callId || "";
@@ -755,14 +810,15 @@ function showAppNotification(details = {}) {
     callId,
     theme: details.theme,
     silent: Boolean(details.silent),
-    avatarCacheBuster: details.avatarCacheBuster || Math.floor(Date.now() / 3600000)
+    avatarCacheBuster:
+      details.avatarCacheBuster || Math.floor(Date.now() / 3600000),
   };
 
   activeNotifications.set(notificationId, true);
-  
+
   if (!toastWindow) {
     createToastWindow();
-    toastWindow.once('ready-to-show', () => {
+    toastWindow.once("ready-to-show", () => {
       toastWindow.showInactive();
       toastWindow.webContents.send("show-toast", toastPayload);
     });
@@ -1081,7 +1137,8 @@ async function installWindowsUpdate(
 }
 
 function createWindow({ hidden = false } = {}) {
-  const initialTheme = appConfig?.appSettings?.theme === "dark" ? "dark" : "light";
+  const initialTheme =
+    appConfig?.appSettings?.theme === "dark" ? "dark" : "light";
   const win = new BrowserWindow({
     width: 980,
     height: 680,
@@ -1090,9 +1147,9 @@ function createWindow({ hidden = false } = {}) {
     title: appDisplayName,
     icon: windowIcon,
     frame: false,
-      thickFrame: true,
-      backgroundMaterial: "none",
-      transparent: false,
+    thickFrame: true,
+    backgroundMaterial: "none",
+    transparent: false,
     titleBarStyle: "hidden",
     backgroundColor: initialTheme === "dark" ? "#000000" : "#eef4f7",
     autoHideMenuBar: true,
@@ -1192,19 +1249,29 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("open-microsoft-store", async () => {
-    if (!isWindowsStore) return { ok: false, error: "Microsoft Store is not managing this installation." };
+    if (!isWindowsStore)
+      return {
+        ok: false,
+        error: "Microsoft Store is not managing this installation.",
+      };
     try {
       await shell.openExternal(microsoftStoreProductUrl);
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: error?.message || "Could not open Microsoft Store." };
+      return {
+        ok: false,
+        error: error?.message || "Could not open Microsoft Store.",
+      };
     }
   });
   ipcMain.handle("fetch-changelog-feed", async () => {
     try {
       return { ok: true, text: await fetchChangelogFeed() };
     } catch (error) {
-      return { ok: false, error: error?.message || "Changelog request failed." };
+      return {
+        ok: false,
+        error: error?.message || "Changelog request failed.",
+      };
     }
   });
   ipcMain.handle("load-config", () => loadConfig());
@@ -1266,7 +1333,7 @@ app.whenReady().then(async () => {
         x: workArea.x + workArea.width - 380 - 10,
         y: workArea.y + workArea.height - h - 10,
         width: 380,
-        height: h
+        height: h,
       });
       // Hide if empty
       if (height <= 0) {

@@ -3,7 +3,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.join(__dirname, "..");
-const projectConfig = JSON.parse(fs.readFileSync(path.join(root, "config.json"), "utf8"));
+const projectConfig = JSON.parse(
+  fs.readFileSync(path.join(root, "config.json"), "utf8"),
+);
 const workflow = "pages.yml";
 const ref = projectConfig.branch || "main";
 const repo = projectConfig.repo;
@@ -32,7 +34,15 @@ function run(command, args) {
 
 // --- GitHub Pages ---
 console.log(`Triggering GitHub Pages deploy for ${repo} on ${ref}...`);
-const output = run("gh", ["workflow", "run", workflow, "--repo", repo, "--ref", ref]);
+const output = run("gh", [
+  "workflow",
+  "run",
+  workflow,
+  "--repo",
+  repo,
+  "--ref",
+  ref,
+]);
 const runUrl = output
   .split(/\r?\n/)
   .find((line) => /^https:\/\/github\.com\/.+\/actions\/runs\/\d+/.test(line));

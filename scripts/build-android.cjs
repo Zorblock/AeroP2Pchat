@@ -1,4 +1,10 @@
-const { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } = require("node:fs");
+const {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+} = require("node:fs");
 const { homedir } = require("node:os");
 const { join, resolve } = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -38,12 +44,17 @@ function assertReleaseKeystore() {
   const properties = readKeystoreProperties();
   const required = ["storeFile", "storePassword", "keyAlias", "keyPassword"];
   const missing = required.filter((name) => !properties[name]);
-  const storePath = properties.storeFile && resolve(androidDir, properties.storeFile);
+  const storePath =
+    properties.storeFile && resolve(androidDir, properties.storeFile);
 
   if (missing.length > 0 || !storePath || !existsSync(storePath)) {
     console.error("A signed Android release requires a private keystore.");
-    console.error("Create android/keystore.properties locally (it is gitignored) before building.");
-    console.error("Required properties: storeFile, storePassword, keyAlias, keyPassword.");
+    console.error(
+      "Create android/keystore.properties locally (it is gitignored) before building.",
+    );
+    console.error(
+      "Required properties: storeFile, storePassword, keyAlias, keyPassword.",
+    );
     process.exit(1);
   }
 }
@@ -102,20 +113,29 @@ function findSupportedJavaHome() {
 const supportedJavaHome = findSupportedJavaHome();
 if (supportedJavaHome) {
   buildEnv.JAVA_HOME = supportedJavaHome;
-  buildEnv.PATH = `${join(supportedJavaHome, "bin")}${isWindows ? ";" : ":"}${process.env.PATH || ""}`;
+  buildEnv.PATH = `${join(supportedJavaHome, "bin")}${isWindows ? ";" : ":"}${
+    process.env.PATH || ""
+  }`;
 }
 
 function findAndroidSdkHome() {
   const candidates = [
     process.env.ANDROID_HOME,
     process.env.ANDROID_SDK_ROOT,
-    isWindows ? join(process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"), "Android", "Sdk") : "",
+    isWindows
+      ? join(
+          process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
+          "Android",
+          "Sdk",
+        )
+      : "",
     isWindows ? "C:\\Android\\Sdk" : join(homedir(), "Android", "Sdk"),
   ].filter(Boolean);
 
-  return candidates.find((candidate) =>
-    existsSync(join(candidate, "platforms")) &&
-    existsSync(join(candidate, "platform-tools")),
+  return candidates.find(
+    (candidate) =>
+      existsSync(join(candidate, "platforms")) &&
+      existsSync(join(candidate, "platform-tools")),
   );
 }
 
@@ -165,13 +185,17 @@ if (!existsSync(androidDir)) {
 assertReleaseKeystore();
 run("npx", ["vite", "build"]);
 run("npx", ["cap", "sync", "android"]);
-run(isWindows ? "gradlew.bat" : "./gradlew", [
-  "assembleRelease",
-  `-PaeroAndroidVersionName=${packageInfo.version}`,
-  `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
-], {
-  cwd: androidDir,
-});
+run(
+  isWindows ? "gradlew.bat" : "./gradlew",
+  [
+    "assembleRelease",
+    `-PaeroAndroidVersionName=${packageInfo.version}`,
+    `-PaeroAndroidVersionCode=${getAndroidVersionCode(packageInfo.version)}`,
+  ],
+  {
+    cwd: androidDir,
+  },
+);
 
 const gradleApkPath = join(
   androidDir,

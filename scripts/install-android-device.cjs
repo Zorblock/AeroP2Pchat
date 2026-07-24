@@ -84,14 +84,18 @@ function findAndroidSdkHome() {
 const supportedJavaHome = findSupportedJavaHome();
 if (supportedJavaHome) {
   buildEnv.JAVA_HOME = supportedJavaHome;
-  buildEnv.PATH = `${join(supportedJavaHome, "bin")}${isWindows ? ";" : ":"}${process.env.PATH || ""}`;
+  buildEnv.PATH = `${join(supportedJavaHome, "bin")}${isWindows ? ";" : ":"}${
+    process.env.PATH || ""
+  }`;
 }
 
 const androidSdkHome = findAndroidSdkHome();
 if (androidSdkHome) {
   buildEnv.ANDROID_HOME = androidSdkHome;
   buildEnv.ANDROID_SDK_ROOT = androidSdkHome;
-  buildEnv.PATH = `${join(androidSdkHome, "platform-tools")}${isWindows ? ";" : ":"}${buildEnv.PATH || ""}`;
+  buildEnv.PATH = `${join(androidSdkHome, "platform-tools")}${
+    isWindows ? ";" : ":"
+  }${buildEnv.PATH || ""}`;
 }
 
 function run(command, args, options = {}) {
@@ -156,10 +160,14 @@ if (connectedDevices.length === 0) {
   process.exit(1);
 }
 
-const isUninstall = process.argv.includes('--uninstall');
+const isUninstall = process.argv.includes("--uninstall");
 if (isUninstall) {
   console.log("Uninstalling app from device...");
-  const uninstallResult = adb(["uninstall", "de.zorblock.aerop2pchat"], { ignoreError: true, stdio: "pipe", encoding: "utf8" });
+  const uninstallResult = adb(["uninstall", "de.zorblock.aerop2pchat"], {
+    ignoreError: true,
+    stdio: "pipe",
+    encoding: "utf8",
+  });
   if (uninstallResult.stdout) console.log(uninstallResult.stdout.trim());
   if (uninstallResult.stderr) console.error(uninstallResult.stderr.trim());
   process.exit(0);
@@ -188,14 +196,18 @@ const apkPath = join(
 );
 
 console.log("Installing APK on device...");
-const installResult = adb(["install", "-r", apkPath], { ignoreError: true, stdio: "pipe", encoding: "utf8" });
+const installResult = adb(["install", "-r", apkPath], {
+  ignoreError: true,
+  stdio: "pipe",
+  encoding: "utf8",
+});
 const output = `${installResult.stdout || ""} ${installResult.stderr || ""}`;
 
 if (installResult.status !== 0) {
   if (output.includes("INSTALL_FAILED_UPDATE_INCOMPATIBLE")) {
     console.error(
       "Update refused because the installed app was signed with a different key. " +
-      "It was not uninstalled, so the existing settings remain safe. Build with the original release key to update it."
+        "It was not uninstalled, so the existing settings remain safe. Build with the original release key to update it.",
     );
     process.exit(1);
   } else {
@@ -205,14 +217,19 @@ if (installResult.status !== 0) {
 }
 
 console.log("Launching app...");
-adb([
-  "shell",
-  "monkey",
-  "-p",
-  "de.zorblock.aerop2pchat",
-  "-c",
-  "android.intent.category.LAUNCHER",
-  "1",
-], { stdio: "ignore" });
+adb(
+  [
+    "shell",
+    "monkey",
+    "-p",
+    "de.zorblock.aerop2pchat",
+    "-c",
+    "android.intent.category.LAUNCHER",
+    "1",
+  ],
+  { stdio: "ignore" },
+);
 
-console.log(`Installed and launched ${packageInfo.name} ${packageInfo.version}.`);
+console.log(
+  `Installed and launched ${packageInfo.name} ${packageInfo.version}.`,
+);

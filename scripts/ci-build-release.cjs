@@ -110,8 +110,7 @@ function findFile(startDir, predicate) {
   if (!fs.existsSync(startDir)) return "";
   const files = findAllFiles(startDir, predicate);
   files.sort(
-    (left, right) =>
-      fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs,
+    (left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs,
   );
   return files[0] || "";
 }
@@ -174,7 +173,11 @@ function buildLinux(version) {
   if (appImage) {
     fs.writeFileSync(
       path.join(releaseDir, "update_manifest_linux.json"),
-      `${JSON.stringify({ version, platform: "linux", asset: appImage, assets }, null, 2)}\n`,
+      `${JSON.stringify(
+        { version, platform: "linux", asset: appImage, assets },
+        null,
+        2,
+      )}\n`,
       "utf8",
     );
   }

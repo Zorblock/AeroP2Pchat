@@ -1,23 +1,23 @@
 {
-    "deno.enable": false,
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
-    "java.import.gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
-    "gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
-    "gradle.autoDetect": "off",
-    "gradle.nestedProjects": false,
-    "java.gradle.buildServer.enabled": "off",
-    "java.import.gradle.enabled": false,
-    "java.configuration.runtimes": [
-        {
-            "name": "JavaSE-21",
-            "path": "C:\\Program Files\\Java\\jdk-21.0.11",
-            "default": true
-        }
-    ],
-    "java.import.exclusions": [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/android/**"
-    ]
+  "deno.enable": false,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+  "java.import.gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+  "gradle.java.home": "C:\\Program Files\\Java\\jdk-21.0.11",
+  "gradle.autoDetect": "off",
+  "gradle.nestedProjects": false,
+  "java.gradle.buildServer.enabled": "off",
+  "java.import.gradle.enabled": false,
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Program Files\\Java\\jdk-21.0.11",
+      "default": true
+    }
+  ],
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/android/**"
+  ]
 }

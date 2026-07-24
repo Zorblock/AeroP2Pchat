@@ -13,7 +13,7 @@ module.exports = {
     "package.json",
     "!node_modules/**/android/**/*",
     "!node_modules/**/ios/**/*",
-    "!node_modules/**/*.podspec"
+    "!node_modules/**/*.podspec",
   ],
   // Keep native window/tray icons outside app.asar as well. Some desktop
   // shells cannot reliably resolve a taskbar icon from inside the archive.
