@@ -499,8 +499,7 @@ input:disabled, select:disabled, textarea:disabled {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 14%, transparent);
 }
 .status-retry { min-height: 24px; padding: 0 8px; font-size: 10px; font-weight: 750; }
-.update-card {
-}
+
 .update-card .label, .update-card strong { color: var(--warning); }
 .update-card strong { display: block; margin: 5px 0 3px; font-size: 12px; }
 .update-card p { color: var(--text-soft); font-size: 11px; }
