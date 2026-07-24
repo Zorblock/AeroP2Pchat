@@ -34,7 +34,7 @@ module.exports = defineConfig({
       rolldownOptions: {
         input: {
           index: resolve(__dirname, "src/renderer/index.html"),
-
+          toast: resolve(__dirname, "src/renderer/toast.html"),
         },
         output: {
           manualChunks(id) {

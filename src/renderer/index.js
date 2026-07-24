@@ -3333,6 +3333,7 @@ function notifyIncomingMessage(peerId, text) {
   const shown = showAppNotification({
     kind: "message",
     peerId,
+    accountUserId: conn?.metadata?.accountUserId,
     title: getPeerLabel(peerId, conn),
     body: text,
     silent: !isSoundEnabled("messages"),
@@ -3364,6 +3365,7 @@ function notifyIncomingCall(peerId, callId) {
     id: getCallNotificationId(callId),
     kind: "call",
     peerId,
+    accountUserId: conn?.metadata?.accountUserId,
     callId,
     title: "Incoming voice call",
     body: `${getPeerLabel(peerId, conn)} is calling`,

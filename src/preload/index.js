@@ -67,4 +67,15 @@ contextBridge.exposeInMainWorld("aeroChat", {
 contextBridge.exposeInMainWorld("aeroChatNotification", {
   action: (action) => ipcRenderer.invoke("notification-action", action),
   close: (id) => ipcRenderer.invoke("close-app-notification", id),
+  onShowToast: (callback) => {
+    const listener = (_event, details) => callback(details);
+    ipcRenderer.on("show-toast", listener);
+    return () => ipcRenderer.removeListener("show-toast", listener);
+  },
+  onCloseToast: (callback) => {
+    const listener = (_event, id) => callback(id);
+    ipcRenderer.on("close-toast", listener);
+    return () => ipcRenderer.removeListener("close-toast", listener);
+  },
+  updateToastHeight: (height) => ipcRenderer.send("update-toast-height", height)
 });

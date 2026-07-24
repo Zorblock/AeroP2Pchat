@@ -11,6 +11,7 @@ const {
   powerMonitor,
   shell,
   session,
+  screen,
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
 const { copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } = require("node:fs/promises");
@@ -60,6 +61,7 @@ const allowMultipleInstances =
   process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
 const autostartDesktopFileName = projectConfig.linux.autostartDesktopFileName;
 let mainWindow = null;
+let toastWindow = null;
 let tray = null;
 let appConfig = {};
 let forceQuit = false;
@@ -677,6 +679,48 @@ function shouldSuppressNotification({ showWhenFocused = false } = {}) {
   return Boolean(state.systemDnd || (!showWhenFocused && state.appFocused));
 }
 
+function createToastWindow() {
+  if (toastWindow) return toastWindow;
+  
+  const display = screen.getPrimaryDisplay();
+  const workArea = display.workArea;
+  
+  toastWindow = new BrowserWindow({
+    width: 380,
+    height: 10,
+    x: workArea.x + workArea.width - 380 - 10,
+    y: workArea.y + workArea.height - 10,
+    show: false,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: false,
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+    },
+  });
+  
+  toastWindow.setIgnoreMouseEvents(false);
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    const toastUrl = new URL("toast.html", process.env.ELECTRON_RENDERER_URL);
+    toastWindow.loadURL(toastUrl.toString());
+  } else {
+    toastWindow.loadFile(join(__dirname, "../renderer/toast.html"));
+  }
+
+  toastWindow.on("closed", () => {
+    toastWindow = null;
+  });
+
+  return toastWindow;
+}
+
 function sendNotificationAction(action) {
   if (action?.openWindow) {
     showMainWindow();
@@ -701,57 +745,41 @@ function showAppNotification(details = {}) {
   const peerId = details.peerId || "";
   const callId = details.callId || "";
 
-  // The 'actions' array adds Accept/Decline buttons to the native notification on supported platforms
-  const notification = new Notification({
+  const toastPayload = {
+    id: notificationId,
     title,
     body,
-    icon: windowIcon,
+    kind,
+    peerId,
+    accountUserId: details.accountUserId,
+    callId,
     silent: Boolean(details.silent),
-    actions: kind === "call" ? [
-      { type: 'button', text: 'Accept' },
-      { type: 'button', text: 'Decline' }
-    ] : undefined
-  });
+    avatarCacheBuster: details.avatarCacheBuster || Math.floor(Date.now() / 3600000)
+  };
 
-  notification.on('action', (_event, index) => {
-    if (kind === "call") {
-      if (index === 0) {
-        sendNotificationAction({ type: 'accept-call', openWindow: true, id: notificationId, kind, peerId, callId });
-      } else if (index === 1) {
-        sendNotificationAction({ type: 'decline-call', id: notificationId, kind, peerId, callId });
-      }
-    }
-  });
-
-  notification.on('click', () => {
-    sendNotificationAction({ type: 'open', openWindow: true, id: notificationId, kind, peerId, callId });
-  });
-
-  notification.on('close', () => {
-    activeNotifications.delete(notificationId);
-  });
-
-  activeNotifications.set(notificationId, notification);
-  notification.show();
-
-  if (kind === "message") {
-    setTimeout(() => {
-      const n = activeNotifications.get(notificationId);
-      if (n) {
-        n.close();
-        activeNotifications.delete(notificationId);
-      }
-    }, 12000);
+  activeNotifications.set(notificationId, true);
+  
+  if (!toastWindow) {
+    createToastWindow();
+    toastWindow.once('ready-to-show', () => {
+      toastWindow.showInactive();
+      toastWindow.webContents.send("show-toast", toastPayload);
+    });
+  } else {
+    toastWindow.showInactive();
+    toastWindow.webContents.send("show-toast", toastPayload);
   }
 
+  // The renderer (toast.js) will handle the 10s auto-close and send close-app-notification.
   return { ok: true, id: notificationId };
 }
 
 function closeAppNotification(id) {
-  const notification = activeNotifications.get(String(id));
-  if (notification) {
-    notification.close();
+  if (activeNotifications.has(String(id))) {
     activeNotifications.delete(String(id));
+    if (toastWindow) {
+      toastWindow.webContents.send("close-toast", String(id));
+    }
   }
   return { ok: true };
 }
@@ -1226,6 +1254,26 @@ app.whenReady().then(async () => {
   ipcMain.handle("notification-action", (_event, action) => {
     sendNotificationAction(action);
     return { ok: true };
+  });
+  ipcMain.on("update-toast-height", (event, height) => {
+    if (toastWindow && !toastWindow.isDestroyed()) {
+      const display = screen.getPrimaryDisplay();
+      const workArea = display.workArea;
+      // We set height to height or minimum 10 so it's not totally 0.
+      const h = Math.max(10, height);
+      toastWindow.setBounds({
+        x: workArea.x + workArea.width - 380 - 10,
+        y: workArea.y + workArea.height - h - 10,
+        width: 380,
+        height: h
+      });
+      // Hide if empty
+      if (height <= 0) {
+        toastWindow.hide();
+      } else {
+        toastWindow.showInactive();
+      }
+    }
   });
   ipcMain.on("realtime-cleanup-complete", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
