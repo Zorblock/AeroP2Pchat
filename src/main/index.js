@@ -9,12 +9,14 @@ const {
   desktopCapturer,
   ipcMain,
   powerMonitor,
+  safeStorage,
   shell,
   session,
   screen,
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
 const {
+  chmod,
   copyFile,
   mkdir,
   mkdtemp,
@@ -25,14 +27,19 @@ const {
 } = require("node:fs/promises");
 const {
   createHash,
-  createCipheriv,
-  createDecipheriv,
   randomBytes,
 } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
+const {
+  KEY_BYTES,
+  decryptAuthenticatedConfig,
+  decryptLegacyConfig,
+  encryptAuthenticatedConfig,
+  isAuthenticatedConfig,
+} = require("./config-crypto");
 const projectConfig = __PROJECT_CONFIG__;
 
 const packagedWindowIconPath = join(
@@ -58,6 +65,7 @@ const changelogFeedUrl =
   "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
 const appDisplayName = projectConfig.app.name;
 const userConfigFileName = "config.aero";
+const userConfigKeyFileName = "config.key";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const updateDownloadTimeoutMs = 60000;
@@ -98,8 +106,6 @@ if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
 } else if (!app.isPackaged) {
   app.setPath("userData", join(process.cwd(), ".dev-data", "instance-0"));
-} else {
-  app.setPath("userData", dirname(process.execPath));
 }
 
 if (!allowMultipleInstances) {
@@ -124,6 +130,14 @@ function getConfigPath() {
 
 function getConfigBackupPath() {
   return `${getConfigPath()}.bak`;
+}
+
+function getConfigKeyPath() {
+  return join(app.getPath("userData"), userConfigKeyFileName);
+}
+
+function getConfigKeyBackupPath() {
+  return `${getConfigKeyPath()}.bak`;
 }
 
 function getDefaultAppSettings() {
@@ -244,41 +258,182 @@ function normalizeConfig(config = {}) {
   return config;
 }
 
-const CONFIG_ENC_KEY = createHash("sha256")
-  .update(projectConfig.app.id || "AeroP2Pchat")
-  .digest();
+let cachedConfigKey = null;
 
-function encryptConfigStr(text) {
-  const iv = randomBytes(16);
-  const cipher = createCipheriv("aes-256-cbc", CONFIG_ENC_KEY, iv);
-  let encrypted = cipher.update(text, "utf8", "base64");
-  encrypted += cipher.final("base64");
-  return "ENC:" + iv.toString("hex") + ":" + encrypted;
+function decodeStoredConfigKey(value) {
+  const text = String(value).trim();
+  let decoded;
+  if (text.startsWith("SAFE:")) {
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error("Operating-system secret storage is unavailable.");
+    }
+    decoded = Buffer.from(
+      safeStorage.decryptString(Buffer.from(text.substring(5), "base64")),
+      "base64",
+    );
+  } else if (text.startsWith("LOCAL:")) {
+    decoded = Buffer.from(text.substring(6), "base64");
+  } else {
+    throw new Error("Invalid config key format.");
+  }
+
+  if (decoded.length !== KEY_BYTES) {
+    throw new Error("Invalid config key length.");
+  }
+  return decoded;
 }
 
-function decryptConfigStr(text) {
-  if (!text.startsWith("ENC:")) return text; // Plaintext fallback
-  const parts = text.substring(4).split(":");
-  if (parts.length !== 2) throw new Error("Invalid config format");
-  const iv = Buffer.from(parts[0], "hex");
-  const decipher = createDecipheriv("aes-256-cbc", CONFIG_ENC_KEY, iv);
-  let decrypted = decipher.update(parts[1], "base64", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+async function readExistingConfigKey() {
+  if (cachedConfigKey) {
+    return cachedConfigKey;
+  }
+
+  const keyPaths = [getConfigKeyPath(), getConfigKeyBackupPath()];
+  let lastError = null;
+  for (const keyPath of keyPaths) {
+    try {
+      cachedConfigKey = decodeStoredConfigKey(
+        await readFile(keyPath, "utf8"),
+      );
+      return cachedConfigKey;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        lastError = error;
+      }
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+  return null;
+}
+
+async function createConfigKey() {
+  const existing = await readExistingConfigKey();
+  if (existing) {
+    return existing;
+  }
+
+  const key = randomBytes(KEY_BYTES);
+  const protectedValue = safeStorage.isEncryptionAvailable()
+    ? `SAFE:${safeStorage.encryptString(key.toString("base64")).toString("base64")}`
+    : `LOCAL:${key.toString("base64")}`;
+  const keyPath = getConfigKeyPath();
+  const keyBackupPath = getConfigKeyBackupPath();
+  const tempPath = `${keyPath}.${process.pid}.tmp`;
+
+  await mkdir(app.getPath("userData"), { recursive: true });
+  await writeFile(tempPath, protectedValue, { encoding: "utf8", mode: 0o600 });
+  await rename(tempPath, keyPath);
+  await chmod(keyPath, 0o600).catch(() => {});
+  await copyFile(keyPath, keyBackupPath);
+  await chmod(keyBackupPath, 0o600).catch(() => {});
+  cachedConfigKey = key;
+  return key;
+}
+
+function legacyConfigPaths() {
+  const installDir = dirname(process.execPath);
+  return [
+    join(installDir, userConfigFileName),
+    join(installDir, `${userConfigFileName}.bak`),
+    join(installDir, "config.json"),
+    join(app.getPath("appData"), app.name, "config.json"),
+    join(app.getPath("appData"), "aero-p2p-chat", "config.json"),
+  ];
+}
+
+async function removeMigratedLegacyConfigs() {
+  const protectedPaths = new Set([getConfigPath(), getConfigBackupPath()]);
+  for (const legacyPath of new Set(legacyConfigPaths())) {
+    if (!protectedPaths.has(legacyPath)) {
+      await rm(legacyPath, { force: true }).catch(() => {});
+    }
+  }
+}
+
+function prepareLegacyConfigMigration(config) {
+  if (!config || typeof config !== "object") {
+    return config;
+  }
+
+  const legacyIdentity =
+    config.identity && typeof config.identity === "object"
+      ? config.identity
+      : null;
+  const legacyToken =
+    typeof legacyIdentity?.authToken === "string"
+      ? legacyIdentity.authToken.trim()
+      : "";
+  const legacyUserId =
+    typeof legacyIdentity?.accountUserId === "string"
+      ? legacyIdentity.accountUserId.trim()
+      : "";
+
+  if (legacyToken && legacyUserId) {
+    config.security = {
+      ...(config.security && typeof config.security === "object"
+        ? config.security
+        : {}),
+      pendingTokenRevocation: {
+        userId: legacyUserId,
+        token: legacyToken,
+      },
+      accountReloginRequired: true,
+    };
+  }
+
+  if (legacyIdentity) {
+    legacyIdentity.loggedIn = false;
+    legacyIdentity.accountUserId = "";
+    legacyIdentity.authToken = "";
+    legacyIdentity.role = "";
+  }
+  return config;
 }
 
 async function loadConfig() {
   const configPaths = [
     getConfigPath(),
     getConfigBackupPath(),
-    join(app.getPath("userData"), "config.json"),
-    join(app.getPath("appData"), app.name, "config.json"),
+    ...legacyConfigPaths(),
   ];
   let lastError = null;
   for (const configPath of configPaths) {
     try {
       const fileData = await readFile(configPath, "utf8");
-      return normalizeConfig(JSON.parse(decryptConfigStr(fileData)));
+      const authenticated = isAuthenticatedConfig(fileData);
+      const existingKey = await readExistingConfigKey();
+      const isProtectedConfigPath =
+        configPath === getConfigPath() || configPath === getConfigBackupPath();
+      if (
+        !authenticated &&
+        app.isPackaged &&
+        (isProtectedConfigPath || existingKey)
+      ) {
+        throw new Error("Refused unauthenticated config after security migration.");
+      }
+      const plaintext = authenticated
+        ? decryptAuthenticatedConfig(fileData, existingKey)
+        : decryptLegacyConfig(
+            fileData,
+            projectConfig.app.id || "AeroP2Pchat",
+          );
+      const parsedConfig = JSON.parse(plaintext);
+      const config = normalizeConfig(
+        authenticated
+          ? parsedConfig
+          : prepareLegacyConfigMigration(parsedConfig),
+      );
+      if (!authenticated || configPath !== getConfigPath()) {
+        await saveConfig(config);
+        if (configPath === getConfigBackupPath()) {
+          await copyFile(getConfigPath(), getConfigBackupPath());
+        }
+        await removeMigratedLegacyConfigs();
+      }
+      return config;
     } catch (error) {
       if (error.code !== "ENOENT") {
         lastError = error;
@@ -303,16 +458,22 @@ async function saveConfig(config) {
   const backupPath = getConfigBackupPath();
   const tempPath = `${configPath}.${process.pid}.tmp`;
   await mkdir(app.getPath("userData"), { recursive: true });
-  const dataString = encryptConfigStr(
+  const dataString = encryptAuthenticatedConfig(
     JSON.stringify(normalizedConfig, null, 2),
+    await createConfigKey(),
   );
   await writeFile(tempPath, dataString, "utf8");
+  let hadExistingConfig = false;
   try {
     await copyFile(configPath, backupPath);
+    hadExistingConfig = true;
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
   await rename(tempPath, configPath);
+  if (!hadExistingConfig) {
+    await copyFile(configPath, backupPath);
+  }
   appConfig = normalizedConfig;
   await applyAutostartSettings();
   return { ok: true, path: configPath };

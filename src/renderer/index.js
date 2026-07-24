@@ -289,9 +289,13 @@ const chatHistory = new Map();
 const unreadCounts = new Map();
 const remoteIdentities = new Map();
 const remoteReadReceiptsEnabled = new Map();
+const accountVerificationChallenges = new Map();
+const legacyAccountVerificationInFlight = new Set();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
+const ACCOUNT_CHALLENGE_PATTERN = /^[a-f0-9]{64}$/;
+const ACCOUNT_API_BASE = "https://aero.zorblock.de/account/api";
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
 const CONTACTS_STORAGE_KEY = "aero-p2p-chat.contacts.v1";
 const THEME_STORAGE_KEY = "aero-p2p-chat.theme";
@@ -721,6 +725,50 @@ function saveAppConfig() {
   return configSaveQueue.catch(() => {});
 }
 
+async function revokeAccountToken(userId, token) {
+  if (!userId || !token) {
+    return true;
+  }
+
+  try {
+    const response = await fetch(`${ACCOUNT_API_BASE}/revoke-token.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        auth_token: token,
+      }),
+    });
+    const result = await response.json();
+    return response.ok && result.success;
+  } catch {
+    return false;
+  }
+}
+
+async function revokePendingLegacyAccountToken() {
+  const pending = appConfig.security?.pendingTokenRevocation;
+  if (!pending?.userId || !pending?.token) {
+    return;
+  }
+
+  if (await revokeAccountToken(pending.userId, pending.token)) {
+    delete appConfig.security.pendingTokenRevocation;
+    await saveAppConfig();
+  }
+}
+
+function markSecureAccountLoginComplete() {
+  appConfig.security = {
+    ...(appConfig.security && typeof appConfig.security === "object"
+      ? appConfig.security
+      : {}),
+    accountSecurityVersion: 2,
+    accountReloginRequired: false,
+  };
+  delete appConfig.security.pendingTokenRevocation;
+}
+
 function createIdentityId() {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
@@ -731,6 +779,12 @@ function createMessageId() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return `msg-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function createAccountChallenge() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function loadIdentity() {
@@ -798,6 +852,7 @@ migrateLocalStorageConfig();
 normalizeAppSettings();
 applyAppTheme(appConfig.appSettings.theme);
 const identity = loadIdentity();
+void revokePendingLegacyAccountToken();
 setBootProgress(55, "Loading identity");
 
 ownId.textContent = identity.id;
@@ -1509,7 +1564,12 @@ async function saveWelcomeNickname() {
     const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, client_name: "AeroP2Pchat" })
+      body: JSON.stringify({
+        username,
+        password,
+        client_name: "AeroP2Pchat",
+        security_version: 2,
+      })
     });
     const text = await res.text();
     let data;
@@ -1528,6 +1588,7 @@ async function saveWelcomeNickname() {
       identity.role = data.role || "user";
       identity.authToken = data.auth_token || "";
       appConfig.identity = identity;
+      markSecureAccountLoginComplete();
       saveAppConfig();
       updateTitlebarLogo();
       ownId.textContent = identity.id;
@@ -3363,9 +3424,7 @@ function notifyIncomingMessage(peerId, text) {
   }
 
   const conn = connections.get(peerId);
-  const identityId = getPeerIdentityId(peerId, conn);
-  const contact = findContact(identityId);
-  const accountUserId = contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId;
+  const accountUserId = getVerifiedAccountUserId(peerId);
 
   const shown = showAppNotification({
     kind: "message",
@@ -3398,9 +3457,7 @@ function notifyIncomingCall(peerId, callId) {
   }
 
   const conn = connections.get(peerId);
-  const identityId = getPeerIdentityId(peerId, conn);
-  const contact = findContact(identityId);
-  const accountUserId = contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId;
+  const accountUserId = getVerifiedAccountUserId(peerId);
 
   showAppNotification({
     id: getCallNotificationId(callId),
@@ -6456,8 +6513,6 @@ function createChatMetadata() {
   return {
     app: appDisplayName,
     identityId: identity.id,
-    accountUserId: identity.accountUserId || "",
-    authToken: identity.authToken || "",
     previousIdentityIds: getKnownPreviousIdentityIds(
       identity.previousIds,
       identity.id,
@@ -6469,55 +6524,173 @@ function createChatMetadata() {
 }
 
 function rememberConnectionIdentity(peerId, metadata = {}) {
-  const accountUserId = metadata.accountUserId || "";
-  const identityId = metadata.identityId;
-  if (!isValidAeroId(identityId) || identityId === identity.id) {
+  const claimedIdentityId = metadata.identityId;
+  if (
+    !isValidAeroId(peerId) ||
+    (claimedIdentityId && claimedIdentityId !== peerId) ||
+    peerId === identity.id
+  ) {
     return;
   }
 
+  const identityId = peerId;
   const nickname = sanitizeNickname(metadata.nickname);
   migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
   const oldRemote = remoteIdentities.get(peerId);
-  remoteIdentities.set(peerId, { identityId, nickname, accountUserId, role: oldRemote ? oldRemote.role : "user" });
-  if (oldRemote && oldRemote.accountUserId !== accountUserId) {
-    window.avatarCacheBuster = Date.now();
-    updateTitlebarLogo();
-    refreshPeers();
-  }
-  
-  if (accountUserId) {
-    const token = metadata.authToken || "";
-    fetch(`https://aero.zorblock.de/account/api/user.php?id=${encodeURIComponent(accountUserId)}&token=${encodeURIComponent(token)}`)
-      .then(res => res.json())
-      .then(data => {
+  remoteIdentities.set(peerId, {
+    identityId,
+    nickname: oldRemote?.verified ? oldRemote.nickname : nickname,
+    accountUserId: oldRemote?.verified ? oldRemote.accountUserId : "",
+    role: oldRemote?.verified ? oldRemote.role : "user",
+    verified: Boolean(oldRemote?.verified),
+  });
+
+  // Older releases disclose their reusable token in connection metadata.
+  // Accept it only as a migration bridge; this release never sends that token.
+  const legacyAccountUserId = String(metadata.accountUserId || "");
+  const legacyToken = String(metadata.authToken || "");
+  const legacyKey = `${peerId}:${legacyAccountUserId}`;
+  if (
+    legacyAccountUserId &&
+    legacyToken &&
+    !oldRemote?.verified &&
+    !legacyAccountVerificationInFlight.has(legacyKey)
+  ) {
+    legacyAccountVerificationInFlight.add(legacyKey);
+    fetch(
+      `${ACCOUNT_API_BASE}/user.php?id=${encodeURIComponent(legacyAccountUserId)}&token=${encodeURIComponent(legacyToken)}`,
+    )
+      .then((response) => response.json())
+      .then((data) => {
         if (data.success && data.username) {
-          const currentRemote = remoteIdentities.get(peerId);
-          if (currentRemote) {
-             currentRemote.role = data.role || "user";
-             currentRemote.nickname = data.username;
-             remoteIdentities.set(peerId, currentRemote);
-             rememberRemoteIdentity(identityId, data.username, accountUserId);
-             refreshPeers();
-             refreshCallStage();
-          }
+          applyVerifiedRemoteAccount(peerId, {
+            ...data,
+            user_id: legacyAccountUserId,
+          });
         }
       })
-      .catch(err => console.error("Failed to verify peer role:", err));
+      .catch((error) =>
+        console.error("Failed to verify legacy peer account:", error),
+      )
+      .finally(() => legacyAccountVerificationInFlight.delete(legacyKey));
   }
-  
+
   if (nickname) {
-    rememberRemoteIdentity(identityId, nickname, accountUserId);
+    rememberRemoteIdentity(
+      identityId,
+      nickname,
+      oldRemote?.verified ? oldRemote.accountUserId : "",
+    );
     return;
   }
 
   const existing = findContact(identityId);
   if (existing) {
-    const updates = { accountUserId: accountUserId || existing.accountUserId || "" };
+    const updates = {
+      accountUserId: oldRemote?.verified
+        ? oldRemote.accountUserId
+        : existing.accountUserId || "",
+    };
     if (!existing.customLabel && existing.label === identity.nickname) {
       updates.label = identityId;
       updates.pinned = existing.pinned;
     }
     upsertContact(identityId, updates);
+  }
+}
+
+function applyVerifiedRemoteAccount(peerId, account) {
+  const currentRemote = remoteIdentities.get(peerId);
+  if (!currentRemote || !account?.user_id || !account?.username) {
+    return;
+  }
+
+  const username = sanitizeNickname(account.username);
+  const accountUserId = String(account.user_id);
+  remoteIdentities.set(peerId, {
+    ...currentRemote,
+    identityId: peerId,
+    nickname: username,
+    accountUserId,
+    role: String(account.role || "user"),
+    verified: true,
+  });
+  rememberRemoteIdentity(peerId, username, accountUserId);
+  window.avatarCacheBuster = Date.now();
+  refreshPeers();
+  refreshCallStage();
+}
+
+function sendAccountVerificationChallenge(conn) {
+  if (!conn?.open || !isValidAeroId(conn.peer)) {
+    return;
+  }
+  const challenge = createAccountChallenge();
+  accountVerificationChallenges.set(conn.peer, challenge);
+  sendProtocolMessage(conn, "account-challenge", { challenge });
+}
+
+async function answerAccountVerificationChallenge(conn, challenge) {
+  if (
+    !conn?.open ||
+    !ACCOUNT_CHALLENGE_PATTERN.test(String(challenge || "")) ||
+    !identity.loggedIn ||
+    !identity.accountUserId ||
+    !identity.authToken
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${ACCOUNT_API_BASE}/ticket.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: identity.accountUserId,
+        auth_token: identity.authToken,
+        peer_id: identity.id,
+        audience_peer_id: conn.peer,
+        challenge,
+      }),
+    });
+    const result = await response.json();
+    if (response.ok && result.success && result.ticket && conn.open) {
+      sendProtocolMessage(conn, "account-proof", { ticket: result.ticket });
+    }
+  } catch (error) {
+    console.error("Could not create account verification proof:", error);
+  }
+}
+
+async function verifyRemoteAccountProof(peerId, ticket) {
+  const challenge = accountVerificationChallenges.get(peerId);
+  if (
+    !challenge ||
+    typeof ticket !== "string" ||
+    ticket.length === 0 ||
+    ticket.length > 2048
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${ACCOUNT_API_BASE}/verify-ticket.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ticket,
+        peer_id: peerId,
+        audience_peer_id: identity.id,
+        challenge,
+      }),
+    });
+    const result = await response.json();
+    if (response.ok && result.success) {
+      accountVerificationChallenges.delete(peerId);
+      applyVerifiedRemoteAccount(peerId, result);
+    }
+  } catch (error) {
+    console.error("Could not verify peer account proof:", error);
   }
 }
 
@@ -6531,6 +6704,11 @@ function getPeerLabel(peerId, conn) {
 
 function getPeerIdentityId(peerId, conn) {
   return remoteIdentities.get(peerId)?.identityId || peerId;
+}
+
+function getVerifiedAccountUserId(peerId) {
+  const remote = remoteIdentities.get(peerId);
+  return remote?.verified ? remote.accountUserId || "" : "";
 }
 
 function getRoleByIdentityId(identityId) {
@@ -6931,8 +7109,6 @@ function sendProtocolMessage(conn, type, extra = {}) {
       protocol: PROTOCOL_VERSION,
       identityId: identity.id,
       nickname: identity.nickname || "",
-      accountUserId: identity.accountUserId || "",
-      authToken: identity.authToken || "",
       time: formatTime(),
       ...extra,
     });
@@ -7038,6 +7214,7 @@ function removePeer(peerId, { silent = false } = {}) {
   }
   lastTypingSentAt.delete(peerId);
   remoteReadReceiptsEnabled.delete(peerId);
+  accountVerificationChallenges.delete(peerId);
   remoteIdentities.delete(peerId);
   if (callState.peerId === peerId) {
     endVoiceCall({
@@ -7148,7 +7325,9 @@ function refreshPeers() {
       const name = document.createElement("span");
       const identityId = getPeerIdentityId(peerId, entry.conn);
       const contact = findContact(identityId);
-      name.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
+      name.append(
+        createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+      );
         name.append(
           createContactBadges({
             pinned: Boolean(contact?.pinned),
@@ -7198,7 +7377,9 @@ function refreshPeers() {
     waiting.className = "peer-chip pending";
     const identityId = getPeerIdentityId(peerId, entry.conn);
     const contact = findContact(identityId);
-    waiting.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
+    waiting.append(
+      createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+    );
       waiting.append(
         createContactBadges({
           pinned: Boolean(contact?.pinned),
@@ -7232,7 +7413,9 @@ function refreshPeers() {
         peerId === activePeerId ? "peer-chip active" : "peer-chip";
       const identityId = getPeerIdentityId(peerId, conn);
       const contact = findContact(identityId);
-      button.append(createAvatar(peerLabel, identityId, contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId));
+      button.append(
+        createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+      );
       button.append(
         createContactBadges({
         pinned: Boolean(contact?.pinned),
@@ -7403,6 +7586,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
   conn.on("open", () => {
     hideConnectRetry();
     platformApi.vibrate("heavy");
+    sendAccountVerificationChallenge(conn);
     sendReceiptSettings(conn);
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
@@ -7446,6 +7630,16 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
     rememberConnectionIdentity(peerId, data);
     markConnectionHeartbeat(peerId);
+
+    if (data?.type === "account-challenge") {
+      answerAccountVerificationChallenge(conn, data.challenge);
+      return;
+    }
+
+    if (data?.type === "account-proof") {
+      verifyRemoteAccountProof(peerId, data.ticket);
+      return;
+    }
 
     if (data?.type === "profile-update") {
       window.avatarCacheBuster = Date.now();
@@ -7628,6 +7822,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
   });
 
   conn.on("close", () => {
+    accountVerificationChallenges.delete(peerId);
     const wasKnown =
       connections.get(peerId) === conn ||
       pendingConnections.get(peerId)?.conn === conn;
@@ -8940,7 +9135,13 @@ appMenuAccount.addEventListener("click", () => {
     profileView.classList.add("hidden");
     loginUsernameInput.value = "";
     loginPasswordInput.value = "";
-    loginError.classList.add("hidden");
+    if (appConfig.security?.accountReloginRequired) {
+      loginError.textContent =
+        "Please sign in once to finish the account security upgrade.";
+      loginError.classList.remove("hidden");
+    } else {
+      loginError.classList.add("hidden");
+    }
     guestNicknameSection.classList.remove("hidden");
     guestNicknameInput.value = identity.nickname || "";
   }
@@ -8965,7 +9166,8 @@ loginForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({
         username: loginUsernameInput.value.trim(),
         password: loginPasswordInput.value,
-        client_name: "AeroP2Pchat"
+        client_name: "AeroP2Pchat",
+        security_version: 2,
       })
     });
     const text = await res.text();
@@ -8984,6 +9186,7 @@ loginForm.addEventListener("submit", async (e) => {
       identity.role = data.role || "user";
       identity.authToken = data.auth_token || "";
       appConfig.identity = identity;
+      markSecureAccountLoginComplete();
       saveAppConfig();
       
       accountModal.classList.add("hidden");
@@ -9018,6 +9221,8 @@ loginForm.addEventListener("submit", async (e) => {
 });
 
 logoutBtn.addEventListener("click", () => {
+  const accountUserId = identity.accountUserId;
+  const authToken = identity.authToken;
   identity.loggedIn = false;
   identity.accountUserId = "";
   identity.nickname = "";
@@ -9025,6 +9230,7 @@ logoutBtn.addEventListener("click", () => {
   identity.authToken = "";
   appConfig.identity = identity;
   saveAppConfig();
+  void revokeAccountToken(accountUserId, authToken);
   
   accountModal.classList.add("hidden");
   updateTitlebarLogo();
