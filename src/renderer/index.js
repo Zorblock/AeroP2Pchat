@@ -7099,16 +7099,16 @@ function refreshPeers() {
     name.append(createAvatar(contact.label, contact.id, contact.accountUserId));
     name.append(createContactBadges(contact));
     
+    const label = document.createElement("span");
+    label.className = "contact-label";
+    label.textContent = contact.label;
+    name.append(label);
+    
     const role = getRoleByIdentityId(contact.id);
     if (role) {
       const roleBadge = createRoleBadge(role);
       if (roleBadge) name.append(roleBadge);
     }
-    
-    const label = document.createElement("span");
-    label.className = "contact-label";
-    label.textContent = contact.label;
-    name.append(label);
     name.addEventListener("click", () => {
       connectToPeer(contact.id);
     });
@@ -7158,16 +7158,16 @@ function refreshPeers() {
             waiting: true,
           }),
         );
+      const label = document.createElement("span");
+      label.className = "contact-label";
+      label.textContent = peerLabel;
+      name.append(label);
+
       const role = getRoleByIdentityId(identityId);
       if (role) {
         const roleBadge = createRoleBadge(role);
         if (roleBadge) name.append(roleBadge);
       }
-      
-      const label = document.createElement("span");
-      label.className = "contact-label";
-      label.textContent = peerLabel;
-      name.append(label);
 
       const actions = document.createElement("div");
       actions.className = "request-actions";
@@ -7246,6 +7246,12 @@ function refreshPeers() {
     label.className = "contact-label";
     label.textContent = conn.open ? peerLabel : `${peerLabel} ...`;
     button.append(label);
+
+    const role = getRoleByIdentityId(identityId);
+    if (role) {
+      const roleBadge = createRoleBadge(role);
+      if (roleBadge) button.append(roleBadge);
+    }
     const unread = unreadCounts.get(peerId) || 0;
     button.setAttribute(
       "aria-label",
