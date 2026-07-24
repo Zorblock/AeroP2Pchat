@@ -3335,10 +3335,14 @@ function notifyIncomingMessage(peerId, text) {
   }
 
   const conn = connections.get(peerId);
+  const identityId = getPeerIdentityId(peerId, conn);
+  const contact = findContact(identityId);
+  const accountUserId = contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId;
+
   const shown = showAppNotification({
     kind: "message",
     peerId,
-    accountUserId: conn?.metadata?.accountUserId,
+    accountUserId,
     title: getPeerLabel(peerId, conn),
     body: text,
     silent: !isSoundEnabled("messages"),
@@ -3366,11 +3370,15 @@ function notifyIncomingCall(peerId, callId) {
   }
 
   const conn = connections.get(peerId);
+  const identityId = getPeerIdentityId(peerId, conn);
+  const contact = findContact(identityId);
+  const accountUserId = contact?.accountUserId || remoteIdentities.get(peerId)?.accountUserId;
+
   showAppNotification({
     id: getCallNotificationId(callId),
     kind: "call",
     peerId,
-    accountUserId: conn?.metadata?.accountUserId,
+    accountUserId,
     callId,
     title: "Incoming voice call",
     body: `${getPeerLabel(peerId, conn)} is calling`,

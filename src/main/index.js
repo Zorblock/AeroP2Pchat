@@ -753,6 +753,7 @@ function showAppNotification(details = {}) {
     peerId,
     accountUserId: details.accountUserId,
     callId,
+    theme: details.theme,
     silent: Boolean(details.silent),
     avatarCacheBuster: details.avatarCacheBuster || Math.floor(Date.now() / 3600000)
   };

@@ -38,7 +38,10 @@ function closeToast(id) {
 }
 
 function showToast(details) {
-  const { id, title, body, kind, peerId, accountUserId, callId, avatarCacheBuster } = details;
+  const { id, title, body, kind, peerId, accountUserId, callId, theme, avatarCacheBuster } = details;
+
+  // Apply theme
+  document.body.className = theme === "light" ? "light-theme" : "";
 
   // Enforce max 1 toast at a time: close all currently active toasts instantly without animation
   // This prevents the window from temporarily expanding to fit 2 toasts, which causes a visual jump.
@@ -152,11 +155,11 @@ function showToast(details) {
     }
   }
 
-  // Auto-close after 10s (if not a call)
+  // Auto-close after 5s (if not a call)
   if (kind !== "call") {
     const timeout = setTimeout(() => {
       window.aeroChatNotification.close(id);
-    }, 10000);
+    }, 5000);
     activeToasts.set(id, timeout);
   }
 

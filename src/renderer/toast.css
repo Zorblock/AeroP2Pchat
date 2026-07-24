@@ -10,6 +10,13 @@
   --danger-hover: #dc2626;
 }
 
+body.light-theme {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --border: #e4e4e7;
+  --muted: #71717a;
+}
+
 body {
   margin: 0;
   padding: 0;
