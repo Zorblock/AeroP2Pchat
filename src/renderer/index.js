@@ -9,6 +9,7 @@ import "./design.css";
 const projectConfig = __PROJECT_CONFIG__;
 
 const titlebarLogo = document.querySelector("#titlebar-logo");
+const titlebarUsername = document.querySelector("#titlebar-username");
 const titlebarPresence = document.querySelector("#titlebar-presence");
 const titlebarSubtitle = document.querySelector("#titlebar-subtitle");
 const windowMinimize = document.querySelector("#window-minimize");
@@ -1525,7 +1526,10 @@ async function saveWelcomeNickname() {
       identity.loggedIn = true;
       identity.accountUserId = data.user_id;
       identity.nickname = data.username;
+      identity.role = data.role || "user";
+      identity.authToken = data.auth_token || "";
       appConfig.identity = identity;
+      saveAppConfig();
       updateTitlebarLogo();
       ownId.textContent = identity.id;
       
@@ -1801,7 +1805,12 @@ function updateTitlebarPresenceIndicator() {
   if (titlebarPresence) {
     titlebarPresence.className = `titlebar-presence ${presenceStatus}`;
   }
-  titlebarSubtitle.textContent = getPresenceStatusLabel(presenceStatus);
+  if (titlebarSubtitle) {
+    const statusLabel = getPresenceStatusLabel(presenceStatus);
+    titlebarSubtitle.textContent = identity?.loggedIn && identity?.nickname 
+      ? `@${identity.nickname} - ${statusLabel}` 
+      : statusLabel;
+  }
 }
 
 function getPresenceStatusLabel(status = getPresenceStatus()) {
@@ -2269,6 +2278,25 @@ function createBadge(iconClass, title, state = "") {
   return badge;
 }
 
+function createRoleBadge(role) {
+  if (!role || role.toLowerCase() === "user") return null;
+  const roleName = role.toLowerCase();
+  
+  const badge = document.createElement("span");
+  badge.className = `role-badge role-${roleName}`;
+  badge.title = role;
+  
+  if (roleName === "owner") {
+    badge.innerHTML = `<i class="fa-solid fa-crown"></i> ${role}`;
+  } else if (roleName === "mod") {
+    badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${role}`;
+  } else {
+    badge.textContent = role;
+  }
+  
+  return badge;
+}
+
 function updateTitlebarLogo() {
   if (identity && identity.accountUserId) {
     titlebarLogo.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
@@ -2280,8 +2308,10 @@ function updateTitlebarLogo() {
     };
   } else {
     titlebarLogo.src = appLogo;
+    titlebarLogo.style.objectFit = "contain";
     titlebarLogo.style.borderRadius = "0";
   }
+  updateTitlebarPresenceIndicator();
 }
 
 function createAvatar(label, id, accountUserId) {
@@ -3897,9 +3927,26 @@ function refreshCallStage() {
   callStage?.classList.remove("hidden");
   if (localParticipantName) {
     localParticipantName.textContent = localLabel;
+    const role = getRoleByIdentityId(identity.id);
+    if (role) {
+      const badge = createRoleBadge(role);
+      if (badge) {
+        // Add some spacing
+        badge.style.marginLeft = "8px";
+        localParticipantName.append(badge);
+      }
+    }
   }
   if (remoteParticipantName) {
     remoteParticipantName.textContent = remoteLabel;
+    const role = getRoleByIdentityId(getPeerIdentityId(stagePeerId, null));
+    if (role) {
+      const badge = createRoleBadge(role);
+      if (badge) {
+        badge.style.marginLeft = "8px";
+        remoteParticipantName.append(badge);
+      }
+    }
   }
   if (localParticipantStatus) {
     localParticipantStatus.textContent = inCallWithStagePeer
@@ -6411,8 +6458,9 @@ function createChatMetadata() {
   return {
     app: appDisplayName,
     identityId: identity.id,
-      accountUserId: identity.accountUserId || "",
-      previousIdentityIds: getKnownPreviousIdentityIds(
+    accountUserId: identity.accountUserId || "",
+    authToken: identity.authToken || "",
+    previousIdentityIds: getKnownPreviousIdentityIds(
       identity.previousIds,
       identity.id,
     ),
@@ -6432,26 +6480,47 @@ function rememberConnectionIdentity(peerId, metadata = {}) {
   const nickname = sanitizeNickname(metadata.nickname);
   migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
   const oldRemote = remoteIdentities.get(peerId);
-    remoteIdentities.set(peerId, { identityId, nickname, accountUserId });
-    if (oldRemote && oldRemote.accountUserId !== accountUserId) {
-      window.avatarCacheBuster = Date.now();
-      updateTitlebarLogo();
-      refreshPeers();
-    }
+  remoteIdentities.set(peerId, { identityId, nickname, accountUserId, role: "user" });
+  if (oldRemote && oldRemote.accountUserId !== accountUserId) {
+    window.avatarCacheBuster = Date.now();
+    updateTitlebarLogo();
+    refreshPeers();
+  }
+  
+  if (accountUserId) {
+    const token = metadata.authToken || "";
+    fetch(`https://aero.zorblock.de/account/api/user.php?id=${encodeURIComponent(accountUserId)}&token=${encodeURIComponent(token)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.username) {
+          const currentRemote = remoteIdentities.get(peerId);
+          if (currentRemote) {
+             currentRemote.role = data.role || "user";
+             currentRemote.nickname = data.username;
+             remoteIdentities.set(peerId, currentRemote);
+             rememberRemoteIdentity(identityId, data.username, accountUserId);
+             refreshPeers();
+             refreshCallStage();
+          }
+        }
+      })
+      .catch(err => console.error("Failed to verify peer role:", err));
+  }
+  
   if (nickname) {
     rememberRemoteIdentity(identityId, nickname, accountUserId);
     return;
   }
 
   const existing = findContact(identityId);
-    if (existing) {
-      const updates = { accountUserId: accountUserId || existing.accountUserId || "" };
-      if (!existing.customLabel && existing.label === identity.nickname) {
-        updates.label = identityId;
-        updates.pinned = existing.pinned;
-      }
-      upsertContact(identityId, updates);
+  if (existing) {
+    const updates = { accountUserId: accountUserId || existing.accountUserId || "" };
+    if (!existing.customLabel && existing.label === identity.nickname) {
+      updates.label = identityId;
+      updates.pinned = existing.pinned;
     }
+    upsertContact(identityId, updates);
+  }
 }
 
 function getPeerLabel(peerId, conn) {
@@ -6464,6 +6533,20 @@ function getPeerLabel(peerId, conn) {
 
 function getPeerIdentityId(peerId, conn) {
   return remoteIdentities.get(peerId)?.identityId || peerId;
+}
+
+function getRoleByIdentityId(identityId) {
+  // If it's us, check our own identity
+  if (identityId === identity.id && identity.role) {
+    return identity.role;
+  }
+  // Otherwise check remoteIdentities
+  for (const [peerId, data] of remoteIdentities.entries()) {
+    if (data.identityId === identityId) {
+      return data.role;
+    }
+  }
+  return null;
 }
 
 function openContactMenu(event, id) {
@@ -7014,6 +7097,13 @@ function refreshPeers() {
     name.className = "contact-name";
     name.append(createAvatar(contact.label, contact.id, contact.accountUserId));
     name.append(createContactBadges(contact));
+    
+    const role = getRoleByIdentityId(contact.id);
+    if (role) {
+      const roleBadge = createRoleBadge(role);
+      if (roleBadge) name.append(roleBadge);
+    }
+    
     const label = document.createElement("span");
     label.className = "contact-label";
     label.textContent = contact.label;
@@ -7067,6 +7157,12 @@ function refreshPeers() {
             waiting: true,
           }),
         );
+      const role = getRoleByIdentityId(identityId);
+      if (role) {
+        const roleBadge = createRoleBadge(role);
+        if (roleBadge) name.append(roleBadge);
+      }
+      
       const label = document.createElement("span");
       label.className = "contact-label";
       label.textContent = peerLabel;
@@ -7192,6 +7288,19 @@ function refreshPeers() {
   chatTitle.textContent = activePeerId
     ? getPeerLabel(activePeerId, activeConn)
     : "No active chat";
+    
+  // Remove existing role badge in chat header
+  chatTitle.parentElement.querySelectorAll(".role-badge").forEach(e => e.remove());
+  
+  if (activePeerId) {
+    const peerIdentityId = getPeerIdentityId(activePeerId, activeConn);
+    const role = getRoleByIdentityId(peerIdentityId);
+    if (role) {
+      const roleBadge = createRoleBadge(role);
+      if (roleBadge) chatTitle.parentElement.append(roleBadge);
+    }
+  }
+
   chatMeta.textContent = activePeerId ? "Connected" : "Idle";
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
@@ -8865,6 +8974,8 @@ loginForm.addEventListener("submit", async (e) => {
       identity.loggedIn = true;
       identity.accountUserId = data.user_id;
       identity.nickname = data.username;
+      identity.role = data.role || "user";
+      identity.authToken = data.auth_token || "";
       appConfig.identity = identity;
       saveAppConfig();
       
@@ -8903,6 +9014,8 @@ logoutBtn.addEventListener("click", () => {
   identity.loggedIn = false;
   identity.accountUserId = "";
   identity.nickname = "";
+  identity.role = "";
+  identity.authToken = "";
   appConfig.identity = identity;
   saveAppConfig();
   
