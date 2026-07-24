@@ -1026,72 +1026,125 @@
           </button>
         </header>
         <div class="settings-grid">
-          
-
-          <section class="settings-section">
-            <h3>Appearance</h3>
-            <div class="theme-switcher" role="radiogroup" aria-label="Theme">
-              <label>
-                <input
-                  id="theme-light"
-                  type="radio"
-                  name="theme"
-                  value="light"
-                />
-                <span>
-                  <i class="fa-solid fa-sun" aria-hidden="true"></i>
-                  Light
-                </span>
-              </label>
-              <label>
-                <input id="theme-dark" type="radio" name="theme" value="dark" />
-                <span>
-                  <i class="fa-solid fa-moon" aria-hidden="true"></i>
-                  Dark
-                </span>
-              </label>
-            </div>
-          </section>
-
-          <section class="settings-section">
-            <h3>Startup & tray</h3>
-            <div class="settings-options">
-              <label class="settings-check">
-                <input id="autostart-toggle" type="checkbox" />
-                <span data-app-template="Start {name} when I sign in"
-                  >Start app when I sign in</span
-                >
-              </label>
-              <div class="settings-choice" id="autostart-mode-group">
+          <div class="settings-column">
+            <section class="settings-section">
+              <h3>Appearance</h3>
+              <div class="theme-switcher" role="radiogroup" aria-label="Theme">
                 <label>
                   <input
-                    id="autostart-open"
+                    id="theme-light"
                     type="radio"
-                    name="autostart-mode"
-                    value="open"
+                    name="theme"
+                    value="light"
                   />
-                  <span>Start opened</span>
+                  <span>
+                    <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                    Light
+                  </span>
                 </label>
                 <label>
-                  <input
-                    id="autostart-hidden"
-                    type="radio"
-                    name="autostart-mode"
-                    value="hidden"
-                  />
-                  <span>Start minimized to tray</span>
+                  <input id="theme-dark" type="radio" name="theme" value="dark" />
+                  <span>
+                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                    Dark
+                  </span>
                 </label>
               </div>
-              <label class="settings-check">
-                <input id="close-to-tray-toggle" type="checkbox" />
-                <span>Close button sends Aero to tray</span>
-              </label>
-            </div>
-          </section>
+            </section>
 
-          <section class="settings-section">
-            <h3>Voice</h3>
-            <div class="device-settings">
+            <section class="settings-section">
+              <h3>Startup & tray</h3>
+              <div class="settings-options">
+                <label class="settings-check">
+                  <input id="autostart-toggle" type="checkbox" />
+                  <span data-app-template="Start {name} when I sign in"
+                    >Start app when I sign in</span
+                  >
+                </label>
+                <div class="settings-choice" id="autostart-mode-group">
+                  <label>
+                    <input
+                      id="autostart-open"
+                      type="radio"
+                      name="autostart-mode"
+                      value="open"
+                    />
+                    <span>Start opened</span>
+                  </label>
+                  <label>
+                    <input
+                      id="autostart-hidden"
+                      type="radio"
+                      name="autostart-mode"
+                      value="hidden"
+                    />
+                    <span>Start minimized to tray</span>
+                  </label>
+                </div>
+                <label class="settings-check">
+                  <input id="close-to-tray-toggle" type="checkbox" />
+                  <span>Close button sends Aero to tray</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <h3>Notifications</h3>
+              <div class="settings-options">
+                <label class="settings-check">
+                  <input id="notifications-toggle" type="checkbox" />
+                  <span>Show desktop notifications</span>
+                </label>
+                <label class="settings-check">
+                  <input id="message-notifications-toggle" type="checkbox" />
+                  <span>Notify for new messages</span>
+                </label>
+                <label class="settings-check">
+                  <input id="call-notifications-toggle" type="checkbox" />
+                  <span>Notify for incoming calls</span>
+                </label>
+                <label class="settings-check">
+                  <input id="focused-notifications-toggle" type="checkbox" />
+                  <span>Show notifications while Aero is focused</span>
+                </label>
+                <label class="settings-check">
+                  <input id="read-receipts-toggle" type="checkbox" />
+                  <span>Send and show read receipts</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <h3>Sounds</h3>
+              <div class="settings-options">
+                <label class="settings-check">
+                  <input id="sounds-toggle" type="checkbox" />
+                  <span>Enable sounds</span>
+                </label>
+                <label class="settings-check">
+                  <input id="message-sound-toggle" type="checkbox" />
+                  <span>Message sound</span>
+                </label>
+                <label class="settings-check">
+                  <input id="ringtone-sound-toggle" type="checkbox" />
+                  <span>Incoming call ringtone</span>
+                </label>
+                <label class="settings-check">
+                  <input id="call-event-sound-toggle" type="checkbox" />
+                  <span>Call join/leave sounds</span>
+                </label>
+                <label class="settings-check">
+                  <input id="connected-sound-toggle" type="checkbox" />
+                  <span>Connected sound</span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div class="settings-column">
+            <section class="settings-section">
+              <h3>Voice</h3>
+              <div class="device-settings">
               <label for="microphone-select">Microphone</label>
               <select id="microphone-select"></select>
               <label for="camera-select">Camera</label>
@@ -1215,7 +1268,7 @@
                 </div>
               </label>
             </div>
-            <label class="settings-range" for="remote-volume-slider">
+              <label class="settings-range" for="remote-volume-slider">
               <div class="settings-range-header">
                 <span>Call volume</span>
                 <strong id="remote-volume-label">100%</strong>
@@ -1229,60 +1282,9 @@
                   step="1"
                 />
               </div>
-            </label>
-          </section>
-
-          <section class="settings-section">
-            <h3>Notifications</h3>
-            <div class="settings-options">
-              <label class="settings-check">
-                <input id="notifications-toggle" type="checkbox" />
-                <span>Show desktop notifications</span>
               </label>
-              <label class="settings-check">
-                <input id="message-notifications-toggle" type="checkbox" />
-                <span>Notify for new messages</span>
-              </label>
-              <label class="settings-check">
-                <input id="call-notifications-toggle" type="checkbox" />
-                <span>Notify for incoming calls</span>
-              </label>
-              <label class="settings-check">
-                <input id="focused-notifications-toggle" type="checkbox" />
-                <span>Show notifications while Aero is focused</span>
-              </label>
-              <label class="settings-check">
-                <input id="read-receipts-toggle" type="checkbox" />
-                <span>Send and show read receipts</span>
-              </label>
-            </div>
-          </section>
-
-          <section class="settings-section">
-            <h3>Sounds</h3>
-            <div class="settings-options two-column">
-              <label class="settings-check">
-                <input id="sounds-toggle" type="checkbox" />
-                <span>Enable sounds</span>
-              </label>
-              <label class="settings-check">
-                <input id="message-sound-toggle" type="checkbox" />
-                <span>Message sound</span>
-              </label>
-              <label class="settings-check">
-                <input id="ringtone-sound-toggle" type="checkbox" />
-                <span>Incoming call ringtone</span>
-              </label>
-              <label class="settings-check">
-                <input id="call-event-sound-toggle" type="checkbox" />
-                <span>Call join/leave sounds</span>
-              </label>
-              <label class="settings-check">
-                <input id="connected-sound-toggle" type="checkbox" />
-                <span>Connected sound</span>
-              </label>
-            </div>
-          </section>
+            </section>
+          </div>
 
           <section class="settings-section">
             <h3>Contacts</h3>

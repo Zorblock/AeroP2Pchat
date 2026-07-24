@@ -1945,6 +1945,7 @@ textarea:disabled {
 /* Settings */
 #settings-modal .modal-panel {
   display: grid;
+  width: min(880px, calc(100vw - 36px));
   grid-template-rows: auto minmax(0, 1fr);
 }
 .settings-grid {
@@ -1955,16 +1956,21 @@ textarea:disabled {
   padding: 1px 5px 4px 1px;
   overflow-y: auto;
 }
+.settings-column {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.settings-grid > .settings-section {
+  grid-column: 1 / -1;
+}
 .settings-section {
   align-self: start;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-subtle);
-}
-.settings-section:nth-child(4),
-.settings-section:nth-child(7) {
-  grid-column: 1 / -1;
 }
 .settings-reset-section {
   grid-column: 1 / -1;
@@ -2668,10 +2674,6 @@ input[type="range"]:active::-webkit-slider-thumb {
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .settings-section:nth-child(4),
-  .settings-section:nth-child(7) {
-    grid-column: auto;
-  }
   .welcome-pages {
     padding-inline: 26px;
   }
@@ -2888,10 +2890,6 @@ body.platform-android #settings-modal .modal-panel {
 }
 body.platform-android .settings-grid {
   grid-template-columns: minmax(0, 1fr);
-}
-body.platform-android .settings-section:nth-child(4),
-body.platform-android .settings-section:nth-child(7) {
-  grid-column: auto;
 }
 body.platform-android .device-settings,
 body.platform-android .settings-options.two-column,
