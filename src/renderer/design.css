@@ -386,24 +386,29 @@ body.is-resizing-sidebar, body.is-resizing-sidebar * { cursor: col-resize !impor
 }
 input, select, textarea, .command-box {
   width: 100%;
-  height: 38px;
+  height: 36px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  border-radius: 6px;
+  background: transparent;
   color: var(--text);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent);
-  transition: border-color 130ms ease, box-shadow 130ms ease, background 130ms ease;
+  font-size: 14px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-input, textarea { padding: 0 11px; }
-select { padding: 0 30px 0 11px; }
-input::placeholder, textarea::placeholder { color: var(--faint); }
+input, textarea { padding: 4px 12px; }
+select { padding: 4px 30px 4px 12px; }
+input::placeholder, textarea::placeholder { color: var(--muted); }
 input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) {
-  border-color: var(--line-accent);
+  border-color: var(--text-soft);
 }
 input:focus, select:focus, textarea:focus {
+  outline: none;
   border-color: var(--accent);
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input:disabled, select:disabled, textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .icon-button, .ghost-button, .call-action, .stream-close-button,
 .stream-fullscreen-button, .status-retry, .contact-menu-button, .contact-remove {
@@ -612,6 +617,36 @@ input:focus, select:focus, textarea:focus {
 .contact-badges::before {
   content: none;
   display: none;
+}
+.avatar-fallback {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--surface-hover);
+  color: var(--text-soft);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* Progress Component (Shadcn UI style) */
+.progress {
+  position: relative;
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--line);
+}
+
+.progress-indicator {
+  height: 100%;
+  width: 0%;
+  border-radius: 9999px;
+  background-color: var(--text);
+  transition: width 200ms ease;
 }
 .contact-badge {
   display: grid;

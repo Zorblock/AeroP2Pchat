@@ -8566,11 +8566,23 @@ function startUpdateProgressListener() {
   removeUpdateProgressListener =
     platformApi.onUpdateProgress((progress) => {
       if (progress?.phase === "download") {
-        const percentText = Number.isFinite(progress.percent)
-          ? `${progress.percent}%`
-          : "...";
+        const percent = Number.isFinite(progress.percent) ? progress.percent : 0;
+        const percentText = percent > 0 ? `${percent}%` : "...";
         setUpdateButtonText(`Downloading ${percentText}`);
         startupUpdateButton.textContent = `Downloading ${percentText}`;
+        
+        // Show progress containers
+        const pCard = document.getElementById("update-progress-container");
+        const pStartup = document.getElementById("startup-update-progress-container");
+        if (pCard) pCard.classList.remove("hidden");
+        if (pStartup) pStartup.classList.remove("hidden");
+        
+        // Update bar widths
+        const pCardBar = document.getElementById("update-progress-bar");
+        const pStartupBar = document.getElementById("startup-update-progress-bar");
+        if (pCardBar) pCardBar.style.width = `${percent}%`;
+        if (pStartupBar) pStartupBar.style.width = `${percent}%`;
+        
         return;
       }
 
@@ -8590,6 +8602,12 @@ function startUpdateProgressListener() {
 function stopUpdateProgressListener() {
   removeUpdateProgressListener?.();
   removeUpdateProgressListener = null;
+  
+  // Hide progress containers
+  const pCard = document.getElementById("update-progress-container");
+  const pStartup = document.getElementById("startup-update-progress-container");
+  if (pCard) pCard.classList.add("hidden");
+  if (pStartup) pStartup.classList.add("hidden");
 }
 
 async function installAvailableUpdate() {
