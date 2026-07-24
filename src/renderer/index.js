@@ -2311,7 +2311,18 @@ function updateTitlebarLogo() {
     titlebarLogo.style.objectFit = "contain";
     titlebarLogo.style.borderRadius = "0";
   }
+  updateUserJotIdentity();
   updateTitlebarPresenceIndicator();
+}
+
+function updateUserJotIdentity() {
+  if (window.uj && identity && identity.accountUserId) {
+    window.uj.identify({
+      id: identity.accountUserId,
+      firstName: identity.nickname || "User",
+      avatar: `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp`
+    });
+  }
 }
 
 function createAvatar(label, id, accountUserId) {

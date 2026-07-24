@@ -2,10 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://aero.zorblock.de; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de stun:* turn:*; media-src * blob: mediastream: data:; object-src 'none'; base-uri 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.userjot.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://aero.zorblock.de; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de https://*.userjot.com stun:* turn:*; media-src * blob: mediastream: data:; frame-src 'self' https://*.userjot.com; object-src 'none'; base-uri 'none';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App</title>
     <link rel="preload" href="boot-logo.png" as="image" />
+
+    <!-- UserJot Widget -->
+    <script>window.$ujq=window.$ujq||[];window.uj=window.uj||new Proxy({},{get:(_,p)=>(...a)=>window.$ujq.push([p,...a])});document.head.appendChild(Object.assign(document.createElement('script'),{src:'https://cdn.userjot.com/sdk/v2/uj.js',type:'module',async:!0}));</script>
+    <script>
+      window.uj.init('cmryo30j804kx0ipd9tt8xk2d', {
+        widget: true,
+        position: 'left',
+        theme: 'auto'
+      });
+    </script>
+    <!-- End UserJot Widget -->
+
     <script>
       (() => {
         const requestedTheme = new URLSearchParams(window.location.search).get(
