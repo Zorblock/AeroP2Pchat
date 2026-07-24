@@ -56,13 +56,11 @@ const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
 const changelogFeedUrl =
   "https://zorblock.featurebase.app/api/v1/changelog/feed.rss";
-const isWindowsStore = process.windowsStore === true;
 const appDisplayName = projectConfig.app.name;
-const microsoftStoreProductUrl =
-  "ms-windows-store://pdp/?productid=9MTXC0M7P403";
 const userConfigFileName = "config.aero";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
+const updateDownloadTimeoutMs = 60000;
 const defaultSidebarWidth = 230;
 const minSidebarWidth = 170;
 const maxSidebarWidth = 360;
@@ -88,9 +86,8 @@ let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.name = projectConfig.app.name || "Aero P2P Chat";
-// Keep the runtime window identity aligned with the installed launcher. Store
-// packages already receive their AppUserModelID from the AppX manifest.
-if (process.platform === "win32" && !isWindowsStore) {
+// Keep the runtime window identity aligned with the installed launcher.
+if (process.platform === "win32") {
   app.setAppUserModelId(projectConfig.app.id);
 }
 if (process.platform === "linux") {
@@ -528,12 +525,10 @@ function updateTrayMenu() {
     },
   );
 
-  if (!isWindowsStore) {
-    menuTemplate.splice(-2, 0, {
-      label: "Check for Updates",
-      click: () => sendTrayAction("check-for-updates"),
-    });
-  }
+  menuTemplate.splice(-2, 0, {
+    label: "Check for Updates",
+    click: () => sendTrayAction("check-for-updates"),
+  });
 
   if (!app.isPackaged) {
     menuTemplate.push(
@@ -951,9 +946,6 @@ async function fetchTextWithRetry(url, attempts = 2) {
 }
 
 function fetchUpdateManifest(rawUrl) {
-  if (isWindowsStore) {
-    throw new Error("Updates are managed by Microsoft Store.");
-  }
   const url = assertTrustedManifestUrl(rawUrl);
   return fetchTextWithRetry(url);
 }
@@ -964,7 +956,25 @@ function fetchChangelogFeed() {
 
 function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    let responseStream = null;
+    let file = null;
+
+    const fail = (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      request.destroy();
+      responseStream?.destroy();
+      file?.destroy();
+      rm(targetPath, { force: true })
+        .catch(() => {})
+        .finally(() => reject(error));
+    };
+
     const request = get(url, (response) => {
+      responseStream = response;
       if (
         [301, 302, 303, 307, 308].includes(response.statusCode) &&
         response.headers.location
@@ -975,6 +985,7 @@ function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
           return;
         }
 
+        settled = true;
         downloadFile(
           new URL(response.headers.location, url),
           targetPath,
@@ -992,7 +1003,7 @@ function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
         return;
       }
 
-      const file = createWriteStream(targetPath);
+      file = createWriteStream(targetPath);
       const totalBytes = Number(response.headers["content-length"]) || 0;
       let receivedBytes = 0;
 
@@ -1020,18 +1031,37 @@ function downloadFile(url, targetPath, onProgress = () => {}, redirects = 0) {
 
       response.pipe(file);
       file.on("finish", () => {
-        onProgress({
-          phase: "download",
-          percent: 100,
-          receivedBytes: totalBytes || receivedBytes,
-          totalBytes: totalBytes || receivedBytes,
+        if (totalBytes > 0 && receivedBytes !== totalBytes) {
+          fail(new Error("Update download ended before all bytes arrived."));
+          return;
+        }
+
+        file.close((error) => {
+          if (error) {
+            fail(error);
+            return;
+          }
+          settled = true;
+          onProgress({
+            phase: "download",
+            percent: 100,
+            receivedBytes: totalBytes || receivedBytes,
+            totalBytes: totalBytes || receivedBytes,
+          });
+          resolve();
         });
-        file.close(resolve);
       });
-      file.on("error", reject);
+      file.on("error", fail);
+      response.on("aborted", () =>
+        fail(new Error("Update download was interrupted.")),
+      );
+      response.on("error", fail);
     });
 
-    request.on("error", reject);
+    request.on("error", fail);
+    request.setTimeout(updateDownloadTimeoutMs, () => {
+      fail(new Error("Update download timed out."));
+    });
   });
 }
 
@@ -1070,9 +1100,6 @@ async function installWindowsUpdate(
   expectedSha512 = "",
   onProgress = () => {},
 ) {
-  if (isWindowsStore) {
-    throw new Error("Updates are managed by Microsoft Store.");
-  }
   if (process.platform !== "win32") {
     throw new Error("Setup updates are only available on Windows.");
   }
@@ -1087,53 +1114,58 @@ async function installWindowsUpdate(
     `${projectConfig.release.windowsSetupBaseName}-${version || "latest"}.exe`,
   );
 
-  onProgress({
-    phase: "download",
-    percent: 0,
-    receivedBytes: 0,
-    totalBytes: null,
-  });
-  await downloadFile(url, setupPath, onProgress);
-  onProgress({ phase: "verify", percent: 100 });
-  verifyUpdateDownload(setupPath, expectedSha256, expectedSha512);
-  onProgress({ phase: "install", percent: 100 });
+  try {
+    onProgress({
+      phase: "download",
+      percent: 0,
+      receivedBytes: 0,
+      totalBytes: null,
+    });
+    await downloadFile(url, setupPath, onProgress);
+    onProgress({ phase: "verify", percent: 100 });
+    verifyUpdateDownload(setupPath, expectedSha256, expectedSha512);
+    onProgress({ phase: "install", percent: 100 });
 
-  const setupArgs = [
-    "/SILENT",
-    "/SUPPRESSMSGBOXES",
-    "/NORESTART",
-    "/FORCECLOSEAPPLICATIONS",
-    "/RESTARTAPPLICATIONS",
-  ];
-  let updater;
-  let spawnError;
-  for (let attempt = 1; attempt <= 10; attempt += 1) {
-    try {
-      updater = spawn(setupPath, setupArgs, {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: false,
-      });
-      break;
-    } catch (error) {
-      spawnError = error;
-      if (attempt < 10) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    const setupArgs = [
+      "/SILENT",
+      "/SUPPRESSMSGBOXES",
+      "/NORESTART",
+      "/FORCECLOSEAPPLICATIONS",
+      "/RESTARTAPPLICATIONS",
+    ];
+    let updater;
+    let spawnError;
+    for (let attempt = 1; attempt <= 10; attempt += 1) {
+      try {
+        updater = spawn(setupPath, setupArgs, {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: false,
+        });
+        break;
+      } catch (error) {
+        spawnError = error;
+        if (attempt < 10) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
     }
+
+    if (!updater) {
+      throw spawnError || new Error("Could not spawn updater process.");
+    }
+
+    updater.unref();
+
+    setTimeout(() => {
+      forceQuit = true;
+      app.quit();
+    }, 250);
+    return { ok: true };
+  } catch (error) {
+    await rm(updateDir, { recursive: true, force: true }).catch(() => {});
+    throw error;
   }
-
-  if (!updater) {
-    throw spawnError || new Error("Could not spawn updater process.");
-  }
-
-  updater.unref();
-
-  setTimeout(() => {
-    forceQuit = true;
-    app.quit();
-  }, 250);
-  return { ok: true };
 }
 
 function createWindow({ hidden = false } = {}) {
@@ -1166,7 +1198,7 @@ function createWindow({ hidden = false } = {}) {
   // sets the taskbar button identity and relaunch icon instead of inheriting
   // electron.exe's defaults during development or from an old shortcut.
   win.setIcon(windowIcon);
-  if (process.platform === "win32" && !isWindowsStore) {
+  if (process.platform === "win32") {
     win.setAppDetails({
       appId: projectConfig.app.id,
       appIconPath: windowIconPath,
@@ -1248,22 +1280,6 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle("open-microsoft-store", async () => {
-    if (!isWindowsStore)
-      return {
-        ok: false,
-        error: "Microsoft Store is not managing this installation.",
-      };
-    try {
-      await shell.openExternal(microsoftStoreProductUrl);
-      return { ok: true };
-    } catch (error) {
-      return {
-        ok: false,
-        error: error?.message || "Could not open Microsoft Store.",
-      };
-    }
-  });
   ipcMain.handle("fetch-changelog-feed", async () => {
     try {
       return { ok: true, text: await fetchChangelogFeed() };

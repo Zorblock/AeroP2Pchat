@@ -106,7 +106,6 @@ const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
 const linuxCommand = document.querySelector("#linux-command");
 const linuxWebsiteCommand = document.querySelector("#linux-website-command");
-const linuxMirrorCommand = document.querySelector("#linux-mirror-command");
 const copyUpdateCommands = document.querySelectorAll(".copy-update-command");
 const appDialog = document.querySelector("#app-dialog");
 const appDialogTitle = document.querySelector("#app-dialog-title");
@@ -580,12 +579,9 @@ const statusPageUrl = "https://status.zorblock.de/";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const linuxWebsiteUpdateCommand =
   "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
-const linuxMirrorUpdateCommand =
-  "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
 const linuxUpdateCommands = {
   installed: linuxInstallCommand,
   website: linuxWebsiteUpdateCommand,
-  mirror: linuxMirrorUpdateCommand,
 };
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
@@ -2958,14 +2954,6 @@ function clearUpdateAvailableUi() {
   updateCard.classList.add("hidden");
   titlebarLogo.classList.remove("update-available");
   titlebarLogo.removeAttribute("title");
-  if (platformApi.isWindowsStore) {
-    appMenuUpdate.classList.remove("hidden");
-    appMenuUpdate.disabled = false;
-    appMenuUpdate.querySelector("span").textContent = "Open Microsoft Store";
-    appMenuUpdate.querySelector("i").className = "fa-brands fa-microsoft";
-    appMenuUpdateIgnore.classList.add("hidden");
-    return;
-  }
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
   appMenuUpdate.querySelector("span").textContent = "Check for updates";
@@ -3058,20 +3046,6 @@ async function checkForUpdates({ manual = false } = {}) {
   if (isNetworkOffline()) {
     if (manual) {
       setStatus("offline", "You're offline. Internet connection required.");
-    }
-    return;
-  }
-
-  if (platformApi.isWindowsStore) {
-    clearUpdateAvailableUi();
-    if (manual) {
-      const result = await platformApi.openMicrosoftStore();
-      setStatus(
-        result?.ok ? "online" : "offline",
-        result?.ok
-          ? "Microsoft Store opened. It shows an Update button when a new version is available."
-          : result?.error || "Could not open Microsoft Store.",
-      );
     }
     return;
   }
@@ -8677,10 +8651,9 @@ platformApi.onNotificationAction((action) => {
 });
 
 function openLinuxUpdateModal() {
-  modalText.textContent = `Update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}. Use the installed command first; the other two options reinstall or update through the official installer while keeping your settings.`;
+  modalText.textContent = `Update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}. Use the installed command first, or reinstall through the official installer while keeping your settings.`;
   linuxCommand.textContent = linuxInstallCommand;
   linuxWebsiteCommand.textContent = linuxWebsiteUpdateCommand;
-  linuxMirrorCommand.textContent = linuxMirrorUpdateCommand;
   updateModal.classList.remove("hidden");
 }
 
@@ -9363,10 +9336,8 @@ updateNetworkAvailabilityUi();
 peer = isNetworkOffline() ? null : createPeer();
 setBootProgress(90, "Starting peer");
 if (platformApi.supportsUpdateChecks) {
-  if (!platformApi.isWindowsStore) {
-    checkForUpdates();
-    setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
-  }
+  checkForUpdates();
+  setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
   platformApi.onCheckForUpdates(() => checkForUpdates({ manual: true }));
 }
 platformApi.onDisconnect(() => cleanupRealtimeConnections());

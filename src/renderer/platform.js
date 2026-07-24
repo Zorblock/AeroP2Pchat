@@ -121,21 +121,19 @@ export function createPlatformApi() {
     (isChromeExtension ? "chrome-extension" : capacitorPlatform || "web");
   const isAndroid = platform === "android";
   const isElectron = Boolean(electron);
-  const isWindowsStore = Boolean(electron?.isWindowsStore);
   let androidUpdateProgressCallback = null;
 
   return {
     platform,
     isAndroid,
     isElectron,
-    isWindowsStore,
     isChromeExtension,
     hasNativeWindowControls: isElectron,
     hasDesktopIntegration: isElectron,
     supportsAutostart: isElectron,
     supportsCloseToTray: isElectron,
     supportsUpdateChecks: isElectron || isAndroid,
-    supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
+    supportsNativeUpdateInstall: platform === "win32",
     supportsDesktopScreenSources: isElectron,
 
     async loadConfig() {
@@ -412,15 +410,6 @@ export function createPlatformApi() {
 
     onCheckForUpdates(callback) {
       return electron?.onCheckForUpdates?.(callback) || null;
-    },
-
-    openMicrosoftStore() {
-      return (
-        electron?.openMicrosoftStore?.() || {
-          ok: false,
-          error: "Microsoft Store is not available.",
-        }
-      );
     },
 
     onDisconnect(callback) {
