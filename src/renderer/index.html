@@ -1524,57 +1524,59 @@
     </div>
     
 <div id="account-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
-  <section class="modal-panel" style="max-width: 320px; padding: 24px; border-radius: 16px;">
-    <header class="modal-header" style="border-bottom: none; padding: 0 0 16px 0; min-height: auto;">
-      <h2 id="account-title" style="font-size: 1.1rem; margin: 0;">Account</h2>
-      <button id="account-close" class="ghost-button" type="button" style="width: 28px; height: 28px; padding: 0; border-radius: 50%;">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </header>
-    <div id="account-login-view">
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--faint); line-height: 1.4;">
-        Log in to sync your Aero ID and Profile.<br/>
-        <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create an account</a>
-      </p>
-      <form id="account-login-form">
-        <div class="input-group" style="margin-bottom: 12px;">
-          <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" style="font-size: 14px; border-radius: 8px;" required />
-        </div>
-        <div class="input-group" style="margin-bottom: 16px;">
-          <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="font-size: 14px; border-radius: 8px;" required />
-        </div>
-        <p id="login-error" class="welcome-error hidden" role="alert" style="margin-top: -8px; margin-bottom: 12px; font-size: 13px;"></p>
-        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; border-radius: 8px;">Login</button>
+  <section class="card" style="max-width: 340px; width: 100%; position: relative; margin: auto;">
+    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 16px; top: 16px; width: 28px; height: 28px; padding: 0; border-radius: 50%; z-index: 10;">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="card-header" style="margin-bottom: 24px;">
+      <h2 id="account-title" class="card-title">Account</h2>
+      <p class="card-description">Manage your Aero ID and Profile.</p>
+    </div>
+
+    <div id="account-login-view" class="card-content">
+      <form id="account-login-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" class="styled-input" style="font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);" required />
+        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" class="styled-input" style="font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);" required />
+        <p id="login-error" class="welcome-error hidden" role="alert" style="margin: 0; font-size: 13px; color: var(--danger);"></p>
+        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; border-radius: 8px; padding: 10px;">Login</button>
+        <p style="margin: 0; font-size: 13px; text-align: center; color: var(--faint);">
+          <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create an account</a>
+        </p>
       </form>
-      <div id="guest-nickname-section" style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
-        <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--faint);">Guest Nickname</p>
-        <div class="settings-row" style="display: flex; gap: 8px;">
+
+      <div id="guest-nickname-section" style="margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px;">
+        <div class="card-header" style="margin-bottom: 12px;">
+          <h3 class="card-title" style="font-size: 0.95rem;">Guest Nickname</h3>
+          <p class="card-description">Used if you don't log in.</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
           <input
             id="guest-nickname-input"
             type="text"
             maxlength="32"
             placeholder="Nickname"
-            style="flex: 1; font-size: 14px; border-radius: 8px;"
+            style="flex: 1; font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);"
           />
-          <button id="save-guest-nickname" class="ghost-button" type="button" style="border-radius: 8px;">Save</button>
+          <button id="save-guest-nickname" class="ghost-button" type="button" style="border-radius: 8px; padding: 0 16px;">Save</button>
         </div>
       </div>
     </div>
     
-    <div id="account-profile-view" class="hidden">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 24px;">
-        <img id="account-profile-pic" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); background: var(--surface-hover);" />
-        <div style="text-align: center;">
-          <h3 id="account-profile-username" style="margin: 0; font-size: 18px;">Username</h3>
-          <span id="account-profile-id" style="font-size: 13px; color: var(--faint); font-family: monospace;">Aero ID</span>
+    <div id="account-profile-view" class="card-content hidden">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px;">
+        <img id="account-profile-pic" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); background: var(--surface-hover); box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+        <div style="text-align: center; display: flex; flex-direction: column; gap: 4px;">
+          <h3 id="account-profile-username" class="card-title" style="font-size: 1.2rem;">Username</h3>
+          <span id="account-profile-id" class="card-description" style="font-family: monospace;">Aero ID</span>
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px;">Update Picture</button>
-        <button id="account-logout-btn" class="danger-button" type="button" style="flex: 1; border-radius: 8px; color: #e74c3c; background: rgba(231, 76, 60, 0.1);">Logout</button>
+        <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px; padding: 10px;">Update Picture</button>
+        <button id="account-logout-btn" class="danger-button" type="button" style="flex: 1; border-radius: 8px; padding: 10px; color: var(--danger); background: rgba(231, 76, 60, 0.1);">Logout</button>
       </div>
     </div>
-    </section>
+  </section>
   </div>
 
   
