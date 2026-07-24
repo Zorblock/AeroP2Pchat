@@ -1536,11 +1536,11 @@
     
 <div id="account-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
   <section class="card" style="max-width: 360px; width: 100%; position: relative; margin: auto;">
-    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-radius: 6px; z-index: 10;" title="Close">
+    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-radius: 6px; z-index: 10; border: none; background: transparent;" title="Close">
       <i class="fa-solid fa-xmark"></i>
     </button>
 
-    <div class="card-header" style="margin-bottom: 24px;">
+    <div class="card-header" style="margin-bottom: 16px;">
       <h2 id="account-title" class="card-title">Account</h2>
       <p class="card-description">Manage your Aero ID and Profile.</p>
     </div>
@@ -1577,17 +1577,17 @@
     
     <div id="account-profile-view" class="card-content hidden">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px;">
-        <div class="avatar" style="width: 88px; height: 88px;">
-          <img id="account-profile-pic" class="avatar-image" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" />
+        <div class="avatar" style="position: relative; display: flex; height: 80px; width: 80px; shrink-0; overflow: hidden; border-radius: 9999px;">
+          <img id="account-profile-pic" class="avatar-image" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="aspect-ratio: 1/1; height: 100%; width: 100%; object-fit: cover;" />
         </div>
-        <div style="text-align: center; display: flex; flex-direction: column; gap: 4px;">
-          <h3 id="account-profile-username" class="card-title" style="font-size: 1.2rem;">Username</h3>
+        <div style="text-align: center; display: flex; flex-direction: column; gap: 2px;">
+          <h3 id="account-profile-username" class="card-title" style="font-size: 1.125rem;">Username</h3>
           <span id="account-profile-id" class="card-description" style="font-family: monospace;">Aero ID</span>
         </div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <button id="account-update-pfp" class="ghost-button" type="button" style="width: 100%; border: 1px solid var(--line-strong);">Update Picture</button>
-        <button id="account-logout-btn" class="ghost-button" type="button" style="width: 100%; border: 1px solid var(--danger-soft); color: var(--danger); background: var(--danger-soft);">Logout</button>
+        <button id="account-logout-btn" class="ghost-button" type="button" style="width: 100%; border: 1px solid transparent; color: var(--danger); background: var(--danger-soft);">Logout</button>
       </div>
     </div>
   </section>
