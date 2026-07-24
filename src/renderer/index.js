@@ -6480,7 +6480,7 @@ function rememberConnectionIdentity(peerId, metadata = {}) {
   const nickname = sanitizeNickname(metadata.nickname);
   migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
   const oldRemote = remoteIdentities.get(peerId);
-  remoteIdentities.set(peerId, { identityId, nickname, accountUserId, role: "user" });
+  remoteIdentities.set(peerId, { identityId, nickname, accountUserId, role: oldRemote ? oldRemote.role : "user" });
   if (oldRemote && oldRemote.accountUserId !== accountUserId) {
     window.avatarCacheBuster = Date.now();
     updateTitlebarLogo();
@@ -6934,6 +6934,7 @@ function sendProtocolMessage(conn, type, extra = {}) {
       identityId: identity.id,
       nickname: identity.nickname || "",
       accountUserId: identity.accountUserId || "",
+      authToken: identity.authToken || "",
       time: formatTime(),
       ...extra,
     });
