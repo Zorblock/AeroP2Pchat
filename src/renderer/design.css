@@ -747,6 +747,35 @@ textarea:disabled {
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
+.sidebar-footer {
+  flex: none;
+  padding: 10px 8px 0;
+  border-top: 1px solid var(--line);
+}
+.sidebar-feedback-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+.sidebar-feedback-button:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.sidebar-feedback-button:active {
+  background: var(--surface-active);
+}
 .peer-section-label {
   margin: 8px 5px 3px;
   color: var(--faint);

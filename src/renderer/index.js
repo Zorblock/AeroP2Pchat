@@ -27,6 +27,7 @@ const appShell = document.querySelector(".app-shell");
 const sidebarResizer = document.querySelector("#sidebar-resizer");
 const contactSearchInput = document.querySelector("#contact-search");
 const peerList = document.querySelector("#peer-list");
+const feedbackButton = document.querySelector("#feedback-button");
 const chatMeta = document.querySelector("#chat-meta");
 const chatTitle = document.querySelector("#chat-title");
 const callChat = document.querySelector("#call-chat");
@@ -9095,6 +9096,10 @@ mobileTabChat?.addEventListener("click", () => {
 
 mobileTabSettings?.addEventListener("click", () => {
   setMobileTab("settings");
+});
+
+feedbackButton?.addEventListener("click", () => {
+  window.uj?.showWidget?.({ section: "feedback" });
 });
 
 settingsClose.addEventListener("click", () => {
