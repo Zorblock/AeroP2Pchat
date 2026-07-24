@@ -1535,8 +1535,8 @@
     </div>
     
 <div id="account-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
-  <section class="card" style="max-width: 340px; width: 100%; position: relative; margin: auto;">
-    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 16px; top: 16px; width: 28px; height: 28px; padding: 0; border-radius: 50%; z-index: 10;">
+  <section class="card" style="max-width: 360px; width: 100%; position: relative; margin: auto;">
+    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-radius: 6px; z-index: 10;" title="Close">
       <i class="fa-solid fa-xmark"></i>
     </button>
 
@@ -1547,16 +1547,16 @@
 
     <div id="account-login-view" class="card-content">
       <form id="account-login-form" style="display: flex; flex-direction: column; gap: 12px;">
-        <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" class="styled-input" style="font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);" required />
-        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" class="styled-input" style="font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);" required />
+        <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" class="styled-input" required />
+        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" class="styled-input" required />
         <p id="login-error" class="welcome-error hidden" role="alert" style="margin: 0; font-size: 13px; color: var(--danger);"></p>
-        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; border-radius: 8px; padding: 10px;">Login</button>
+        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; margin-top: 4px;">Login</button>
         <p style="margin: 0; font-size: 13px; text-align: center; color: var(--faint);">
           <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create an account</a>
         </p>
       </form>
 
-      <div id="guest-nickname-section" style="margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px;">
+      <div id="guest-nickname-section" style="margin-top: 20px; border-top: 1px solid var(--line-strong); padding-top: 20px;">
         <div class="card-header" style="margin-bottom: 12px;">
           <h3 class="card-title" style="font-size: 0.95rem;">Guest Nickname</h3>
           <p class="card-description">Used if you don't log in.</p>
@@ -1567,9 +1567,10 @@
             type="text"
             maxlength="32"
             placeholder="Nickname"
-            style="flex: 1; font-size: 14px; border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);"
+            class="styled-input"
+            style="flex: 1;"
           />
-          <button id="save-guest-nickname" class="ghost-button" type="button" style="border-radius: 8px; padding: 0 16px;">Save</button>
+          <button id="save-guest-nickname" class="ghost-button" type="button" style="border: 1px solid var(--line-strong);">Save</button>
         </div>
       </div>
     </div>
@@ -1584,9 +1585,9 @@
           <span id="account-profile-id" class="card-description" style="font-family: monospace;">Aero ID</span>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button id="account-update-pfp" class="ghost-button" type="button" style="flex: 1; border-radius: 8px; padding: 10px;">Update Picture</button>
-        <button id="account-logout-btn" class="danger-button" type="button" style="flex: 1; border-radius: 8px; padding: 10px; color: var(--danger); background: rgba(231, 76, 60, 0.1);">Logout</button>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="account-update-pfp" class="ghost-button" type="button" style="width: 100%; border: 1px solid var(--line-strong);">Update Picture</button>
+        <button id="account-logout-btn" class="ghost-button" type="button" style="width: 100%; border: 1px solid var(--danger-soft); color: var(--danger); background: var(--danger-soft);">Logout</button>
       </div>
     </div>
   </section>

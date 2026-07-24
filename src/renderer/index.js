@@ -9384,3 +9384,57 @@ window.addEventListener("aero:open-chat", (e) => {
     }
   }
 });
+
+// Shadcn-like Tooltip System
+const tooltipEl = document.createElement("div");
+tooltipEl.className = "shadcn-tooltip hidden";
+document.body.appendChild(tooltipEl);
+
+let tooltipTimeout;
+
+document.addEventListener("mouseover", (event) => {
+  const target = event.target.closest("[title]");
+  if (target && target.title) {
+    target.setAttribute("data-tooltip", target.title);
+    target.removeAttribute("title");
+  }
+  
+  const tooltipTarget = event.target.closest("[data-tooltip]");
+  if (!tooltipTarget) {
+    hideTooltip();
+    return;
+  }
+  
+  clearTimeout(tooltipTimeout);
+  tooltipTimeout = setTimeout(() => {
+    tooltipEl.textContent = tooltipTarget.getAttribute("data-tooltip");
+    tooltipEl.classList.remove("hidden");
+    
+    const rect = tooltipTarget.getBoundingClientRect();
+    const ttRect = tooltipEl.getBoundingClientRect();
+    
+    let top = rect.top - ttRect.height - 6;
+    let left = rect.left + (rect.width / 2) - (ttRect.width / 2);
+    
+    if (top < 8) top = rect.bottom + 6;
+    if (left < 8) left = 8;
+    if (left + ttRect.width > window.innerWidth - 8) left = window.innerWidth - ttRect.width - 8;
+    
+    tooltipEl.style.top = `${top}px`;
+    tooltipEl.style.left = `${left}px`;
+  }, 400);
+});
+
+document.addEventListener("mouseout", (event) => {
+  const target = event.target.closest("[data-tooltip]");
+  if (target) hideTooltip();
+});
+
+document.addEventListener("click", () => {
+  hideTooltip();
+});
+
+function hideTooltip() {
+  clearTimeout(tooltipTimeout);
+  tooltipEl.classList.add("hidden");
+}
