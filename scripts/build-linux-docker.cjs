@@ -20,6 +20,8 @@ function main() {
   }
 
   const version = parseVersion();
+  const releaseOutput = path.join(root, "dist", "release");
+  fs.mkdirSync(releaseOutput, { recursive: true });
   const buildCommand =
     "node scripts/ci-build-release.cjs --platform=linux --preserve-release" +
     (version ? ` --version=${version}` : "");
@@ -33,11 +35,17 @@ function main() {
       printf "%s" "$cache_key" > node_modules/.aero-package-lock.sha256
     fi
     ${buildCommand}
+    test -f dist/release/Aero-P2P-Chat-Linux-x64.AppImage
+    test -f dist/release/update_manifest_linux.json
+    cp -f dist/release/Aero-P2P-Chat-Linux-x64.AppImage /release-output/
+    cp -f dist/release/update_manifest_linux.json /release-output/
   `;
 
   console.log("Building Linux packages locally with Docker...");
   console.log(`Image: ${image}`);
-  console.log("Linux node_modules and Electron caches stay in Docker volumes.");
+  console.log(
+    "Linux build intermediates stay in Docker; only release artifacts are copied back.",
+  );
 
   const result = spawnSync(
     "docker",
@@ -51,6 +59,10 @@ function main() {
       "CSC_IDENTITY_AUTO_DISCOVERY=false",
       "--mount",
       `type=bind,source=${root},target=/project`,
+      "--mount",
+      "type=volume,target=/project/dist",
+      "--mount",
+      `type=bind,source=${releaseOutput},target=/release-output`,
       "--mount",
       "type=volume,source=aero-p2p-chat-linux-node-modules,target=/project/node_modules",
       "--mount",
