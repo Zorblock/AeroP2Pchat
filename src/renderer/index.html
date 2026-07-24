@@ -909,7 +909,13 @@
               <input
                 id="welcome-login-username"
                 type="text"
+                minlength="3"
+                maxlength="16"
+                pattern="[a-z0-9_]{3,16}"
+                title="Use 3-16 lowercase letters, numbers, or underscores."
                 autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
                 placeholder="Username"
                 required
               />
@@ -1374,8 +1380,8 @@
       </button>
       
       <button id="app-menu-status" type="button" role="menuitem">
-        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
-        <span>Status</span>
+        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
+        <span>News</span>
       </button>
       <button id="app-menu-account" type="button" role="menuitem">
           <i class="fa-solid fa-user" aria-hidden="true"></i>
@@ -1584,7 +1590,7 @@
 
     <div id="account-login-view" class="card-content">
       <form id="account-login-form" style="display: flex; flex-direction: column; gap: 12px;">
-        <input id="login-username" type="text" placeholder="Username" spellcheck="false" autocomplete="username" class="styled-input" required />
+        <input id="login-username" type="text" placeholder="Username" minlength="3" maxlength="16" pattern="[a-z0-9_]{3,16}" title="Use 3-16 lowercase letters, numbers, or underscores." spellcheck="false" autocapitalize="none" autocomplete="username" class="styled-input" required />
         <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" class="styled-input" required />
         <p id="login-error" class="welcome-error hidden" role="alert" style="margin: 0; font-size: 13px; color: var(--danger);"></p>
         <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; margin-top: 4px;">Login</button>

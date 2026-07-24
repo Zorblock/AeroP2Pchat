@@ -255,11 +255,22 @@ body.app-boot-finish .window-frame {
   transition: transform 140ms ease, border-color 140ms ease,
     box-shadow 140ms ease;
 }
+.titlebar-logo.is-app-logo {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
 .titlebar-logo:hover,
 .titlebar-logo:focus-visible {
   border-color: var(--line-accent);
   box-shadow: 0 0 0 4px var(--accent-ring);
   transform: translateY(-1px);
+}
+.titlebar-logo.is-app-logo:hover,
+.titlebar-logo.is-app-logo:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
 }
 .titlebar-avatar.voice-active .titlebar-logo {
   border-color: var(--success);

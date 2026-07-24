@@ -581,7 +581,7 @@ const linuxTerminalCommandName =
 const githubRepoUrl = `https://github.com/${githubRepo}`;
 const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
-const statusPageUrl = "https://status.zorblock.de/";
+const newsPageUrl = "https://zorblock.de/feedback";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const linuxWebsiteUpdateCommand =
   "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
@@ -1549,12 +1549,18 @@ function openWelcomeScreen() {
   void refreshAudioDevices();
 }
 
-async function saveWelcomeNickname() {
-  const username = welcomeLoginUsername.value.trim();
-  const password = welcomeLoginPassword.value;
+function normalizeAccountUsername(value) {
+  return value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 16);
+}
 
-  if (!username || !password) {
-    welcomeLoginError.textContent = "Please enter both username and password.";
+async function saveWelcomeNickname() {
+  const username = normalizeAccountUsername(welcomeLoginUsername.value);
+  const password = welcomeLoginPassword.value;
+  welcomeLoginUsername.value = username;
+
+  if (!/^[a-z0-9_]{3,16}$/.test(username) || !password) {
+    welcomeLoginError.textContent =
+      "Enter a valid username (3-16 lowercase letters, numbers, or underscores) and password.";
     welcomeLoginError.classList.remove("hidden");
     welcomeLoginUsername.focus();
     return false;
@@ -2359,14 +2365,20 @@ function createRoleBadge(role) {
 
 function updateTitlebarLogo() {
   if (identity && identity.accountUserId) {
+    titlebarLogo.classList.remove("is-app-logo");
     titlebarLogo.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
     titlebarLogo.style.objectFit = "cover";
     titlebarLogo.style.borderRadius = "50%";
     titlebarLogo.onerror = () => {
+      titlebarLogo.onerror = null;
+      titlebarLogo.classList.add("is-app-logo");
       titlebarLogo.src = appLogo;
+      titlebarLogo.style.objectFit = "contain";
       titlebarLogo.style.borderRadius = "0";
     };
   } else {
+    titlebarLogo.onerror = null;
+    titlebarLogo.classList.add("is-app-logo");
     titlebarLogo.src = appLogo;
     titlebarLogo.style.objectFit = "contain";
     titlebarLogo.style.borderRadius = "0";
@@ -8513,6 +8525,15 @@ welcomeLoginUsername.addEventListener("keydown", (event) => {
   }
 });
 
+for (const usernameInput of [welcomeLoginUsername, loginUsernameInput]) {
+  usernameInput.addEventListener("input", () => {
+    const normalized = normalizeAccountUsername(usernameInput.value);
+    if (usernameInput.value !== normalized) {
+      usernameInput.value = normalized;
+    }
+  });
+}
+
 welcomeLoginPassword.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -9029,7 +9050,7 @@ appMenuUpdateIgnore.addEventListener("click", () => {
 
 appMenuStatus.addEventListener("click", () => {
   closeAppMenu();
-  window.open(statusPageUrl, "_blank", "noopener");
+  window.open(newsPageUrl, "_blank", "noopener");
 });
 
 appMenuOnline?.addEventListener("click", () => {
@@ -9155,6 +9176,7 @@ accountClose.addEventListener("click", () => {
 
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  loginUsernameInput.value = normalizeAccountUsername(loginUsernameInput.value);
   loginBtn.disabled = true;
   loginBtn.textContent = "Logging in...";
   loginError.classList.add("hidden");
