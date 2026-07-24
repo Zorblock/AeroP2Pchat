@@ -3193,14 +3193,19 @@ function showAppNotification(details) {
     return false;
   }
 
-  platformApi
+  const promise = platformApi
     .showNotification({
       ...details,
       theme: appConfig.appSettings.theme,
       showWhenFocused: appConfig.notificationSettings.showWhenFocused,
     })
     .catch(() => {});
-  return true;
+    
+  if (!details.silent) {
+    playSound(messageAudio, "messages");
+  }
+
+  return promise;
 }
 
 function isSoundEnabled(key) {
