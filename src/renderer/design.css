@@ -580,8 +580,8 @@ input:focus, select:focus, textarea:focus {
 .request-item { display: grid; gap: 7px; padding: 8px; }
 .request-item > span:first-child {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "label badges";
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-areas: "avatar label badges";
   align-items: center;
   gap: 7px;
 }
