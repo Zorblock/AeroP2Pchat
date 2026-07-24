@@ -28,8 +28,10 @@ const sidebarResizer = document.querySelector("#sidebar-resizer");
 const contactSearchInput = document.querySelector("#contact-search");
 const peerList = document.querySelector("#peer-list");
 const feedbackButton = document.querySelector("#feedback-button");
+const mobileFeedbackButton = document.querySelector("#feedback-button-mobile");
 const chatMeta = document.querySelector("#chat-meta");
 const chatTitle = document.querySelector("#chat-title");
+const chatActions = document.querySelector(".chat-actions");
 const callChat = document.querySelector("#call-chat");
 const clearChat = document.querySelector("#clear-chat");
 const disconnectChat = document.querySelector("#disconnect-chat");
@@ -2654,6 +2656,15 @@ function updateEmptyChatState() {
   messages.classList.toggle("empty", messages.childElementCount === 0);
 }
 
+function syncChatActionAvailability() {
+  clearChat.disabled =
+    !activePeerId || (chatHistory.get(activePeerId)?.length || 0) === 0;
+  chatActions.classList.toggle(
+    "unavailable",
+    [callChat, disconnectChat, clearChat].every((button) => button.disabled),
+  );
+}
+
 function updateTypingIndicator() {
   if (!typingIndicator) {
     return;
@@ -2904,6 +2915,7 @@ function renderChatHistory() {
   }
 
   updateEmptyChatState();
+  syncChatActionAvailability();
   updateTypingIndicator();
   refreshCallStage();
   sendReadReceiptsForActiveChat();
@@ -7298,8 +7310,10 @@ function refreshPeers() {
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
   disconnectChat.disabled = !canChat;
+  messageForm.classList.toggle("unavailable", !canChat);
   updateConnectButton();
   refreshCallUi();
+  syncChatActionAvailability();
   refreshCallStage();
   updateEmptyChatState();
 }
@@ -9071,9 +9085,12 @@ mobileTabSettings?.addEventListener("click", () => {
   setMobileTab("settings");
 });
 
-feedbackButton?.addEventListener("click", () => {
+function openFeedbackWidget() {
   window.uj?.showWidget?.({ section: "feedback" });
-});
+}
+
+feedbackButton?.addEventListener("click", openFeedbackWidget);
+mobileFeedbackButton?.addEventListener("click", openFeedbackWidget);
 
 settingsClose.addEventListener("click", () => {
   settingsModal.classList.add("hidden");

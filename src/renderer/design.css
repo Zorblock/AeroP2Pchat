@@ -776,6 +776,9 @@ textarea:disabled {
 .sidebar-feedback-button:active {
   background: var(--surface-active);
 }
+.mobile-feedback-section {
+  display: none;
+}
 .peer-section-label {
   margin: 8px 5px 3px;
   color: var(--faint);
@@ -2775,8 +2778,42 @@ body.platform-android .chat-panel {
   border: 0;
 }
 body.platform-android .connection-panel {
-  padding: 12px max(12px, env(safe-area-inset-right)) 12px
+  gap: 10px;
+  padding: 12px max(12px, env(safe-area-inset-right)) 10px
     max(12px, env(safe-area-inset-left));
+}
+body.platform-android .id-card,
+body.platform-android .update-card,
+body.platform-android .peers-card {
+  padding-inline: 4px;
+}
+body.platform-android .id-row,
+body.platform-android .connect-row {
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+body.platform-android .id-row .icon-button,
+body.platform-android #connect-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+body.platform-android .id-row .icon-button i,
+body.platform-android #connect-button i {
+  width: 18px;
+  font-size: 16px;
+  line-height: 1;
+  text-align: center;
+}
+body.platform-android .sidebar-footer {
+  display: none;
+}
+body.platform-android .peer-list {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+body.platform-android .peer-list::-webkit-scrollbar {
+  display: none;
 }
 body.platform-android .contact-item {
   grid-template-columns: minmax(0, 1fr) 44px;
@@ -2811,18 +2848,21 @@ body.platform-android .mobile-tab {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
   min-height: 48px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 720;
 }
 body.platform-android .mobile-tab i {
-  font-size: 16px;
+  width: 20px;
+  font-size: 18px;
+  line-height: 1;
+  text-align: center;
 }
 body.platform-android .mobile-tab.active {
   background: var(--accent-soft);
@@ -2835,24 +2875,38 @@ body.platform-android[data-mobile-tab="settings"] .chat-panel {
   display: none;
 }
 body.platform-android .chat-header {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 9px;
-  padding: 10px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 60px;
+  padding: 8px 12px;
 }
 body.platform-android .chat-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  gap: 6px;
+}
+body.platform-android .chat-actions.unavailable {
+  display: none;
 }
 body.platform-android .chat-actions .ghost-button {
-  display: inline-flex;
-  width: 100%;
+  display: inline-grid;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   min-height: 44px;
-  gap: 7px;
+  padding: 0;
+  place-items: center;
+}
+body.platform-android .chat-actions .ghost-button:disabled {
+  display: none;
 }
 body.platform-android .chat-actions .icon-only-button > span {
-  display: inline;
-  font-size: 10px;
+  display: none;
+}
+body.platform-android .chat-actions .ghost-button i {
+  width: 18px;
+  font-size: 16px;
+  line-height: 1;
+  text-align: center;
 }
 body.platform-android .call-action.stream {
   display: none !important;
@@ -2902,6 +2956,12 @@ body.platform-android #send-button {
 body.platform-android #message-input {
   font-size: 15px;
 }
+body.platform-android .message-form.unavailable {
+  display: none;
+}
+body.platform-android .messages {
+  background: var(--surface);
+}
 body.platform-android #settings-modal {
   inset: calc(54px + env(safe-area-inset-top)) 0
     calc(66px + env(safe-area-inset-bottom)) 0;
@@ -2919,6 +2979,12 @@ body.platform-android #settings-modal .modal-panel {
 }
 body.platform-android .settings-grid {
   grid-template-columns: minmax(0, 1fr);
+}
+body.platform-android .mobile-feedback-section {
+  display: block;
+}
+body.platform-android .mobile-feedback-section .sidebar-feedback-button {
+  min-height: 44px;
 }
 body.platform-android .device-settings,
 body.platform-android .settings-options.two-column,
