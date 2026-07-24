@@ -252,7 +252,12 @@ function decryptConfigStr(text) {
 }
 
 async function loadConfig() {
-  const configPaths = [getConfigPath(), getConfigBackupPath(), join(app.getPath("userData"), "config.json")];
+  const configPaths = [
+    getConfigPath(),
+    getConfigBackupPath(),
+    join(app.getPath("userData"), "config.json"),
+    join(app.getPath("appData"), app.name, "config.json")
+  ];
   let lastError = null;
   for (const configPath of configPaths) {
     try {

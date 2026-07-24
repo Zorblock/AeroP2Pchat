@@ -8785,7 +8785,7 @@ appMenuAccount.addEventListener("click", () => {
     profileView.classList.remove("hidden");
     profileUsername.textContent = identity.nickname;
     profileId.textContent = identity.id;
-    profilePic.src = `https://aero.zorblock.de/account/pfp/${identity.id}.png`;
+    profilePic.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
     guestNicknameSection.classList.add("hidden");
   } else {
     loginView.classList.remove("hidden");
