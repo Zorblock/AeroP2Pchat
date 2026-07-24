@@ -1474,45 +1474,53 @@ input:focus, select:focus, textarea:focus {
 .settings-check, .settings-choice label {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-height: 28px;
-  color: var(--text-soft);
-  font-size: 11px;
-  font-weight: 650;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
 }
 .settings-check input[type="checkbox"] {
   position: relative;
-  width: 34px;
-    height: 20px;
-    min-width: 34px;
-    max-width: 34px;
-    min-height: 20px;
-    max-height: 20px;
-    flex: none;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  flex: none;
   padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--line);
+  border: 1px solid var(--text-soft);
+  border-radius: 4px;
+  background: transparent;
   box-shadow: none;
   appearance: none;
   -webkit-appearance: none;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: all 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.settings-check input[type="checkbox"]::before {
+.settings-check input[type="checkbox"]:checked { 
+  background: var(--text); 
+  border-color: var(--text); 
+}
+.settings-check input[type="checkbox"]:checked::before { 
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--surface-raised);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: transform 140ms ease;
+  width: 10px;
+  height: 10px;
+  background-color: var(--surface);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
-.settings-check input[type="checkbox"]:checked { border-color: var(--accent); background: var(--accent); }
-.settings-check input[type="checkbox"]:checked::before { transform: translateX(14px); }
 .settings-choice { display: grid; gap: 6px; margin-left: 43px; }
 .settings-choice input[type="radio"] {
   width: 17px;
