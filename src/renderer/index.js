@@ -589,6 +589,12 @@ const linuxUpdateCommands = {
   installed: linuxInstallCommand,
   website: linuxWebsiteUpdateCommand,
 };
+
+function setTitlebarActionLabel(button, text) {
+  button.querySelector(".titlebar-action-label").textContent = text;
+  button.title = text;
+  button.setAttribute("aria-label", text);
+}
 const platformApi = createPlatformApi();
 const platform = platformApi.platform;
 const mobileWebLayoutQuery = window.matchMedia(
@@ -659,7 +665,7 @@ function applyPlatformUi() {
     ?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
 
   if (!platformApi.hasDesktopIntegration) {
-    appMenuUpdate.querySelector("span").textContent = "Open latest release";
+    setTitlebarActionLabel(appMenuUpdate, "Open latest release");
   }
 }
 
@@ -3041,7 +3047,7 @@ function clearUpdateAvailableUi() {
   titlebarLogo.removeAttribute("title");
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
-  appMenuUpdate.querySelector("span").textContent = "Check for updates";
+  setTitlebarActionLabel(appMenuUpdate, "Check for updates");
   appMenuUpdate.querySelector("i").className = "fa-solid fa-rotate-right";
   appMenuUpdateIgnore.classList.add("hidden");
 }
@@ -3091,10 +3097,12 @@ function syncAvailableUpdateUi() {
         ? "fa-solid fa-terminal"
         : "fa-solid fa-arrow-up-right-from-square";
   appMenuUpdateIgnore.classList.remove("hidden");
-  appMenuUpdate.querySelector("span").textContent =
+  setTitlebarActionLabel(
+    appMenuUpdate,
     platformApi.supportsNativeUpdateInstall
       ? `Install ${availableUpdate.version}`
-      : `Update ${availableUpdate.version}`;
+      : `Update ${availableUpdate.version}`,
+  );
   appMenuUpdateIgnore.querySelector("span").textContent = isIgnored
     ? `Ignored ${availableUpdate.version}`
     : `Ignore update hint`;
@@ -3107,7 +3115,7 @@ function setUpdateMenuStatus(text, { reset = true } = {}) {
   }
 
   appMenuUpdate.classList.remove("hidden");
-  appMenuUpdate.querySelector("span").textContent = text;
+  setTitlebarActionLabel(appMenuUpdate, text);
   appMenuUpdate.querySelector("i").className = "fa-solid fa-rotate-right";
 
   if (reset) {

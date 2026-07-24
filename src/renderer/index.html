@@ -246,27 +246,67 @@
   </div>
     <div class="window-frame">
       <header class="titlebar">
-        <div class="titlebar-brand">
-          <div class="titlebar-avatar">
-            <img
-              id="titlebar-logo"
-              class="titlebar-logo"
-              alt="Open app menu"
-              role="button"
-              tabindex="0"
-              aria-haspopup="menu"
-              aria-controls="app-menu"
-              aria-expanded="false"
-            />
-            <span
-              id="titlebar-presence"
-              class="titlebar-presence online"
-              aria-hidden="true"
-            ></span>
+        <div class="titlebar-left">
+          <div class="titlebar-brand">
+            <div class="titlebar-avatar">
+              <img
+                id="titlebar-logo"
+                class="titlebar-logo"
+                alt="Open app menu"
+                role="button"
+                tabindex="0"
+                aria-haspopup="menu"
+                aria-controls="app-menu"
+                aria-expanded="false"
+              />
+              <span
+                id="titlebar-presence"
+                class="titlebar-presence online"
+                aria-hidden="true"
+              ></span>
+            </div>
+            <div>
+              <strong id="titlebar-username" data-app-name>App</strong>
+              <span id="titlebar-subtitle">Ready</span>
+            </div>
           </div>
-          <div>
-            <strong id="titlebar-username" data-app-name>App</strong>
-            <span id="titlebar-subtitle">Ready</span>
+          <div class="titlebar-actions" aria-label="App shortcuts">
+            <button
+              id="app-menu-update"
+              type="button"
+              title="Check for updates"
+              aria-label="Check for updates"
+            >
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              <span class="titlebar-action-label">Check for updates</span>
+            </button>
+            <button
+              id="app-menu-status"
+              type="button"
+              title="News"
+              aria-label="News"
+            >
+              <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
+              <span class="titlebar-action-label">News</span>
+            </button>
+            <button
+              id="app-menu-account"
+              type="button"
+              title="Account"
+              aria-label="Account"
+            >
+              <i class="fa-solid fa-user" aria-hidden="true"></i>
+              <span class="titlebar-action-label">Account</span>
+            </button>
+            <button
+              id="app-menu-settings"
+              type="button"
+              title="Settings"
+              aria-label="Settings"
+            >
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              <span class="titlebar-action-label">Settings</span>
+            </button>
           </div>
         </div>
         <div class="window-controls">
@@ -1365,10 +1405,6 @@
           <span>Offline</span>
         </button>
       </div>
-      <button id="app-menu-update" type="button" role="menuitem">
-        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-        <span>Check for updates</span>
-      </button>
       <button
         id="app-menu-update-ignore"
         class="hidden"
@@ -1377,19 +1413,6 @@
       >
         <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>
         <span>Ignore update hint</span>
-      </button>
-      
-      <button id="app-menu-status" type="button" role="menuitem">
-        <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
-        <span>News</span>
-      </button>
-      <button id="app-menu-account" type="button" role="menuitem">
-          <i class="fa-solid fa-user" aria-hidden="true"></i>
-          <span>Account</span>
-        </button>
-        <button id="app-menu-settings" type="button" role="menuitem">
-        <i class="fa-solid fa-gear" aria-hidden="true"></i>
-        <span>Settings</span>
       </button>
     </div>
 

@@ -223,12 +223,60 @@ body.app-boot-finish .window-frame {
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
   -webkit-app-region: drag;
 }
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
 .titlebar-brand {
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
   gap: 9px;
   min-width: 0;
+}
+.titlebar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.titlebar-actions button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+.titlebar-actions button:hover,
+.titlebar-actions button:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.titlebar-actions button:disabled {
+  color: var(--faint);
+  cursor: default;
+  opacity: 0.6;
+  transform: none;
+}
+.titlebar-action-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .titlebar-brand > div:last-child {
   min-width: 0;
