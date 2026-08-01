@@ -10,6 +10,7 @@
 #define MyAppExeName GetEnv("AERO_APP_EXE_NAME")
 #define MyCliName GetEnv("AERO_CLI_COMMAND_NAME")
 #define MySetupBaseName GetEnv("AERO_WINDOWS_SETUP_BASE_NAME")
+#define MySetupOutputDir GetEnv("AERO_WINDOWS_SETUP_OUTPUT_DIR")
 #ifndef WinUnpackedDir
 #define WinUnpackedDir "dist\build\win-unpacked"
 #endif
@@ -35,7 +36,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
 Uninstallable=yes
 
-OutputDir=dist\installer
+OutputDir={#MySetupOutputDir}
 OutputBaseFilename={#MySetupBaseName}-{#MyAppVersion}
 SetupIconFile=assets\app.ico
 VersionInfoVersion={#MyAppVersion}
@@ -70,12 +71,12 @@ SetupLogging=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons"
 
 [Files]
 Source: "{#WinUnpackedDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "*.pdb,*.map,Thumbs.db,desktop.ini"
-Source: "dist\installer\cli\{#MyCliName}.cmd"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\installer\cli\{#MyCliName}.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\build\windows\cli\{#MyCliName}.cmd"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\build\windows\cli\{#MyCliName}.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"

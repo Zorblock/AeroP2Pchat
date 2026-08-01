@@ -60,6 +60,28 @@ Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/
 
 ---
 
+## 🛠️ Release build layout
+
+Release builds use a staging directory so a failed platform build never leaves
+`dist/release` half-updated:
+
+```text
+dist/build/                 # temporary build outputs
+  android/renderer/         # Android web bundle
+  windows/                  # Windows unpacked app and Inno Setup output
+  linux/                    # Linux AppImage build output
+  artifacts/                # named candidates and update manifests
+
+dist/release/               # final files, replaced only after all builds pass
+```
+
+`npm run patch` and `npm run release` build Windows, Android, and Linux into
+`dist/build/artifacts` first. Once every artifact and update manifest exists,
+the workflow promotes that directory to `dist/release` immediately before it
+creates the GitHub release.
+
+---
+
 ## 🚀 How to Use
 
 ### 1. Connect with a Friend

@@ -5,7 +5,9 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const scriptPath = path.join(root, "create-setup.iss");
 const cliTemplateDir = path.join(root, "scripts", "windows-cli");
-const cliOutputDir = path.join(root, "dist", "installer", "cli");
+const windowsBuildDir = path.join(root, "dist", "build", "windows");
+const installerOutputDir = path.join(windowsBuildDir, "installer");
+const cliOutputDir = path.join(windowsBuildDir, "cli");
 const markerPath = path.join(root, "dist", "build", "latest-win-dir.txt");
 const buildRoot = path.join(root, "dist", "build");
 const packageJson = JSON.parse(
@@ -128,6 +130,7 @@ const result = spawnSync(
       AERO_APP_EXE_NAME: `${projectConfig.app.name}.exe`,
       AERO_CLI_COMMAND_NAME: projectConfig.app.cliCommandName,
       AERO_WINDOWS_SETUP_BASE_NAME: projectConfig.release.windowsSetupBaseName,
+      AERO_WINDOWS_SETUP_OUTPUT_DIR: path.relative(root, installerOutputDir),
     },
     stdio: "inherit",
     shell: compiler === "ISCC" || compiler === "ISCC.exe",
@@ -139,6 +142,8 @@ if (result.status === 0) {
   const exePath = path.join(
     root,
     "dist",
+    "build",
+    "windows",
     "installer",
     `${projectConfig.release.windowsSetupBaseName}-${version}.exe`,
   );

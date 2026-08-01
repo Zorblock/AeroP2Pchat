@@ -4,7 +4,7 @@ module.exports = {
   appId: projectConfig.app.id,
   productName: projectConfig.app.name,
   directories: {
-    output: "dist",
+    output: "dist/build/electron",
     buildResources: "assets",
   },
   files: [

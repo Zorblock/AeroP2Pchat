@@ -5,7 +5,8 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const distDir = path.join(root, "dist");
-const releaseDir = path.join(distDir, "release");
+const buildDir = path.join(distDir, "build");
+const artifactsDir = path.join(buildDir, "artifacts");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
 const config = JSON.parse(
@@ -13,12 +14,12 @@ const config = JSON.parse(
 );
 
 function parseArgs() {
-  const options = { platform: "", version: "", preserveRelease: false };
+  const options = { platform: "", version: "", preserveBuild: false };
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith("--platform=")) options.platform = arg.slice(11);
     if (arg.startsWith("--version="))
       options.version = arg.slice(10).replace(/^v/, "");
-    if (arg === "--preserve-release") options.preserveRelease = true;
+    if (arg === "--preserve-build") options.preserveBuild = true;
   }
   if (!["linux", "windows"].includes(options.platform)) {
     throw new Error("Missing --platform=linux|windows");
@@ -70,12 +71,12 @@ function setPackageVersion(version) {
   return version;
 }
 
-function clean(preserveRelease) {
+function clean(preserveBuild) {
   fs.rmSync(path.join(root, "out"), { recursive: true, force: true });
-  if (!preserveRelease) {
-    fs.rmSync(distDir, { recursive: true, force: true });
+  if (!preserveBuild) {
+    fs.rmSync(buildDir, { recursive: true, force: true });
   }
-  fs.mkdirSync(releaseDir, { recursive: true });
+  fs.mkdirSync(artifactsDir, { recursive: true });
 }
 
 function hashFile(filePath, algorithm) {
@@ -96,7 +97,7 @@ function copyAsset(source, name) {
   if (!source || !fs.existsSync(source)) {
     throw new Error(`Expected build asset was not found: ${source || name}`);
   }
-  const target = path.join(releaseDir, name);
+  const target = path.join(artifactsDir, name);
   fs.copyFileSync(source, target);
   return {
     name,
@@ -126,7 +127,7 @@ function findAllFiles(startDir, predicate) {
 
 function writePlatformManifest(platform, version, asset) {
   fs.writeFileSync(
-    path.join(releaseDir, `update_manifest_${platform}.json`),
+    path.join(artifactsDir, `update_manifest_${platform}.json`),
     `${JSON.stringify({ version, platform, asset }, null, 2)}\n`,
     "utf8",
   );
@@ -137,7 +138,8 @@ function buildWindows(version) {
 
   const asset = copyAsset(
     path.join(
-      distDir,
+      buildDir,
+      "windows",
       "installer",
       `${config.release.windowsSetupBaseName}-${version}.exe`,
     ),
@@ -155,13 +157,16 @@ function buildLinux(version) {
     "--linux",
     "--publish",
     "never",
+    `--config.directories.output=${path.relative(root, path.join(buildDir, "linux"))}`,
   ]);
 
   const extensions = [".AppImage"];
   const assets = [];
 
   for (const ext of extensions) {
-    const file = findFile(distDir, (name) => name.endsWith(ext));
+    const file = findFile(path.join(buildDir, "linux"), (name) =>
+      name.endsWith(ext),
+    );
     if (file) {
       const asset = copyAsset(file, `Aero-P2P-Chat-Linux-x64${ext}`);
       assets.push(asset);
@@ -172,7 +177,7 @@ function buildLinux(version) {
   const appImage = assets.find((a) => a.name.endsWith(".AppImage"));
   if (appImage) {
     fs.writeFileSync(
-      path.join(releaseDir, "update_manifest_linux.json"),
+      path.join(artifactsDir, "update_manifest_linux.json"),
       `${JSON.stringify(
         { version, platform: "linux", asset: appImage, assets },
         null,
@@ -186,7 +191,7 @@ function buildLinux(version) {
 function main() {
   const options = parseArgs();
   const version = setPackageVersion(options.version);
-  clean(options.preserveRelease);
+  clean(options.preserveBuild);
 
   if (options.platform === "windows") buildWindows(version);
   if (options.platform === "linux") buildLinux(version);

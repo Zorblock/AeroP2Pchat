@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
+const buildArtifactsDir = path.join(root, "dist", "build", "artifacts");
 const releaseDir = path.join(root, "dist", "release");
 
 function run(command, args, options = {}) {
@@ -460,7 +461,10 @@ function printArtifactLinks(releaseFiles) {
 function buildLinuxWithDocker(version) {
   run("node", ["scripts/build-linux-docker.cjs", `--version=${version}`]);
 
-  const linuxManifest = path.join(releaseDir, "update_manifest_linux.json");
+  const linuxManifest = path.join(
+    buildArtifactsDir,
+    "update_manifest_linux.json",
+  );
   if (!fs.existsSync(linuxManifest)) {
     throw new Error(
       "The Docker Linux build did not provide update_manifest_linux.json.",
@@ -533,25 +537,31 @@ function main() {
     // 2. Bump version
     setPackageVersion(nextVersion);
 
-    // 3. Build all local artifacts before publishing anything.
-    // The Windows build cleans dist/, so Android and Store builds run afterwards.
+    // 3. Build every platform into dist/build/artifacts. dist/release stays
+    // untouched until every local build and update manifest has succeeded.
+    fs.rmSync(path.join(root, "dist", "build"), {
+      recursive: true,
+      force: true,
+    });
     run("node", [
       "scripts/ci-build-release.cjs",
       "--platform=windows",
       `--version=${nextVersion}`,
+      "--preserve-build",
     ]);
     run("node", ["scripts/build-android.cjs"]);
-    run("node", ["scripts/ci-create-latest.cjs", "dist/release"]);
+    run("node", ["scripts/ci-create-latest.cjs", "dist/build/artifacts"]);
 
-    // 4. Build Linux locally in Docker, keeping the other release files intact.
+    // 4. Docker adds the Linux candidate to the same build staging directory.
     buildLinuxWithDocker(nextVersion);
     run("node", [
       "scripts/ci-append-linux-latest.cjs",
-      "dist/release/latest.yml",
-      "dist/release",
+      "dist/build/artifacts/latest.yml",
+      "dist/build/artifacts",
     ]);
+    run("node", ["scripts/promote-release-artifacts.cjs"]);
 
-    // 5. Publish only after every local build succeeded.
+    // 5. Publish only after every local build has been promoted successfully.
     run("git", ["add", "-A"]);
     if (hasStagedChanges()) {
       run("git", ["commit", "-m", `chore: release ${tag}`]);

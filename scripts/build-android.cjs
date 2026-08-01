@@ -13,7 +13,7 @@ const packageInfo = require("../package.json");
 
 const rootDir = join(__dirname, "..");
 const androidDir = join(rootDir, "android");
-const releaseOutputDir = join(rootDir, "dist", "release");
+const buildArtifactsDir = join(rootDir, "dist", "build", "artifacts");
 const isWindows = process.platform === "win32";
 const buildEnv = { ...process.env };
 
@@ -173,7 +173,7 @@ function run(command, args, options = {}) {
 
 if (process.argv.includes("--help")) {
   console.log("Usage: node scripts/build-android.cjs");
-  console.log("Build the signed direct-download APK in dist/release.");
+  console.log("Build the signed direct-download APK in dist/build/artifacts.");
   process.exit(0);
 }
 
@@ -207,7 +207,7 @@ const gradleApkPath = join(
   "app-release.apk",
 );
 const namedApkPath = join(
-  releaseOutputDir,
+  buildArtifactsDir,
   projectConfig.release.androidApkAsset || "Aero-P2P-Chat-Android.apk",
 );
 
@@ -216,6 +216,6 @@ if (!existsSync(gradleApkPath)) {
   process.exit(1);
 }
 
-mkdirSync(releaseOutputDir, { recursive: true });
+mkdirSync(buildArtifactsDir, { recursive: true });
 copyFileSync(gradleApkPath, namedApkPath);
-console.log(`Android direct-download APK created: ${namedApkPath}`);
+console.log(`Android release candidate created: ${namedApkPath}`);

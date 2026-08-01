@@ -20,10 +20,10 @@ function main() {
   }
 
   const version = parseVersion();
-  const releaseOutput = path.join(root, "dist", "release");
-  fs.mkdirSync(releaseOutput, { recursive: true });
+  const artifactsOutput = path.join(root, "dist", "build", "artifacts");
+  fs.mkdirSync(artifactsOutput, { recursive: true });
   const buildCommand =
-    "node scripts/ci-build-release.cjs --platform=linux --preserve-release" +
+    "node scripts/ci-build-release.cjs --platform=linux --preserve-build" +
     (version ? ` --version=${version}` : "");
   const command = `
     cache_key="$(sha256sum package-lock.json | awk '{print $1}'):$(node --version)"
@@ -35,10 +35,10 @@ function main() {
       printf "%s" "$cache_key" > node_modules/.aero-package-lock.sha256
     fi
     ${buildCommand}
-    test -f dist/release/Aero-P2P-Chat-Linux-x64.AppImage
-    test -f dist/release/update_manifest_linux.json
-    cp -f dist/release/Aero-P2P-Chat-Linux-x64.AppImage /release-output/
-    cp -f dist/release/update_manifest_linux.json /release-output/
+    test -f dist/build/artifacts/Aero-P2P-Chat-Linux-x64.AppImage
+    test -f dist/build/artifacts/update_manifest_linux.json
+    cp -f dist/build/artifacts/Aero-P2P-Chat-Linux-x64.AppImage /artifacts-output/
+    cp -f dist/build/artifacts/update_manifest_linux.json /artifacts-output/
   `;
 
   console.log("Building Linux packages locally with Docker...");
@@ -62,7 +62,7 @@ function main() {
       "--mount",
       "type=volume,target=/project/dist",
       "--mount",
-      `type=bind,source=${releaseOutput},target=/release-output`,
+      `type=bind,source=${artifactsOutput},target=/artifacts-output`,
       "--mount",
       "type=volume,source=aero-p2p-chat-linux-node-modules,target=/project/node_modules",
       "--mount",

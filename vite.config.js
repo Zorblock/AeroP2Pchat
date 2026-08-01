@@ -9,7 +9,7 @@ export default defineConfig({
   root: resolve("src/renderer"),
   publicDir: resolve("public"),
   build: {
-    outDir: resolve("dist/renderer"),
+    outDir: resolve("dist/build/android/renderer"),
     emptyOutDir: true,
     rolldownOptions: {
       input: {
