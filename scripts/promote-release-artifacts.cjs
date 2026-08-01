@@ -13,6 +13,7 @@ const previousReleaseDir = path.join(distDir, "release.previous");
 
 const requiredFiles = [
   config.release.windowsSetupAsset,
+  config.release.windowsOnlineInstallerAsset,
   config.release.linuxAppImageAsset,
   config.release.androidApkAsset,
   config.release.chromeExtensionAsset,

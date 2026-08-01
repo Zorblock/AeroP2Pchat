@@ -214,6 +214,12 @@ function sha256(filePath) {
 function describeReleaseFile(filePath) {
   const name = path.basename(filePath);
   const lowerName = name.toLowerCase();
+  if (name === config.release.windowsOnlineInstallerAsset) {
+    return {
+      description: "Windows online installer · always downloads the latest version",
+      download: true,
+    };
+  }
   if (lowerName.endsWith(".exe")) {
     return { description: "Windows 10/11 installer", download: true };
   }

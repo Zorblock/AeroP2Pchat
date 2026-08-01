@@ -8,6 +8,8 @@
 .dev-data
 /.tools/inno
 /.gradle-android
+[Bb]in/
+[Oo]bj/
 AGENTS.md
 TODO.todo
 android/.kotlin/sessions/

@@ -135,6 +135,7 @@ function writePlatformManifest(platform, version, asset) {
 
 function buildWindows(version) {
   run("npm", ["run", "setup"]);
+  run("node", ["scripts/build-online-installer.cjs"]);
 
   const asset = copyAsset(
     path.join(
@@ -144,6 +145,15 @@ function buildWindows(version) {
       `${config.release.windowsSetupBaseName}-${version}.exe`,
     ),
     config.release.windowsSetupAsset,
+  );
+  copyAsset(
+    path.join(
+      buildDir,
+      "windows",
+      "online-installer",
+      config.release.windowsOnlineInstallerAsset,
+    ),
+    config.release.windowsOnlineInstallerAsset,
   );
   writePlatformManifest("windows", version, asset);
 }

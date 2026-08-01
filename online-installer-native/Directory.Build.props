@@ -1,0 +1,7 @@
+<Project>
+  <!-- Keep Native AOT intermediate binaries outside the source tree. This also
+       allows a previously built installer to stay open during the next build. -->
+  <PropertyGroup>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)..\dist\.native-aot\bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>
