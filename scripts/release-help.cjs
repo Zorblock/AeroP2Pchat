@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
+const config = require("../config.json");
 const buildArtifactsDir = path.join(root, "dist", "build", "artifacts");
 const releaseDir = path.join(root, "dist", "release");
 
@@ -190,6 +191,14 @@ function collectReleaseFiles() {
   return files;
 }
 
+function isLocalOnlyReleaseFile(filePath) {
+  return path.basename(filePath) === config.release.chromeExtensionAsset;
+}
+
+function getGitHubReleaseFiles(files) {
+  return files.filter((filePath) => !isLocalOnlyReleaseFile(filePath));
+}
+
 function formatFileSize(bytes) {
   const megabytes = bytes / 1024 / 1024;
   return `${megabytes.toFixed(megabytes >= 100 ? 0 : 1)} MB`;
@@ -216,6 +225,9 @@ function describeReleaseFile(filePath) {
   }
   if (lowerName.endsWith(".apk")) {
     return { description: "Android direct-install package", download: true };
+  }
+  if (name === config.release.chromeExtensionAsset) {
+    return { description: "Chrome extension package (local only)", download: false };
   }
   if (lowerName === "latest.yml") {
     return {
@@ -425,6 +437,17 @@ function printArtifactLinks(releaseFiles) {
     );
   }
 
+  const chromeExtension = releaseFiles.find(isLocalOnlyReleaseFile);
+  if (chromeExtension) {
+    console.log(`\n${colored("CHROME EXTENSION", color.bold, color.yellow)}`);
+    printArtifact(
+      "Chrome extension (.zip)",
+      chromeExtension,
+      "Kept locally in dist/release; it is not uploaded to GitHub.",
+      [color.yellow],
+    );
+  }
+
   const apk = findReleaseFile(".apk");
   if (apk) {
     console.log(`\n${colored("ANDROID DOWNLOAD", color.bold, color.cyan)}`);
@@ -550,6 +573,7 @@ function main() {
       "--preserve-build",
     ]);
     run("node", ["scripts/build-android.cjs"]);
+    run("node", ["scripts/build-chrome-extension.cjs"]);
     run("node", ["scripts/ci-create-latest.cjs", "dist/build/artifacts"]);
 
     // 4. Docker adds the Linux candidate to the same build staging directory.
@@ -580,6 +604,7 @@ function main() {
     run("git", ["push", "origin", tag]);
 
     const releaseFiles = collectReleaseFiles();
+    const githubReleaseFiles = getGitHubReleaseFiles(releaseFiles);
     run("gh", [
       "release",
       "create",
@@ -588,17 +613,17 @@ function main() {
       `Aero P2P Chat ${tag}`,
       "--generate-notes",
       "--notes",
-      createReleaseNotes(tag, releaseFiles),
+      createReleaseNotes(tag, githubReleaseFiles),
     ]);
     githubReleaseCreated = true;
-    uploadReleaseFiles(tag, releaseFiles);
+    uploadReleaseFiles(tag, githubReleaseFiles);
 
     console.log("");
     console.log(
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, and Linux packages were built before publishing.",
+      "Windows, Android, Linux, and a local-only Chrome extension package were built before publishing.",
     );
     console.log("Website deployment was triggered after the source push.");
     printArtifactLinks(releaseFiles);

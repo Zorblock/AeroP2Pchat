@@ -70,15 +70,17 @@ dist/build/                 # temporary build outputs
   android/renderer/         # Android web bundle
   windows/                  # Windows unpacked app and Inno Setup output
   linux/                    # Linux AppImage build output
+  chrome-extension/         # unpacked Chrome extension
   artifacts/                # named candidates and update manifests
 
 dist/release/               # final files, replaced only after all builds pass
 ```
 
-`npm run patch` and `npm run release` build Windows, Android, and Linux into
-`dist/build/artifacts` first. Once every artifact and update manifest exists,
-the workflow promotes that directory to `dist/release` immediately before it
-creates the GitHub release.
+`npm run patch` and `npm run release` build Windows, Android, Linux, and the
+Chrome extension into `dist/build/artifacts` first. Once every artifact and
+update manifest exists, the workflow promotes that directory to `dist/release`
+immediately before it creates the GitHub release. The Chrome extension ZIP
+remains local in `dist/release` and is not uploaded to GitHub.
 
 ---
 

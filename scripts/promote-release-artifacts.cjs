@@ -15,6 +15,7 @@ const requiredFiles = [
   config.release.windowsSetupAsset,
   config.release.linuxAppImageAsset,
   config.release.androidApkAsset,
+  config.release.chromeExtensionAsset,
   "latest.yml",
   "update_manifest_windows.json",
   "update_manifest_linux.json",

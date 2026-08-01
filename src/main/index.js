@@ -259,6 +259,8 @@ function normalizeConfig(config = {}) {
 }
 
 let cachedConfigKey = null;
+let unreadableConfigKey = false;
+let configKeyCreation = null;
 
 function decodeStoredConfigKey(value) {
   const text = String(value).trim();
@@ -287,6 +289,9 @@ async function readExistingConfigKey() {
   if (cachedConfigKey) {
     return cachedConfigKey;
   }
+  if (unreadableConfigKey) {
+    return null;
+  }
 
   const keyPaths = [getConfigKeyPath(), getConfigKeyBackupPath()];
   let lastError = null;
@@ -304,33 +309,80 @@ async function readExistingConfigKey() {
   }
 
   if (lastError) {
-    throw lastError;
+    // Windows safeStorage uses the current user's DPAPI credentials. A config
+    // copied from a previous Windows installation cannot be decrypted again.
+    // Keep those files for inspection, but let the next save create a fresh
+    // key instead of permanently blocking every settings update.
+    unreadableConfigKey = true;
+    console.warn(
+      "Saved settings key cannot be decrypted on this system; settings will be reset on the next save.",
+    );
   }
   return null;
 }
 
-async function createConfigKey() {
-  const existing = await readExistingConfigKey();
-  if (existing) {
-    return existing;
+async function archiveUnreadableConfigFiles() {
+  if (!unreadableConfigKey) {
+    return;
   }
 
-  const key = randomBytes(KEY_BYTES);
-  const protectedValue = safeStorage.isEncryptionAvailable()
-    ? `SAFE:${safeStorage.encryptString(key.toString("base64")).toString("base64")}`
-    : `LOCAL:${key.toString("base64")}`;
-  const keyPath = getConfigKeyPath();
-  const keyBackupPath = getConfigKeyBackupPath();
-  const tempPath = `${keyPath}.${process.pid}.tmp`;
+  const recoverySuffix = `.unreadable-${Date.now()}`;
+  for (const filePath of [
+    getConfigPath(),
+    getConfigBackupPath(),
+    getConfigKeyPath(),
+    getConfigKeyBackupPath(),
+  ]) {
+    try {
+      await rename(filePath, `${filePath}${recoverySuffix}`);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  unreadableConfigKey = false;
+}
 
-  await mkdir(app.getPath("userData"), { recursive: true });
-  await writeFile(tempPath, protectedValue, { encoding: "utf8", mode: 0o600 });
-  await rename(tempPath, keyPath);
-  await chmod(keyPath, 0o600).catch(() => {});
-  await copyFile(keyPath, keyBackupPath);
-  await chmod(keyBackupPath, 0o600).catch(() => {});
-  cachedConfigKey = key;
-  return key;
+async function createConfigKey() {
+  if (cachedConfigKey) {
+    return cachedConfigKey;
+  }
+  if (configKeyCreation) {
+    return configKeyCreation;
+  }
+
+  configKeyCreation = (async () => {
+    const existing = await readExistingConfigKey();
+    if (existing) {
+      return existing;
+    }
+
+    await archiveUnreadableConfigFiles();
+    const key = randomBytes(KEY_BYTES);
+    const protectedValue = safeStorage.isEncryptionAvailable()
+      ? `SAFE:${safeStorage.encryptString(key.toString("base64")).toString("base64")}`
+      : `LOCAL:${key.toString("base64")}`;
+    const keyPath = getConfigKeyPath();
+    const keyBackupPath = getConfigKeyBackupPath();
+    const tempPath = `${keyPath}.${process.pid}.tmp`;
+
+    await mkdir(app.getPath("userData"), { recursive: true });
+    await writeFile(tempPath, protectedValue, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await rename(tempPath, keyPath);
+    await chmod(keyPath, 0o600).catch(() => {});
+    await copyFile(keyPath, keyBackupPath);
+    await chmod(keyBackupPath, 0o600).catch(() => {});
+    cachedConfigKey = key;
+    return key;
+  })();
+
+  try {
+    return await configKeyCreation;
+  } finally {
+    configKeyCreation = null;
+  }
 }
 
 function legacyConfigPaths() {
