@@ -9358,7 +9358,14 @@ mobileTabSettings?.addEventListener("click", () => {
 });
 
 function openFeedbackWidget() {
-  window.uj?.showWidget?.({ section: "feedback" });
+  if (typeof window.uj?.showWidget === "function") {
+    window.uj.showWidget({ section: "feedback" });
+    return;
+  }
+
+  // The Chrome extension deliberately does not ship UserJot's remotely
+  // hosted SDK. Keep feedback available there by opening the feedback page.
+  window.open(newsPageUrl, "_blank", "noopener");
 }
 
 feedbackButton?.addEventListener("click", openFeedbackWidget);

@@ -46,12 +46,14 @@ function writeManifest() {
       48: "icons/icon.png",
       128: "icons/icon.png",
     },
-    permissions: ["clipboardWrite", "notifications", "storage", "tabs"],
+    // Keep Chrome Web Store permissions limited to the APIs the extension
+    // actually uses. Config is saved with chrome.storage.local and copying an
+    // Aero ID or message uses the Clipboard API.
+    permissions: ["clipboardWrite", "storage"],
     host_permissions: [
-      "https://*.peerjs.com/*",
+      // PeerJS defaults to this signalling host when no custom host is set.
+      "https://0.peerjs.com/*",
       "https://aero.zorblock.de/*",
-      "https://zorblock.featurebase.app/*",
-      "https://*.userjot.com/*",
     ],
   };
 

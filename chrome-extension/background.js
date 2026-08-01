@@ -1,14 +1,6 @@
-chrome.action.onClicked.addListener(async () => {
+chrome.action.onClicked.addListener(() => {
   const appUrl = chrome.runtime.getURL("index.html");
-  const [existingTab] = await chrome.tabs.query({ url: appUrl });
-
-  if (existingTab?.id) {
-    await chrome.tabs.update(existingTab.id, { active: true });
-    if (existingTab.windowId) {
-      await chrome.windows.update(existingTab.windowId, { focused: true });
-    }
-    return;
-  }
-
-  await chrome.tabs.create({ url: appUrl });
+  // Creating a tab does not require the broad "tabs" permission. This is
+  // intentionally simpler than inspecting or focusing an existing browser tab.
+  return chrome.tabs.create({ url: appUrl });
 });
