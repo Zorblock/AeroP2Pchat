@@ -943,11 +943,19 @@
         </div>
 
         <div class="welcome-pages">
-          <section class="welcome-page" data-welcome-step="0">
+          <section class="welcome-page hidden" data-welcome-step="3">
             <div class="welcome-copy">
-              <h2>Account Login</h2>
-              <p style="font-size: 14px; color: var(--faint);">Log in to your Aero backend account.</p>
+              <h2>Use Aero without an account</h2>
+              <p style="font-size: 14px; color: var(--faint);">An account is optional. You can sign in later from the Account menu.</p>
             </div>
+            <button id="welcome-skip-btn" class="welcome-skip-button" type="button">
+              Continue without an account
+            </button>
+            <div class="welcome-account-option">
+              <div>
+                <h3>Already have an account?</h3>
+                <p>Sign in to use your Aero backend account.</p>
+              </div>
             <label class="welcome-field" for="welcome-login-username">
               <span>Username</span>
               <input
@@ -980,10 +988,10 @@
             <p style="margin-top: 16px; font-size: 13px; color: var(--faint);">
               Don't have an account? <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create one here</a>
             </p>
-            <button id="welcome-skip-btn" class="ghost-button" type="button" style="width: 100%; border-radius: 8px; margin-top: 8px;">Continue without Account</button>
+            </div>
           </section>
 
-          <section class="welcome-page hidden" data-welcome-step="1">
+          <section class="welcome-page" data-welcome-step="0">
             <div class="welcome-copy">
               <h2>Theme</h2>
             </div>
@@ -1003,7 +1011,7 @@
             </div>
           </section>
 
-          <section class="welcome-page hidden" data-welcome-step="2">
+          <section class="welcome-page hidden" data-welcome-step="1">
             <div class="welcome-copy">
               <h2>Devices</h2>
             </div>
@@ -1029,7 +1037,7 @@
             </div>
           </section>
 
-          <section class="welcome-page hidden" data-welcome-step="3">
+          <section class="welcome-page hidden" data-welcome-step="2">
             <div class="welcome-copy">
               <h2>Autostart</h2>
             </div>

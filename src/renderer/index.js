@@ -119,6 +119,9 @@ const welcomeScreen = document.querySelector("#welcome-screen");
 const welcomeStepLabel = document.querySelector("#welcome-step-label");
 const welcomePages = Array.from(
   document.querySelectorAll("[data-welcome-step]"),
+).sort(
+  (left, right) =>
+    Number(left.dataset.welcomeStep) - Number(right.dataset.welcomeStep),
 );
 const welcomeProgress = Array.from(
   document.querySelectorAll("[data-welcome-progress]"),
@@ -1527,16 +1530,16 @@ function renderWelcomeStep() {
   welcomeStepLabel.textContent = `Step ${currentWelcomeStep + 1} of ${welcomePages.length}`;
   welcomeBack.disabled = currentWelcomeStep === 0;
   welcomeNext.querySelector("span").textContent =
-    currentWelcomeStep === lastStep ? "Finish setup" : "Continue";
+    currentWelcomeStep === lastStep ? "Sign in & finish" : "Continue";
 
   requestAnimationFrame(() => {
-    if (currentWelcomeStep === 0) {
-      welcomeLoginUsername.focus();
-    } else {
-      welcomePages[currentWelcomeStep]
-        ?.querySelector("input:not(:disabled), select:not(:disabled), button:not(:disabled)")
-        ?.focus();
-    }
+    const focusTarget =
+      currentWelcomeStep === lastStep
+        ? welcomeSkipBtn
+        : welcomePages[currentWelcomeStep]?.querySelector(
+            "input:not(:disabled), select:not(:disabled), button:not(:disabled)",
+          );
+    focusTarget?.focus();
   });
 }
 
@@ -1553,6 +1556,12 @@ function openWelcomeScreen() {
   renderWelcomeStep();
   welcomeScreen.classList.remove("hidden");
   void refreshAudioDevices();
+}
+
+async function finishWelcomeSetup() {
+  await saveAppSettings({ welcomeScreen: false });
+  welcomeScreen.classList.add("hidden");
+  remoteIdInput.focus();
 }
 
 function normalizeAccountUsername(value) {
@@ -8582,19 +8591,14 @@ welcomeLoginPassword.addEventListener("keydown", (event) => {
   }
 });
 
-welcomeSkipBtn.addEventListener("click", () => {
+welcomeSkipBtn.addEventListener("click", async () => {
   if (!identity.nickname) {
     identity.nickname = `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
     appConfig.identity = identity;
-    saveAppConfig();
+    await saveAppConfig();
   }
   welcomeLoginError.classList.add("hidden");
-  // Proceed without login by tricking the saveWelcomeNickname function
-  // We don't call saveWelcomeNickname, we just go to the next step.
-  if (currentWelcomeStep === 0) {
-    currentWelcomeStep += 1;
-    renderWelcomeStep();
-  }
+  await finishWelcomeSetup();
 });
 
 welcomeThemeLight.addEventListener("change", () => {
@@ -8660,22 +8664,21 @@ welcomeBack.addEventListener("click", () => {
 welcomeNext.addEventListener("click", async () => {
   welcomeNext.disabled = true;
   try {
-    if (currentWelcomeStep === 0 && !(await saveWelcomeNickname())) {
+    const lastStep = welcomePages.length - 1;
+    if (currentWelcomeStep === lastStep && !(await saveWelcomeNickname())) {
       return;
     }
 
-    if (currentWelcomeStep < welcomePages.length - 1) {
+    if (currentWelcomeStep < lastStep) {
       currentWelcomeStep += 1;
       renderWelcomeStep();
-      if (currentWelcomeStep === 2) {
+      if (currentWelcomeStep === 1) {
         await refreshAudioDevices();
       }
       return;
     }
 
-    await saveAppSettings({ welcomeScreen: false });
-    welcomeScreen.classList.add("hidden");
-    remoteIdInput.focus();
+    await finishWelcomeSetup();
   } finally {
     welcomeNext.disabled = false;
   }

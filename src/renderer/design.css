@@ -661,6 +661,7 @@ textarea:disabled {
 #connect-button,
 #send-button,
 #update-button,
+#welcome-next,
 #save-nickname,
 .copy-update-command,
 .request-actions button:first-child,
@@ -684,6 +685,7 @@ textarea:disabled {
 #connect-button:hover:not(:disabled),
 #send-button:hover:not(:disabled),
 #update-button:hover:not(:disabled),
+#welcome-next:hover:not(:disabled),
 #save-nickname:hover:not(:disabled),
 .copy-update-command:hover:not(:disabled),
 .request-actions button:first-child:hover:not(:disabled),
@@ -696,6 +698,7 @@ textarea:disabled {
 #connect-button:active:not(:disabled),
 #send-button:active:not(:disabled),
 #update-button:active:not(:disabled),
+#welcome-next:active:not(:disabled),
 #save-nickname:active:not(:disabled),
 .stream-start-button:active:not(:disabled) {
   background: var(--accent-pressed);
@@ -1964,6 +1967,42 @@ textarea:disabled {
   height: 46px;
   padding-inline: 14px;
   font-size: 13px;
+}
+.welcome-skip-button {
+  width: min(410px, 100%);
+  min-height: 52px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 8px 20px var(--accent-ring);
+}
+.welcome-skip-button:hover {
+  filter: brightness(1.08);
+}
+.welcome-skip-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.welcome-account-option {
+  display: grid;
+  width: min(410px, 100%);
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.welcome-account-option h3 {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+.welcome-account-option p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
 }
 .welcome-error {
   width: min(410px, 100%);
