@@ -18,11 +18,13 @@ const { createWriteStream, readFileSync } = require("node:fs");
 const {
   chmod,
   copyFile,
+  cp,
   mkdir,
   mkdtemp,
   readFile,
   rename,
   rm,
+  stat,
   writeFile,
 } = require("node:fs/promises");
 const {
@@ -31,7 +33,7 @@ const {
 } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
-const { basename, dirname, join } = require("node:path");
+const { basename, dirname, join, resolve } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
 const {
   KEY_BYTES,
@@ -102,10 +104,24 @@ if (process.platform === "linux") {
   app.commandLine.appendSwitch("class", projectConfig.app.id);
 }
 
+let legacyPackagedUserDataPath = "";
 if (process.env.AERO_CHAT_USER_DATA_DIR) {
   app.setPath("userData", process.env.AERO_CHAT_USER_DATA_DIR);
 } else if (!app.isPackaged) {
   app.setPath("userData", join(process.cwd(), ".dev-data", "instance-0"));
+} else {
+  legacyPackagedUserDataPath = app.getPath("userData");
+  const vendorUserDataPath = join(
+    app.getPath("appData"),
+    "zorblock",
+    "userData",
+    appDisplayName,
+  );
+  app.setPath("userData", vendorUserDataPath);
+
+  if (resolve(legacyPackagedUserDataPath) === resolve(vendorUserDataPath)) {
+    legacyPackagedUserDataPath = "";
+  }
 }
 
 if (!allowMultipleInstances) {
@@ -138,6 +154,45 @@ function getConfigKeyPath() {
 
 function getConfigKeyBackupPath() {
   return `${getConfigKeyPath()}.bak`;
+}
+
+async function pathExists(filePath) {
+  try {
+    await stat(filePath);
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function migratePackagedUserData() {
+  if (!legacyPackagedUserDataPath) {
+    return;
+  }
+
+  const targetPath = app.getPath("userData");
+  if (
+    (await pathExists(targetPath)) ||
+    !(await pathExists(legacyPackagedUserDataPath))
+  ) {
+    return;
+  }
+
+  try {
+    await mkdir(dirname(targetPath), { recursive: true });
+    await cp(legacyPackagedUserDataPath, targetPath, {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+    });
+    console.log(`Migrated user data to ${targetPath}`);
+  } catch (error) {
+    console.warn(
+      `Could not migrate existing user data to ${targetPath}.`,
+      error.message,
+    );
+  }
 }
 
 function getDefaultAppSettings() {
@@ -1461,6 +1516,7 @@ function createWindow({ hidden = false } = {}) {
 }
 
 app.whenReady().then(async () => {
+  await migratePackagedUserData();
   appConfig = await loadConfig();
   await applyAutostartSettings();
   createTray();
