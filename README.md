@@ -1,144 +1,56 @@
 # Aero P2P Chat
 
-![Aero P2P Chat Logo](./assets/app.png)
+Aero P2P Chat ist eine schnelle, direkte Chat-App für Windows, Linux und Android.
+Du verbindest dich direkt mit anderen Personen. Nachrichten werden nicht über
+einen zentralen Chat-Server weitergeleitet.
 
-**Direct messaging without the middleman. Secure, fast, and completely peer-to-peer.**
+## Download
 
-[![Latest Release](https://img.shields.io/github/v/release/Zorblock/AeroP2Pchat?style=flat-square&color=0ea5e9)](https://github.com/Zorblock/AeroP2Pchat/releases)
-[![Total Downloads](https://img.shields.io/github/downloads/Zorblock/AeroP2Pchat/total?style=flat-square&color=38bdf8)](https://github.com/Zorblock/AeroP2Pchat/releases)
-![License: Proprietary](https://img.shields.io/badge/License-Proprietary-7dd3fc?style=flat-square)
+Lade die aktuelle Version auf der
+[SourceForge-Downloadseite](https://sourceforge.net/projects/aerop2pchat/files/) herunter.
 
----
+Alternativ findest du die App und weitere Informationen auf der
+[offiziellen Website](https://zorblock.github.io/AeroP2Pchat).
 
-Aero P2P Chat is a modern, lightweight application that lets you connect
-directly to your friends without routing your messages through centralized
-servers. Built on top of WebRTC, it provides low-latency, secure peer-to-peer
-connections.
+## Installation
 
-## ✨ Features
+### Windows
 
-- **Direct P2P Connection**: No servers in the middle! Once connected, your
-  messages travel directly between you and your chat partner.
-- **Screen Sharing**: Instantly share your screen in high quality with zero latency.
-- **Lightning Fast**: Built on native WebRTC architecture for maximum performance.
-- **File Transfer** *(Coming soon)*: Send files securely with zero size limits.
-- **CLI Integrated**: Open, update, check the status, or uninstall the app
-  straight from your terminal (`aerop2p` command).
+Lade die Setup-Datei (`.exe`) herunter und öffne sie. Folge anschließend den
+Anweisungen des Installationsprogramms.
 
----
+### Linux
 
-## 📥 Installation
+Lade die Datei mit der Endung `.AppImage` herunter. Mache sie ausführbar und
+öffne sie anschließend.
 
-Installing Aero P2P Chat is as simple as running a single command in your
-terminal. This downloads the latest version, installs the app, and sets up the
-`aerop2p` command for you.
+### Android
 
-### 🪟 Windows (PowerShell)
+Lade die APK-Datei herunter und öffne sie auf deinem Android-Gerät. Eventuell
+musst du Android erlauben, Apps aus dieser Quelle zu installieren.
 
-Open PowerShell as Administrator (or just standard user) and run:
+## So startest du einen Chat
 
-```powershell
-iwr -useb https://zorblock.github.io/AeroP2Pchat/install.ps1 | iex
-```
+1. Öffne Aero P2P Chat.
+2. Kopiere deine angezeigte Peer-ID und sende sie an die Person, mit der du
+   chatten möchtest.
+3. Füge die Peer-ID der anderen Person in das Feld für die entfernte Peer-ID
+   ein.
+4. Wähle „Connect“ und beginne den Chat.
 
-### 🐧 Linux (Bash)
+## Funktionen
 
-Open your terminal and run:
+- Direkte Peer-to-Peer-Nachrichten
+- Bildschirmfreigabe
+- Schnelle, direkte Verbindungen
+- Verfügbar für Windows, Linux und Android
 
-```bash
-curl -sSL https://zorblock.github.io/AeroP2Pchat/install.sh | bash
-```
+## Hilfe und Feedback
 
-### 📱 Android
+Fragen, Fehlerberichte und Verbesserungsvorschläge kannst du über die
+[GitHub-Issues](https://github.com/Zorblock/AeroP2Pchat/issues) senden.
 
-Download the latest `.apk` from our [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) and install it directly on your device.
+## Quellcode und Lizenz
 
-> **Note:** If you prefer downloading manually, you can grab the `.exe`
-> (Windows), `.AppImage` (Linux), or `.apk` (Android) directly from our
-> [Releases Page](https://github.com/Zorblock/AeroP2Pchat/releases) or the
-> [Official Website](https://zorblock.github.io/AeroP2Pchat).
-
----
-
-## 🛠️ Release build layout
-
-Release builds use a staging directory so a failed platform build never leaves
-`dist/release` half-updated:
-
-```text
-dist/build/                 # temporary build outputs
-  android/renderer/         # Android web bundle
-  windows/                  # Windows unpacked app and Inno Setup output
-  linux/                    # Linux AppImage build output
-  chrome-extension/         # unpacked Chrome extension
-  artifacts/                # named candidates and update manifests
-
-dist/release/               # final files, replaced only after all builds pass
-```
-
-`npm run patch` and `npm run release` build Windows, Android, Linux, and the
-Chrome extension into `dist/build/artifacts` first. Once every artifact and
-update manifest exists, the workflow promotes that directory to `dist/release`
-immediately before it creates the GitHub release. The Chrome extension ZIP
-remains local in `dist/release` and is not uploaded to GitHub.
-
-### Chrome Web Store
-
-Copy `.env.chrome.example` to `.env.chrome`, then add the Google OAuth client
-credentials, refresh token, extension ID, and publisher ID. The local
-`.env.chrome` file is ignored by Git. Use `npm run chrome:publish` to build,
-upload, and publish the extension manually. Normal `npm run release` and
-`npm run patch` only build the local ZIP.
-
-### Required updates
-
-Use the important release commands to make the new version the minimum supported version:
-
-```text
-npm run release:important
-npm run patch:important
-```
-
-The setting is retained in `update-policy.json` for later releases. Use
-`npm run release:clear-important` to remove the requirement deliberately.
-
----
-
-## 🚀 How to Use
-
-### 1. Connect with a Friend
-
-- **Start the app:** Open "Aero P2P Chat" from your Start Menu/Applications
-  folder, or simply type `aerop2p` in your terminal.
-- **Share your ID:** In the main window, click on your **Peer ID** at the top to
-  copy it to your clipboard. Send this ID to your friend.
-- **Connect:** Your friend pastes your ID into the "Remote Peer ID" input box
-  and clicks **Connect**.
-- **Chat!** You are now securely connected directly to each other.
-
-### 2. Using the CLI Tool
-
-The installer automatically adds the `aerop2p` command to your system. You can
-use it anytime in your terminal:
-
-- `aerop2p open` - Starts the chat client.
-- `aerop2p status` - Checks your current version against the latest available
-  release.
-- `aerop2p update` - Seamlessly updates your client to the newest version in
-  the background.
-- `aerop2p menu` - Opens an interactive terminal menu for managing the app.
-- `aerop2p uninstall` - Completely removes the app from your system.
-
----
-
-## 📄 License & Terms
-
-This software is strictly intended for private use.
-**Aero P2P Chat is NOT Open Source.**
-
-The software is provided under a custom End User License Agreement (EULA). You
-are allowed to use it and modify it for your own personal use, but you may
-**not** distribute, fork, publish, or commercialize the source code or the
-compiled application under any circumstances.
-
-For more details, see the [LICENSE](./LICENSE) file. All rights reserved by **Zorblock**.
+Der Quellcode ist auf [GitHub](https://github.com/Zorblock/AeroP2Pchat)
+verfügbar. Aero P2P Chat steht unter der [MIT-Lizenz](./LICENSE).
