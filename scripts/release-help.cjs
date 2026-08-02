@@ -10,6 +10,40 @@ const config = require("../config.json");
 const buildArtifactsDir = path.join(root, "dist", "build", "artifacts");
 const releaseDir = path.join(root, "dist", "release");
 
+function isWindowsBuildLock(error) {
+  return (
+    process.platform === "win32" &&
+    ["EBUSY", "EPERM", "EACCES"].includes(error.code)
+  );
+}
+
+function resetBuildStaging() {
+  const buildDir = path.join(root, "dist", "build");
+
+  try {
+    fs.rmSync(buildDir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 200,
+    });
+  } catch (error) {
+    if (!isWindowsBuildLock(error)) throw error;
+
+    console.warn(
+      "Build directory is locked by Windows; preserving locked intermediates and resetting release artifacts.",
+    );
+    fs.rmSync(buildArtifactsDir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 200,
+    });
+  }
+
+  fs.mkdirSync(buildArtifactsDir, { recursive: true });
+}
+
 function run(command, args, options = {}) {
   console.log(`> ${command} ${args.join(" ")}`);
   const isWindowsNpm =
@@ -568,10 +602,7 @@ function main() {
 
     // 3. Build every platform into dist/build/artifacts. dist/release stays
     // untouched until every local build and update manifest has succeeded.
-    fs.rmSync(path.join(root, "dist", "build"), {
-      recursive: true,
-      force: true,
-    });
+    resetBuildStaging();
     run("node", [
       "scripts/ci-build-release.cjs",
       "--platform=windows",
