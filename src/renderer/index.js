@@ -3255,6 +3255,16 @@ async function checkForUpdates({ manual = false } = {}) {
       manifest.windows_sha512 ||
       manifest.sha512 ||
       "";
+    const onlineInstallerUrl =
+      manifest.onlineInstallerUrl || manifest.online_installer_url || "";
+    const onlineInstallerSha256 =
+      manifest.onlineInstallerSha256 ||
+      manifest.online_installer_sha256 ||
+      "";
+    const onlineInstallerSha512 =
+      manifest.onlineInstallerSha512 ||
+      manifest.online_installer_sha512 ||
+      "";
     if (platform === "win32" && !windowsUrl) {
       clearUpdateAvailableUi();
       if (manual) {
@@ -3263,7 +3273,14 @@ async function checkForUpdates({ manual = false } = {}) {
       }
       return;
     }
-    if (platform === "win32" && (!windowsSha256 || !windowsSha512)) {
+    if (
+      platform === "win32" &&
+      (!windowsSha256 ||
+        !windowsSha512 ||
+        !onlineInstallerUrl ||
+        !onlineInstallerSha256 ||
+        !onlineInstallerSha512)
+    ) {
       clearUpdateAvailableUi();
       if (manual) {
         setUpdateMenuStatus("Invalid update");
@@ -3286,6 +3303,9 @@ async function checkForUpdates({ manual = false } = {}) {
       windowsUrl,
       windowsSha256,
       windowsSha512,
+      onlineInstallerUrl,
+      onlineInstallerSha256,
+      onlineInstallerSha512,
       linuxUrl: manifest.linuxUrl || manifest.linuxX64AppImageUrl || "",
       linuxSha256:
         manifest.linuxSha256 || manifest.linuxX64AppImageSha256 || "",
@@ -9008,13 +9028,16 @@ async function installAvailableUpdate() {
         version: availableUpdate.version,
         sha256: availableUpdate.windowsSha256,
         sha512: availableUpdate.windowsSha512,
+        onlineInstallerUrl: availableUpdate.onlineInstallerUrl,
+        onlineInstallerSha256: availableUpdate.onlineInstallerSha256,
+        onlineInstallerSha512: availableUpdate.onlineInstallerSha512,
       });
       if (platformApi.isAndroid) {
         setUpdateButtonText("Installer opened");
         startupUpdateButton.textContent = "Installer opened";
       } else {
-        setUpdateButtonText("Setup started");
-        startupUpdateButton.textContent = "Setup started";
+        setUpdateButtonText("Updater started");
+        startupUpdateButton.textContent = "Updater started";
       }
     } catch (error) {
       stopUpdateProgressListener();

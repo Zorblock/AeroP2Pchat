@@ -1125,20 +1125,40 @@ function finishDelayedQuit() {
   app.quit();
 }
 
-function assertTrustedInstallerUrl(rawUrl) {
+function assertTrustedReleaseAssetUrl(rawUrl, expectedAssetName) {
   const url = new URL(rawUrl);
   const isTrustedHost = url.hostname === releaseHost;
   const isTrustedPath = url.pathname.startsWith(releasePathPrefix);
-  const trustedInstallerNames = new Set([
-    projectConfig.release.windowsSetupAsset,
-  ]);
-  const isInstaller = trustedInstallerNames.has(basename(url.pathname));
+  const isExpectedAsset = basename(url.pathname) === expectedAssetName;
 
-  if (!isTrustedHost || !isTrustedPath || !isInstaller) {
+  if (!isTrustedHost || !isTrustedPath || !isExpectedAsset) {
     throw new Error("Refused untrusted update URL.");
   }
 
   return url;
+}
+
+function assertTrustedOnlineInstallerUrl(rawUrl) {
+  return assertTrustedReleaseAssetUrl(
+    rawUrl,
+    projectConfig.release.windowsOnlineInstallerAsset,
+  );
+}
+
+function getInstalledOnlineInstallerPath() {
+  return join(
+    dirname(process.execPath),
+    projectConfig.release.windowsOnlineInstallerAsset,
+  );
+}
+
+async function hasInstalledOnlineInstaller(filePath) {
+  try {
+    const file = await stat(filePath);
+    return file.isFile() && file.size > 0;
+  } catch {
+    return false;
+  }
 }
 
 function assertTrustedManifestUrl(rawUrl) {
@@ -1362,10 +1382,9 @@ function verifyUpdateDownload(
 }
 
 async function installWindowsUpdate(
-  rawUrl,
-  version,
-  expectedSha256 = "",
-  expectedSha512 = "",
+  rawOnlineInstallerUrl,
+  expectedOnlineInstallerSha256 = "",
+  expectedOnlineInstallerSha512 = "",
   onProgress = () => {},
 ) {
   if (process.platform !== "win32") {
@@ -1375,41 +1394,65 @@ async function installWindowsUpdate(
     throw new Error("Update install is only available in the packaged app.");
   }
 
-  const url = assertTrustedInstallerUrl(rawUrl);
-  const updateDir = await mkdtemp(join(tmpdir(), "aero-p2p-update-"));
-  const setupPath = join(
-    updateDir,
-    `${projectConfig.release.windowsSetupBaseName}-${version || "latest"}.exe`,
-  );
+  const installedOnlineInstallerPath = getInstalledOnlineInstallerPath();
+  let onlineInstallerPath = installedOnlineInstallerPath;
+  let temporaryUpdateDir = "";
 
   try {
-    onProgress({
-      phase: "download",
-      percent: 0,
-      receivedBytes: 0,
-      totalBytes: null,
-    });
-    await downloadFile(url, setupPath, onProgress);
-    onProgress({ phase: "verify", percent: 100 });
-    verifyUpdateDownload(setupPath, expectedSha256, expectedSha512);
+    if (!(await hasInstalledOnlineInstaller(installedOnlineInstallerPath))) {
+      const onlineInstallerUrl = assertTrustedOnlineInstallerUrl(
+        rawOnlineInstallerUrl,
+      );
+      temporaryUpdateDir = await mkdtemp(join(tmpdir(), "aero-p2p-update-"));
+      const downloadedInstallerPath = join(
+        temporaryUpdateDir,
+        projectConfig.release.windowsOnlineInstallerAsset,
+      );
+
+      onProgress({
+        phase: "download",
+        percent: 0,
+        receivedBytes: 0,
+        totalBytes: null,
+      });
+      await downloadFile(
+        onlineInstallerUrl,
+        downloadedInstallerPath,
+        onProgress,
+      );
+      onProgress({ phase: "verify", percent: 100 });
+      verifyUpdateDownload(
+        downloadedInstallerPath,
+        expectedOnlineInstallerSha256,
+        expectedOnlineInstallerSha512,
+      );
+
+      try {
+        await copyFile(downloadedInstallerPath, installedOnlineInstallerPath);
+        onlineInstallerPath = installedOnlineInstallerPath;
+        await rm(temporaryUpdateDir, { recursive: true, force: true });
+        temporaryUpdateDir = "";
+      } catch {
+        // A non-writable legacy install location must not prevent a verified update.
+        onlineInstallerPath = downloadedInstallerPath;
+      }
+    }
+
     onProgress({ phase: "install", percent: 100 });
 
-    const setupArgs = [
-      "/SILENT",
-      "/SUPPRESSMSGBOXES",
-      "/NORESTART",
-      "/FORCECLOSEAPPLICATIONS",
-      "/RESTARTAPPLICATIONS",
-    ];
     let updater;
     let spawnError;
     for (let attempt = 1; attempt <= 10; attempt += 1) {
       try {
-        updater = spawn(setupPath, setupArgs, {
-          detached: true,
-          stdio: "ignore",
-          windowsHide: false,
-        });
+        updater = spawn(
+          onlineInstallerPath,
+          [`--wait-for-pid=${process.pid}`, "--auto-install"],
+          {
+            detached: true,
+            stdio: "ignore",
+            windowsHide: false,
+          },
+        );
         break;
       } catch (error) {
         spawnError = error;
@@ -1431,7 +1474,11 @@ async function installWindowsUpdate(
     }, 250);
     return { ok: true };
   } catch (error) {
-    await rm(updateDir, { recursive: true, force: true }).catch(() => {});
+    if (temporaryUpdateDir) {
+      await rm(temporaryUpdateDir, { recursive: true, force: true }).catch(
+        () => {},
+      );
+    }
     throw error;
   }
 }
@@ -1529,10 +1576,9 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle("install-update", (event, details) =>
     installWindowsUpdate(
-      details.url,
-      details.version,
-      details.sha256,
-      details.sha512,
+      details.onlineInstallerUrl,
+      details.onlineInstallerSha256,
+      details.onlineInstallerSha512,
       (progress) => {
         event.sender.send("update-progress", progress);
       },

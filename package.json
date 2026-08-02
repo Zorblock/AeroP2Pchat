@@ -23,7 +23,7 @@
     "build:linux:docker": "node scripts/build-linux-docker.cjs",
     "build:chrome": "node scripts/build-chrome-extension.cjs",
     "build:online-installer": "node scripts/build-online-installer.cjs",
-    "setup": "npm run build && node scripts/build-inno.cjs",
+    "setup": "npm run build:online-installer && npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
     "pages": "node scripts/deploy-pages.cjs"

@@ -77,6 +77,7 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "{#WinUnpackedDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "*.pdb,*.map,Thumbs.db,desktop.ini"
 Source: "dist\build\windows\cli\{#MyCliName}.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\build\windows\cli\{#MyCliName}.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\online-installer\Aero-P2P-Chat-Online-Installer.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; AppUserModelID: "{#MyAppUserModelId}"

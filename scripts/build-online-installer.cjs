@@ -6,7 +6,7 @@ const root = path.join(__dirname, "..");
 const config = JSON.parse(
   fs.readFileSync(path.join(root, "config.json"), "utf8"),
 );
-// Release builds clean dist/build. Keep this manually built installer separate.
+// Release builds clean dist/build. Keep the Rust target cache separate from artifacts.
 const outputDir = path.join(root, "dist", "online-installer");
 const projectPath = path.join(
   root,
@@ -33,7 +33,7 @@ const result = spawnSync(
     cargoTargetDir,
   ],
   {
-  cwd: root,
+    cwd: root,
     stdio: "inherit",
   },
 );

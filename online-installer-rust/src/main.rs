@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use reqwest::{blocking::Client, Url};
+use reqwest::{Url, blocking::Client};
 use sha2::{Digest, Sha256};
 use single_instance::SingleInstance;
 use slint::{ComponentHandle, SharedString, Weak};
@@ -25,75 +25,219 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    let options = launch_options();
     let ui = MainWindow::new()?;
     let weak_ui = ui.as_weak();
+    let wait_for_pid = options.wait_for_pid;
     ui.on_install(move || {
-        let worker_ui = weak_ui.clone();
-        update_ui(
-            &worker_ui,
-            "Checking the newest release...",
-            "Connecting securely to GitHub...",
-            "Latest version: checking",
-            0.0,
-            "Installing...",
-            false,
-            true,
-        );
-        thread::spawn(move || {
-            if let Err(error) = install_latest(&worker_ui) {
-                update_ui(
-                    &worker_ui,
-                    "The latest version could not be installed.",
-                    &error.to_string(),
-                    "Download was not completed.",
-                    0.0,
-                    "Try again",
-                    true,
-                    true,
-                );
-            }
-        });
+        if let Some(pid) = wait_for_pid {
+            wait_then_install(weak_ui.clone(), pid, true);
+        } else {
+            start_installation(weak_ui.clone());
+        }
     });
+
+    if let Some(pid) = options.wait_for_pid {
+        wait_then_install(ui.as_weak(), pid, options.auto_install);
+    }
 
     ui.run()?;
     Ok(())
 }
 
+#[derive(Default)]
+struct LaunchOptions {
+    wait_for_pid: Option<u32>,
+    auto_install: bool,
+}
+
+fn launch_options() -> LaunchOptions {
+    let mut options = LaunchOptions::default();
+    for argument in std::env::args().skip(1) {
+        if argument == "--auto-install" {
+            options.auto_install = true;
+        } else if let Some(pid) = argument.strip_prefix("--wait-for-pid=") {
+            options.wait_for_pid = pid.parse().ok();
+        }
+    }
+    options
+}
+
+fn start_installation(ui: Weak<MainWindow>) {
+    update_ui(
+        &ui,
+        "Checking the newest release...",
+        "Connecting securely to GitHub...",
+        "Latest version: checking",
+        0.0,
+        "Installing...",
+        false,
+        true,
+    );
+    thread::spawn(move || {
+        if let Err(error) = install_latest(&ui) {
+            update_ui(
+                &ui,
+                "The latest version could not be installed.",
+                &error.to_string(),
+                "Download was not completed.",
+                0.0,
+                "Try again",
+                true,
+                true,
+            );
+        }
+    });
+}
+
+fn wait_then_install(ui: Weak<MainWindow>, pid: u32, install_when_closed: bool) {
+    update_ui(
+        &ui,
+        "Preparing the update...",
+        "Waiting for Aero P2P Chat to close safely...",
+        "The latest version will be checked next.",
+        0.0,
+        "Installing...",
+        false,
+        true,
+    );
+    thread::spawn(move || {
+        if let Err(error) = wait_for_process_exit(pid, Duration::from_secs(20)) {
+            update_ui(
+                &ui,
+                "Aero P2P Chat is still running.",
+                &error.to_string(),
+                "Close the app and try again.",
+                0.0,
+                "Try again",
+                true,
+                true,
+            );
+        } else if install_when_closed {
+            start_installation(ui);
+        } else {
+            update_ui(
+                &ui,
+                "Ready to install Aero P2P Chat",
+                "Click Install to download the newest version from GitHub.",
+                "The newest version will be checked after you continue.",
+                0.0,
+                "Install",
+                true,
+                true,
+            );
+        }
+    });
+}
+
+fn wait_for_process_exit(pid: u32, timeout: Duration) -> Result<(), Box<dyn std::error::Error>> {
+    let deadline = std::time::Instant::now() + timeout;
+    while process_is_running(pid) {
+        if std::time::Instant::now() >= deadline {
+            return Err("The app did not close within 20 seconds.".into());
+        }
+        thread::sleep(Duration::from_millis(250));
+    }
+    Ok(())
+}
+
+fn process_is_running(pid: u32) -> bool {
+    Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains(&format!("\"{pid}\"")))
+        .unwrap_or(false)
+}
+
 fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::builder().timeout(Duration::from_secs(600)).build()?;
-    let manifest_url = format!("https://github.com/{REPOSITORY}/releases/latest/download/latest.yml");
-    let manifest = client.get(manifest_url).send()?.error_for_status()?.text()?;
-    let latest_version = manifest_value(&manifest, "version").ok_or("The latest release metadata is incomplete.")?;
-    let download_url = manifest_value(&manifest, "windowsUrl").or_else(|| manifest_value(&manifest, "url")).ok_or("The latest release metadata is incomplete.")?;
-    let expected_hash = manifest_value(&manifest, "windowsSha256").or_else(|| manifest_value(&manifest, "sha256")).ok_or("The latest release metadata is incomplete.")?;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(600))
+        .build()?;
+    let manifest_url =
+        format!("https://github.com/{REPOSITORY}/releases/latest/download/latest.yml");
+    let manifest = client
+        .get(manifest_url)
+        .send()?
+        .error_for_status()?
+        .text()?;
+    let latest_version =
+        manifest_value(&manifest, "version").ok_or("The latest release metadata is incomplete.")?;
+    let download_url = manifest_value(&manifest, "windowsUrl")
+        .or_else(|| manifest_value(&manifest, "url"))
+        .ok_or("The latest release metadata is incomplete.")?;
+    let expected_hash = manifest_value(&manifest, "windowsSha256")
+        .or_else(|| manifest_value(&manifest, "sha256"))
+        .ok_or("The latest release metadata is incomplete.")?;
     let parsed_url = Url::parse(&download_url)?;
     if parsed_url.scheme() != "https" || parsed_url.host_str() != Some("github.com") {
         return Err("The release did not provide a trusted GitHub download URL.".into());
     }
 
-    update_ui(ui, &format!("Downloading Aero P2P Chat {latest_version}"), "Preparing the secure download...", &format!("Latest version: {latest_version}"), 0.0, "Installing...", false, true);
+    update_ui(
+        ui,
+        &format!("Downloading Aero P2P Chat {latest_version}"),
+        "Preparing the secure download...",
+        &format!("Latest version: {latest_version}"),
+        0.0,
+        "Installing...",
+        false,
+        true,
+    );
     let target_path = temporary_installer_path();
     download_file(&client, parsed_url, &target_path, ui, &latest_version)?;
 
-    update_ui(ui, "Verifying the download...", "Checking the published SHA-256 checksum...", &format!("Latest version: {latest_version}"), 1.0, "Installing...", false, true);
+    update_ui(
+        ui,
+        "Verifying the download...",
+        "Checking the published SHA-256 checksum...",
+        &format!("Latest version: {latest_version}"),
+        1.0,
+        "Installing...",
+        false,
+        true,
+    );
     let actual_hash = sha256_file(&target_path)?;
     if !actual_hash.eq_ignore_ascii_case(&expected_hash) {
         let _ = fs::remove_file(&target_path);
         return Err("The downloaded installer did not match the published checksum.".into());
     }
 
-    update_ui(ui, "Opening Windows setup...", "The verified Aero installer is starting now.", &format!("Latest version: {latest_version}"), 1.0, "Installing...", false, true);
+    update_ui(
+        ui,
+        "Opening Windows setup...",
+        "The verified Aero installer is starting now.",
+        &format!("Latest version: {latest_version}"),
+        1.0,
+        "Installing...",
+        false,
+        true,
+    );
     let status = Command::new(&target_path).status()?;
     let _ = fs::remove_file(&target_path);
     if !status.success() && status.code() != Some(3010) {
         return Err(format!("The setup ended with exit code {:?}.", status.code()).into());
     }
 
-    update_ui(ui, "Installation complete.", "Aero P2P Chat is ready to use. You can close this window.", &format!("Latest version: {latest_version}"), 1.0, "Install", false, false);
+    update_ui(
+        ui,
+        "Installation complete.",
+        "Aero P2P Chat is ready to use. You can close this window.",
+        &format!("Latest version: {latest_version}"),
+        1.0,
+        "Install",
+        false,
+        false,
+    );
     Ok(())
 }
 
-fn download_file(client: &Client, url: Url, target_path: &PathBuf, ui: &Weak<MainWindow>, version: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn download_file(
+    client: &Client,
+    url: Url,
+    target_path: &PathBuf,
+    ui: &Weak<MainWindow>,
+    version: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut response = client.get(url).send()?.error_for_status()?;
     let total = response.content_length();
     let mut target = File::create(target_path)?;
@@ -103,24 +247,50 @@ fn download_file(client: &Client, url: Url, target_path: &PathBuf, ui: &Weak<Mai
 
     loop {
         let read = response.read(&mut buffer)?;
-        if read == 0 { break; }
+        if read == 0 {
+            break;
+        }
         target.write_all(&buffer[..read])?;
         downloaded += read as u64;
-        let progress = total.map(|size| downloaded as f32 / size as f32).unwrap_or(0.0);
+        let progress = total
+            .map(|size| downloaded as f32 / size as f32)
+            .unwrap_or(0.0);
         let percent = (progress * 100.0).floor() as u64;
         if total.is_none() || percent != last_percent {
             let detail = match total {
-                Some(size) => format!("{} of {} downloaded ({percent}%)", format_bytes(downloaded), format_bytes(size)),
+                Some(size) => format!(
+                    "{} of {} downloaded ({percent}%)",
+                    format_bytes(downloaded),
+                    format_bytes(size)
+                ),
                 None => format!("{} downloaded", format_bytes(downloaded)),
             };
-            update_ui(ui, &format!("Downloading Aero P2P Chat {version}"), &detail, &format!("Latest version: {version}"), progress, "Installing...", false, true);
+            update_ui(
+                ui,
+                &format!("Downloading Aero P2P Chat {version}"),
+                &detail,
+                &format!("Latest version: {version}"),
+                progress,
+                "Installing...",
+                false,
+                true,
+            );
             last_percent = percent;
         }
     }
     Ok(())
 }
 
-fn update_ui(ui: &Weak<MainWindow>, status: &str, detail: &str, version: &str, progress: f32, button_text: &str, can_install: bool, show_button: bool) {
+fn update_ui(
+    ui: &Weak<MainWindow>,
+    status: &str,
+    detail: &str,
+    version: &str,
+    progress: f32,
+    button_text: &str,
+    can_install: bool,
+    show_button: bool,
+) {
     let status = SharedString::from(status);
     let detail = SharedString::from(detail);
     let version = SharedString::from(version);
@@ -138,7 +308,10 @@ fn update_ui(ui: &Weak<MainWindow>, status: &str, detail: &str, version: &str, p
 
 fn manifest_value(manifest: &str, key: &str) -> Option<String> {
     let prefix = format!("{key}:");
-    manifest.lines().find_map(|line| line.strip_prefix(&prefix).map(|value| value.trim().trim_matches('"').to_owned()))
+    manifest.lines().find_map(|line| {
+        line.strip_prefix(&prefix)
+            .map(|value| value.trim().trim_matches('"').to_owned())
+    })
 }
 
 fn temporary_installer_path() -> PathBuf {
@@ -151,12 +324,18 @@ fn sha256_file(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     let mut buffer = [0_u8; 128 * 1024];
     loop {
         let read = file.read(&mut buffer)?;
-        if read == 0 { break; }
+        if read == 0 {
+            break;
+        }
         hasher.update(&buffer[..read]);
     }
     Ok(format!("{:x}", hasher.finalize()))
 }
 
 fn format_bytes(bytes: u64) -> String {
-    if bytes >= 1024 * 1024 { format!("{:.1} MB", bytes as f64 / 1024.0 / 1024.0) } else { format!("{} KB", bytes / 1024) }
+    if bytes >= 1024 * 1024 {
+        format!("{:.1} MB", bytes as f64 / 1024.0 / 1024.0)
+    } else {
+        format!("{} KB", bytes / 1024)
+    }
 }

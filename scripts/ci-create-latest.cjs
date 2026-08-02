@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const root = path.join(__dirname, "..");
 const artifactsDir = process.argv[2]
@@ -34,6 +35,25 @@ function main() {
   const tag = `v${version}`;
   const asset = manifest.asset;
   if (!asset) throw new Error("No asset in Windows manifest.");
+  const onlineInstallerPath = path.join(
+    artifactsDir,
+    config.release.windowsOnlineInstallerAsset,
+  );
+  if (!fs.existsSync(onlineInstallerPath)) {
+    throw new Error(`Online installer not found: ${onlineInstallerPath}`);
+  }
+  const onlineInstaller = {
+    name: config.release.windowsOnlineInstallerAsset,
+    size: fs.statSync(onlineInstallerPath).size,
+    sha256: crypto
+      .createHash("sha256")
+      .update(fs.readFileSync(onlineInstallerPath))
+      .digest("hex"),
+    sha512: crypto
+      .createHash("sha512")
+      .update(fs.readFileSync(onlineInstallerPath))
+      .digest("base64"),
+  };
 
   const lines = [
     `version: ${yamlQuote(version)}`,
@@ -44,6 +64,10 @@ function main() {
     `sha256: ${yamlQuote(asset.sha256)}`,
     `sha512: ${yamlQuote(asset.sha512)}`,
     `size: ${asset.size}`,
+    `onlineInstallerUrl: ${yamlQuote(releaseUrl(tag, onlineInstaller.name))}`,
+    `onlineInstallerSha256: ${yamlQuote(onlineInstaller.sha256)}`,
+    `onlineInstallerSha512: ${yamlQuote(onlineInstaller.sha512)}`,
+    `onlineInstallerSize: ${onlineInstaller.size}`,
     `productName: ${yamlQuote(config.app.name)}`,
     "",
   ];
