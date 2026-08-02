@@ -290,13 +290,13 @@
               <span class="titlebar-action-label">News</span>
             </button>
             <button
-              id="app-menu-account"
+              id="app-menu-profile"
               type="button"
-              title="Account"
-              aria-label="Account"
+              title="Profile settings"
+              aria-label="Profile settings"
             >
-              <i class="fa-solid fa-user" aria-hidden="true"></i>
-              <span class="titlebar-action-label">Account</span>
+              <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+              <span class="titlebar-action-label">Profile</span>
             </button>
             <button
               id="app-menu-settings"
@@ -945,50 +945,20 @@
         <div class="welcome-pages">
           <section class="welcome-page hidden" data-welcome-step="3">
             <div class="welcome-copy">
-              <h2>Use Aero without an account</h2>
-              <p style="font-size: 14px; color: var(--faint);">An account is optional. You can sign in later from the Account menu.</p>
+              <h2>Your display name</h2>
+              <p style="font-size: 14px; color: var(--faint);">This name is sent directly to chat partners. Your avatar is generated locally from your Aero ID.</p>
             </div>
-            <button id="welcome-skip-btn" class="welcome-skip-button" type="button">
-              Continue without an account
-            </button>
-            <div class="welcome-account-option">
-              <div>
-                <h3>Already have an account?</h3>
-                <p>Sign in to use your Aero backend account.</p>
-              </div>
-            <label class="welcome-field" for="welcome-login-username">
-              <span>Username</span>
+            <label class="welcome-field" for="welcome-nickname">
+              <span>Display name</span>
               <input
-                id="welcome-login-username"
+                id="welcome-nickname"
                 type="text"
-                minlength="3"
-                maxlength="16"
-                pattern="[a-z0-9_]{3,16}"
-                title="Use 3-16 lowercase letters, numbers, or underscores."
-                autocomplete="username"
-                autocapitalize="none"
+                maxlength="32"
+                autocomplete="nickname"
                 spellcheck="false"
-                placeholder="Username"
-                required
+                placeholder="Optional display name"
               />
             </label>
-            <label class="welcome-field" for="welcome-login-password">
-              <span>Password</span>
-              <input
-                id="welcome-login-password"
-                type="password"
-                autocomplete="current-password"
-                placeholder="Password"
-                required
-              />
-            </label>
-            <p id="welcome-login-error" class="welcome-error hidden" role="alert" style="margin-top: -8px;">
-              Login failed.
-            </p>
-            <p style="margin-top: 16px; font-size: 13px; color: var(--faint);">
-              Don't have an account? <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create one here</a>
-            </p>
-            </div>
           </section>
 
           <section class="welcome-page" data-welcome-step="0">
@@ -1383,6 +1353,66 @@
       </section>
     </div>
 
+    <div id="profile-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <section class="profile-panel">
+        <button id="profile-close" class="profile-close" type="button" title="Close" aria-label="Close profile settings">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <header class="profile-header">
+          <span class="profile-eyebrow">Aero profile</span>
+          <h2 id="profile-title">Profile settings</h2>
+          <p>Choose what chat partners see. Everything is shared directly - no account or image upload.</p>
+        </header>
+        <div class="profile-identity">
+          <div id="profile-avatar-preview" class="contact-avatar profile-avatar-preview"></div>
+          <div class="profile-identity-copy">
+            <strong id="profile-id"></strong>
+            <span>Your stable Aero ID</span>
+          </div>
+        </div>
+        <div class="profile-content">
+          <label class="profile-field" for="profile-nickname">
+            <span>Display name <em>optional</em></span>
+            <input id="profile-nickname" type="text" maxlength="32" autocomplete="nickname" placeholder="Optional display name" />
+          </label>
+          <label class="welcome-field profile-native-template hidden" for="profile-avatar-template">
+            <span>Avatar template</span>
+            <select id="profile-avatar-template">
+              <option value="unique">Unique — color from your Aero ID</option>
+              <option value="solid">Solid color</option>
+              <option value="gradient">Color gradient</option>
+              <option value="rings">Color rings</option>
+            </select>
+          </label>
+          <section class="profile-avatar-settings" aria-labelledby="profile-avatar-settings-title">
+            <div class="profile-section-heading">
+              <span id="profile-avatar-settings-title">Avatar design</span>
+              <small id="profile-template-description">A unique color based on your Aero ID.</small>
+            </div>
+            <div class="profile-template-picker">
+              <button id="profile-template-toggle" class="profile-template-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-template-options">
+                <span id="profile-template-label">Unique identity color</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div id="profile-template-options" class="profile-template-options hidden" role="listbox" aria-label="Avatar template">
+                <button type="button" role="option" data-avatar-template="unique" aria-selected="true"><strong>Unique identity color</strong><span>Generated from your Aero ID</span></button>
+                <button type="button" role="option" data-avatar-template="solid" aria-selected="false"><strong>Solid color</strong><span>Your selected color</span></button>
+                <button type="button" role="option" data-avatar-template="gradient" aria-selected="false"><strong>Color gradient</strong><span>Your color with a soft accent</span></button>
+                <button type="button" role="option" data-avatar-template="rings" aria-selected="false"><strong>Color rings</strong><span>Your color in a circular pattern</span></button>
+              </div>
+            </div>
+          </section>
+          <label class="profile-color-field" for="profile-avatar-color">
+            <span>Accent color</span>
+            <input id="profile-avatar-color" type="color" value="#4f46e5" />
+            <output id="profile-avatar-color-value">#4f46e5</output>
+          </label>
+          <p class="card-description" style="margin: -6px 0 0;">The chosen color applies to all templates except “Unique”.</p>
+          <button id="profile-save" class="profile-save" type="button">Save and share profile</button>
+        </div>
+      </section>
+    </div>
+
     <div id="app-menu" class="context-menu hidden" role="menu">
       <div class="context-menu-group" aria-label="Presence status">
         <span class="context-menu-label">Status</span>
@@ -1611,65 +1641,4 @@
         </div>
       </div>
     </div>
-    
-<div id="account-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
-  <section class="card" style="max-width: 360px; width: 100%; position: relative; margin: auto;">
-    <button id="account-close" class="ghost-button" type="button" style="position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; padding: 0; border-radius: 6px; z-index: 10; border: none; background: transparent;" title="Close">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <div class="card-header" style="margin-bottom: 16px;">
-      <h2 id="account-title" class="card-title">Account</h2>
-      <p class="card-description">Manage your Aero ID and Profile.</p>
-    </div>
-
-    <div id="account-login-view" class="card-content">
-      <form id="account-login-form" style="display: flex; flex-direction: column; gap: 12px;">
-        <input id="login-username" type="text" placeholder="Username" minlength="3" maxlength="16" pattern="[a-z0-9_]{3,16}" title="Use 3-16 lowercase letters, numbers, or underscores." spellcheck="false" autocapitalize="none" autocomplete="username" class="styled-input" required />
-        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" class="styled-input" required />
-        <p id="login-error" class="welcome-error hidden" role="alert" style="margin: 0; font-size: 13px; color: var(--danger);"></p>
-        <button id="account-login-btn" class="accent-button" type="submit" style="width: 100%; margin-top: 4px;">Login</button>
-        <p style="margin: 0; font-size: 13px; text-align: center; color: var(--faint);">
-          <a href="https://aero.zorblock.de/account/" target="_blank" style="color: var(--accent); text-decoration: none;">Create an account</a>
-        </p>
-      </form>
-
-      <div id="guest-nickname-section" style="margin-top: 20px; border-top: 1px solid var(--line-strong); padding-top: 20px;">
-        <div class="card-header" style="margin-bottom: 12px;">
-          <h3 class="card-title" style="font-size: 0.95rem;">Guest Nickname</h3>
-          <p class="card-description">Used if you don't log in.</p>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <input
-            id="guest-nickname-input"
-            type="text"
-            maxlength="32"
-            placeholder="Nickname"
-            class="styled-input"
-            style="flex: 1;"
-          />
-          <button id="save-guest-nickname" class="ghost-button" type="button" style="border: 1px solid var(--line-strong);">Save</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="account-profile-view" class="card-content hidden">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px;">
-        <div class="avatar" style="position: relative; display: flex; height: 80px; width: 80px; flex-shrink: 0; overflow: hidden; border-radius: 9999px;">
-          <img id="account-profile-pic" class="avatar-image" src="https://aero.zorblock.de/account/pfp/default.png" alt="Profile" style="aspect-ratio: 1/1; height: 100%; width: 100%; object-fit: cover;" />
-        </div>
-        <div style="text-align: center; display: flex; flex-direction: column; gap: 2px;">
-          <h3 id="account-profile-username" class="card-title" style="font-size: 1.125rem;">Username</h3>
-          <span id="account-profile-id" class="card-description" style="font-family: monospace;">Aero ID</span>
-        </div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <a id="account-manage-btn" class="ghost-button" href="https://aero.zorblock.de/account/" target="_blank" style="width: 100%; height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--line-strong); text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; box-sizing: border-box;">Manage Account</a>
-        <button id="account-update-pfp" class="ghost-button" type="button" style="width: 100%; height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; box-sizing: border-box;">Update Picture</button>
-        <button id="account-logout-btn" class="ghost-button" type="button" style="width: 100%; height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid transparent; color: var(--danger); background: var(--danger-soft); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; box-sizing: border-box;">Logout</button>
-      </div>
-    </div>
-  </section>
-  </div>
-
-  
   </body>

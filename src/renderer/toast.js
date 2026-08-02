@@ -1,8 +1,48 @@
 const container = document.getElementById("toast-container");
 
-function getAvatarUrl(peerId, cacheBuster) {
-  if (!peerId) return null;
-  return `https://aero.zorblock.de/account/pfp/${peerId}.webp?t=${cacheBuster}`;
+function createToastAvatar(label, id, config) {
+  const avatar = document.createElement("div");
+  avatar.className = "toast-avatar";
+  const profile = normalizeAvatarConfig(config);
+  const seed = createAvatarSeed(id);
+  const hue = Math.floor(seed() * 360);
+  const accentHue = (hue + 28 + Math.floor(seed() * 56)) % 360;
+  const angle = Math.floor(seed() * 360);
+  const base = profile.template === "unique" ? `hsl(${hue} 68% 42%)` : profile.color;
+  const accent = profile.template === "unique" ? `hsl(${accentHue} 72% 56%)` : `hsl(${(hue + 38) % 360} 72% 56%)`;
+  avatar.style.background =
+    profile.template === "solid"
+      ? base
+      : profile.template === "rings"
+        ? `radial-gradient(circle at 30% 25%, ${accent} 0 16%, transparent 17%), radial-gradient(circle at 70% 72%, ${accent} 0 23%, ${base} 24% 100%)`
+        : `linear-gradient(${angle}deg, ${base}, ${accent})`;
+  avatar.textContent = (label || id || "?").charAt(0).toUpperCase();
+  return avatar;
+}
+
+function normalizeAvatarConfig(value) {
+  const templates = new Set(["unique", "solid", "gradient", "rings"]);
+  return {
+    template: templates.has(value?.template) ? value.template : "unique",
+    color: /^#[a-f0-9]{6}$/i.test(String(value?.color || ""))
+      ? String(value.color).toLowerCase()
+      : "#4f46e5",
+  };
+}
+
+function createAvatarSeed(value) {
+  let state = 2166136261;
+  for (const char of String(value || "")) {
+    state ^= char.charCodeAt(0);
+    state = Math.imul(state, 16777619);
+  }
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 // Map of active toasts to their timeout IDs
@@ -46,10 +86,9 @@ function showToast(details) {
     body,
     kind,
     peerId,
-    accountUserId,
     callId,
     theme,
-    avatarCacheBuster,
+    avatar,
   } = details;
 
   // Apply theme
@@ -73,14 +112,8 @@ function showToast(details) {
     toastEl.className = "toast";
     toastEl.id = `toast-${id}`;
 
-    let html = `<div class="toast-header">`;
-
-    // Add avatar if accountUserId is present
-    if (accountUserId) {
-      html += `<img class="toast-avatar" id="avatar-${id}" src="https://aero.zorblock.de/account/pfp/${accountUserId}.webp?t=${avatarCacheBuster}">`;
-    }
-
-    html += `<div class="toast-content">
+    let html = `<div class="toast-header">
+      <div class="toast-content">
         <h4 class="toast-title">${escapeHtml(title)}</h4>
         <p class="toast-body">${escapeHtml(body)}</p>
       </div>
@@ -101,16 +134,7 @@ function showToast(details) {
     }
 
     toastEl.innerHTML = html;
-
-    // Add error handler for avatar to hide it if broken (bypassing CSP inline issues)
-    if (accountUserId) {
-      const avatarImg = toastEl.querySelector(`#avatar-${id}`);
-      if (avatarImg) {
-        avatarImg.onerror = () => {
-          avatarImg.style.display = "none";
-        };
-      }
-    }
+    toastEl.querySelector(".toast-header")?.prepend(createToastAvatar(title, peerId, avatar));
 
     // Close button logic
     const closeBtn = toastEl.querySelector(`#btn-close-${id}`);

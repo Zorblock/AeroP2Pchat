@@ -459,7 +459,7 @@ async function removeMigratedLegacyConfigs() {
   }
 }
 
-function prepareLegacyConfigMigration(config) {
+function stripRetiredIdentityData(config) {
   if (!config || typeof config !== "object") {
     return config;
   }
@@ -468,33 +468,23 @@ function prepareLegacyConfigMigration(config) {
     config.identity && typeof config.identity === "object"
       ? config.identity
       : null;
-  const legacyToken =
-    typeof legacyIdentity?.authToken === "string"
-      ? legacyIdentity.authToken.trim()
-      : "";
-  const legacyUserId =
-    typeof legacyIdentity?.accountUserId === "string"
-      ? legacyIdentity.accountUserId.trim()
-      : "";
-
-  if (legacyToken && legacyUserId) {
-    config.security = {
-      ...(config.security && typeof config.security === "object"
-        ? config.security
-        : {}),
-      pendingTokenRevocation: {
-        userId: legacyUserId,
-        token: legacyToken,
-      },
-      accountReloginRequired: true,
-    };
-  }
-
   if (legacyIdentity) {
-    legacyIdentity.loggedIn = false;
-    legacyIdentity.accountUserId = "";
-    legacyIdentity.authToken = "";
-    legacyIdentity.role = "";
+    delete legacyIdentity.loggedIn;
+    delete legacyIdentity.accountUserId;
+    delete legacyIdentity.authToken;
+    delete legacyIdentity.role;
+  }
+  if (Array.isArray(config.contacts)) {
+    for (const contact of config.contacts) {
+      if (contact && typeof contact === "object") {
+        delete contact.accountUserId;
+      }
+    }
+  }
+  if (config.security && typeof config.security === "object") {
+    delete config.security.pendingTokenRevocation;
+    delete config.security.accountReloginRequired;
+    delete config.security.accountSecurityVersion;
   }
   return config;
 }
@@ -526,12 +516,10 @@ async function loadConfig() {
         ? decryptAuthenticatedConfig(fileData, existingKey)
         : decryptLegacyConfig(fileData, projectConfig.app.id || "AeroP2Pchat");
       const parsedConfig = JSON.parse(plaintext);
-      const config = normalizeConfig(
-        authenticated
-          ? parsedConfig
-          : prepareLegacyConfigMigration(parsedConfig),
-      );
-      if (!authenticated || configPath !== getConfigPath()) {
+      const beforeCleanup = JSON.stringify(parsedConfig);
+      const config = normalizeConfig(stripRetiredIdentityData(parsedConfig));
+      const cleanedUp = beforeCleanup !== JSON.stringify(parsedConfig);
+      if (!authenticated || configPath !== getConfigPath() || cleanedUp) {
         await saveConfig(config);
         if (configPath === getConfigBackupPath()) {
           await copyFile(getConfigPath(), getConfigBackupPath());
@@ -1067,12 +1055,10 @@ function showAppNotification(details = {}) {
     body,
     kind,
     peerId,
-    accountUserId: details.accountUserId,
+    avatar: details.avatar,
     callId,
     theme: details.theme,
     silent: Boolean(details.silent),
-    avatarCacheBuster:
-      details.avatarCacheBuster || Math.floor(Date.now() / 3600000),
   };
 
   activeNotifications.set(notificationId, true);

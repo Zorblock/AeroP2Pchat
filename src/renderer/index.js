@@ -126,10 +126,7 @@ const welcomePages = Array.from(
 const welcomeProgress = Array.from(
   document.querySelectorAll("[data-welcome-progress]"),
 );
-const welcomeLoginUsername = document.querySelector("#welcome-login-username");
-const welcomeLoginPassword = document.querySelector("#welcome-login-password");
-const welcomeLoginError = document.querySelector("#welcome-login-error");
-const welcomeSkipBtn = document.querySelector("#welcome-skip-btn");
+const welcomeNickname = document.querySelector("#welcome-nickname");
 const welcomeThemeLight = document.querySelector("#welcome-theme-light");
 const welcomeThemeDark = document.querySelector("#welcome-theme-dark");
 const welcomeMicrophoneSelect = document.querySelector(
@@ -157,22 +154,22 @@ const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
-const refreshAllPfpsBtn = document.querySelector("#refresh-all-pfps");
-const accountUpdatePfpBtn = document.querySelector("#account-update-pfp");
-const loginView = document.querySelector("#account-login-view");
-const profileView = document.querySelector("#account-profile-view");
-const loginForm = document.querySelector("#account-login-form");
-const loginUsernameInput = document.querySelector("#login-username");
-const loginPasswordInput = document.querySelector("#login-password");
-const loginError = document.querySelector("#login-error");
-const loginBtn = document.querySelector("#account-login-btn");
-const guestNicknameSection = document.querySelector("#guest-nickname-section");
-const guestNicknameInput = document.querySelector("#guest-nickname-input");
-const saveGuestNickname = document.querySelector("#save-guest-nickname");
-const profileUsername = document.querySelector("#account-profile-username");
-const profileId = document.querySelector("#account-profile-id");
-const profilePic = document.querySelector("#account-profile-pic");
-const logoutBtn = document.querySelector("#account-logout-btn");
+const profileModal = document.querySelector("#profile-modal");
+const profileClose = document.querySelector("#profile-close");
+const profileAvatarPreview = document.querySelector("#profile-avatar-preview");
+const profileId = document.querySelector("#profile-id");
+const profileNickname = document.querySelector("#profile-nickname");
+const profileAvatarTemplate = document.querySelector("#profile-avatar-template");
+const profileTemplateToggle = document.querySelector("#profile-template-toggle");
+const profileTemplateLabel = document.querySelector("#profile-template-label");
+const profileTemplateDescription = document.querySelector("#profile-template-description");
+const profileTemplateOptions = document.querySelector("#profile-template-options");
+const profileTemplateOptionButtons = Array.from(
+  document.querySelectorAll("[data-avatar-template]"),
+);
+const profileAvatarColor = document.querySelector("#profile-avatar-color");
+const profileAvatarColorValue = document.querySelector("#profile-avatar-color-value");
+const profileSave = document.querySelector("#profile-save");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const microphoneSelect = document.querySelector("#microphone-select");
@@ -237,9 +234,7 @@ const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
 
 const appMenuStatus = document.querySelector("#app-menu-status");
 const appMenuSettings = document.querySelector("#app-menu-settings");
-const appMenuAccount = document.querySelector("#app-menu-account");
-const accountModal = document.querySelector("#account-modal");
-const accountClose = document.querySelector("#account-close");
+const appMenuProfile = document.querySelector("#app-menu-profile");
 
 const contactMenu = document.querySelector("#contact-menu");
 const menuTrust = document.querySelector("#menu-trust");
@@ -292,13 +287,10 @@ const chatHistory = new Map();
 const unreadCounts = new Map();
 const remoteIdentities = new Map();
 const remoteReadReceiptsEnabled = new Map();
-const accountVerificationChallenges = new Map();
-const legacyAccountVerificationInFlight = new Set();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
-const ACCOUNT_CHALLENGE_PATTERN = /^[a-f0-9]{64}$/;
-const ACCOUNT_API_BASE = "https://aero.zorblock.de/account/api";
+const AVATAR_TEMPLATES = new Set(["unique", "solid", "gradient", "rings"]);
 const IDENTITY_STORAGE_KEY = "aero-p2p-chat.identity.v1";
 const CONTACTS_STORAGE_KEY = "aero-p2p-chat.contacts.v1";
 const THEME_STORAGE_KEY = "aero-p2p-chat.theme";
@@ -724,6 +716,31 @@ async function loadAppConfig() {
   return platformApi.loadConfig();
 }
 
+function stripRetiredIdentityData(config) {
+  let changed = false;
+  const remove = (object, key) => {
+    if (object && Object.hasOwn(object, key)) {
+      delete object[key];
+      changed = true;
+    }
+  };
+
+  for (const key of ["loggedIn", "accountUserId", "authToken", "role"]) {
+    remove(config?.identity, key);
+  }
+  for (const contact of config?.contacts || []) {
+    remove(contact, "accountUserId");
+  }
+  for (const key of [
+    "pendingTokenRevocation",
+    "accountReloginRequired",
+    "accountSecurityVersion",
+  ]) {
+    remove(config?.security, key);
+  }
+  return changed;
+}
+
 function saveAppConfig() {
   // Serialize immutable snapshots. Rapid UI changes must not let an older
   // asynchronous write overwrite a newer setting, especially on Android.
@@ -732,50 +749,6 @@ function saveAppConfig() {
     .catch(() => {})
     .then(() => platformApi.saveConfig(snapshot));
   return configSaveQueue.catch(() => {});
-}
-
-async function revokeAccountToken(userId, token) {
-  if (!userId || !token) {
-    return true;
-  }
-
-  try {
-    const response = await fetch(`${ACCOUNT_API_BASE}/revoke-token.php`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: userId,
-        auth_token: token,
-      }),
-    });
-    const result = await response.json();
-    return response.ok && result.success;
-  } catch {
-    return false;
-  }
-}
-
-async function revokePendingLegacyAccountToken() {
-  const pending = appConfig.security?.pendingTokenRevocation;
-  if (!pending?.userId || !pending?.token) {
-    return;
-  }
-
-  if (await revokeAccountToken(pending.userId, pending.token)) {
-    delete appConfig.security.pendingTokenRevocation;
-    await saveAppConfig();
-  }
-}
-
-function markSecureAccountLoginComplete() {
-  appConfig.security = {
-    ...(appConfig.security && typeof appConfig.security === "object"
-      ? appConfig.security
-      : {}),
-    accountSecurityVersion: 2,
-    accountReloginRequired: false,
-  };
-  delete appConfig.security.pendingTokenRevocation;
 }
 
 function createIdentityId() {
@@ -790,15 +763,20 @@ function createMessageId() {
   return `msg-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
-function createAccountChallenge() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+function normalizeAvatarConfig(value) {
+  const template = AVATAR_TEMPLATES.has(value?.template)
+    ? value.template
+    : "unique";
+  const color = /^#[a-f0-9]{6}$/i.test(String(value?.color || ""))
+    ? String(value.color).toLowerCase()
+    : "#4f46e5";
+  return { template, color };
 }
 
 function loadIdentity() {
   if (appConfig.identity?.id && isValidAeroId(appConfig.identity.id)) {
     appConfig.identity.nickname = sanitizeNickname(appConfig.identity.nickname);
+    appConfig.identity.avatar = normalizeAvatarConfig(appConfig.identity.avatar);
     appConfig.identity.previousIds = getKnownPreviousIdentityIds(
       appConfig.identity.previousIds,
       appConfig.identity.id,
@@ -809,6 +787,7 @@ function loadIdentity() {
   const identity = {
     id: createIdentityId(),
     nickname: "",
+    avatar: normalizeAvatarConfig(),
     previousIds: [],
     createdAt: new Date().toISOString(),
   };
@@ -854,14 +833,19 @@ function migrateLocalStorageConfig() {
 }
 
 appConfig = await loadAppConfig();
+if (stripRetiredIdentityData(appConfig)) {
+  await saveAppConfig();
+}
 normalizeAppSettings();
 applyAppTheme(appConfig.appSettings.theme);
 setBootProgress(42, "Loading settings");
 migrateLocalStorageConfig();
+if (stripRetiredIdentityData(appConfig)) {
+  await saveAppConfig();
+}
 normalizeAppSettings();
 applyAppTheme(appConfig.appSettings.theme);
 const identity = loadIdentity();
-void revokePendingLegacyAccountToken();
 setBootProgress(55, "Loading identity");
 
 ownId.textContent = identity.id;
@@ -997,9 +981,9 @@ function loadContacts() {
         ? Math.max(0, Math.min(150, Math.round(contact.playbackVolume)))
         : 100,
       showVideoName: contact.showVideoName !== false,
-        pinnedAt: contact.pinnedAt || new Date().toISOString(),
-        accountUserId: contact.accountUserId || "",
-      }));
+      pinnedAt: contact.pinnedAt || new Date().toISOString(),
+      avatar: normalizeAvatarConfig(contact.avatar),
+    }));
 }
 
 function saveContacts() {
@@ -1530,15 +1514,13 @@ function renderWelcomeStep() {
   welcomeStepLabel.textContent = `Step ${currentWelcomeStep + 1} of ${welcomePages.length}`;
   welcomeBack.disabled = currentWelcomeStep === 0;
   welcomeNext.querySelector("span").textContent =
-    currentWelcomeStep === lastStep ? "Sign in & finish" : "Continue";
+    currentWelcomeStep === lastStep ? "Finish" : "Continue";
 
   requestAnimationFrame(() => {
     const focusTarget =
-      currentWelcomeStep === lastStep
-        ? welcomeSkipBtn
-        : welcomePages[currentWelcomeStep]?.querySelector(
-            "input:not(:disabled), select:not(:disabled), button:not(:disabled)",
-          );
+      welcomePages[currentWelcomeStep]?.querySelector(
+        "input:not(:disabled), select:not(:disabled), button:not(:disabled)",
+      );
     focusTarget?.focus();
   });
 }
@@ -1549,9 +1531,7 @@ function openWelcomeScreen() {
   }
 
   currentWelcomeStep = 0;
-  welcomeLoginUsername.value = "";
-  welcomeLoginPassword.value = "";
-  welcomeLoginError.classList.add("hidden");
+  welcomeNickname.value = identity.nickname || "";
   renderWelcomeSettings();
   renderWelcomeStep();
   welcomeScreen.classList.remove("hidden");
@@ -1564,82 +1544,12 @@ async function finishWelcomeSetup() {
   remoteIdInput.focus();
 }
 
-function normalizeAccountUsername(value) {
-  return value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 16);
-}
-
 async function saveWelcomeNickname() {
-  const username = normalizeAccountUsername(welcomeLoginUsername.value);
-  const password = welcomeLoginPassword.value;
-  welcomeLoginUsername.value = username;
-
-  if (!/^[a-z0-9_]{3,16}$/.test(username) || !password) {
-    welcomeLoginError.textContent =
-      "Enter a valid username (3-16 lowercase letters, numbers, or underscores) and password.";
-    welcomeLoginError.classList.remove("hidden");
-    welcomeLoginUsername.focus();
-    return false;
-  }
-
-  try {
-    const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        password,
-        client_name: "AeroP2Pchat",
-        security_version: 2,
-      })
-    });
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("Non-JSON response from backend:", text);
-      throw new Error("Invalid JSON response");
-    }
-
-    if (data.success) {
-      welcomeLoginError.classList.add("hidden");
-      identity.loggedIn = true;
-      identity.accountUserId = data.user_id;
-      identity.nickname = data.username;
-      identity.role = data.role || "user";
-      identity.authToken = data.auth_token || "";
-      appConfig.identity = identity;
-      markSecureAccountLoginComplete();
-      saveAppConfig();
-      updateTitlebarLogo();
-      ownId.textContent = identity.id;
-      
-      // Complete restart of peer connection to use the new ID
-      for (const conn of connections.values()) { conn.close(); }
-      for (const entry of pendingConnections.values()) { entry.conn?.close(); }
-      connections.clear();
-      pendingConnections.clear();
-      renderChatHistory();
-      refreshPeers();
-      createPeer();
-      
-      setStatus("success", `Logged in as ${data.username}`);
-      await saveAppConfig();
-      return true;
-    } else {
-      welcomeLoginError.textContent = data.error || "Login failed";
-      welcomeLoginError.classList.remove("hidden");
-      return false;
-    }
-  } catch (err) {
-    console.error("Backend Login Error (Welcome):", err);
-    if (window.aeroChat && window.aeroChat.log) {
-      window.aeroChat.log(`Backend Login Error (Welcome): ${err.message || err}`);
-    }
-    welcomeLoginError.textContent = "Could not connect to backend";
-    welcomeLoginError.classList.remove("hidden");
-    return false;
-  }
+  identity.nickname = sanitizeNickname(welcomeNickname.value);
+  welcomeNickname.value = identity.nickname;
+  appConfig.identity = identity;
+  await saveAppConfig();
+  return true;
 }
 
 async function detectWelcomeDevices() {
@@ -1887,9 +1797,7 @@ function updateTitlebarPresenceIndicator() {
     titlebarPresence.className = `titlebar-presence ${presenceStatus}`;
   }
   if (titlebarSubtitle) {
-    titlebarSubtitle.textContent = identity?.loggedIn && identity?.nickname 
-      ? `@${identity.nickname}`
-      : "Guest";
+    titlebarSubtitle.textContent = identity?.nickname || "Aero ID";
   }
 }
 
@@ -2164,9 +2072,9 @@ function upsertContact(id, updates = {}) {
         ? Math.max(0, Math.min(150, Math.round(updates.playbackVolume)))
         : 100,
       showVideoName: updates.showVideoName !== false,
-        pinnedAt: new Date().toISOString(),
-        accountUserId: updates.accountUserId || "",
-      });
+      pinnedAt: new Date().toISOString(),
+      avatar: normalizeAvatarConfig(updates.avatar),
+    });
   }
 
   contacts = contacts.sort((left, right) => {
@@ -2230,6 +2138,7 @@ function migrateContactIdentity(previousIds, nextId, nickname = "") {
       existingTarget?.playbackVolume ?? preferred.playbackVolume ?? 100,
     showVideoName:
       existingTarget?.showVideoName ?? preferred.showVideoName ?? true,
+    avatar: existingTarget?.avatar || preferred.avatar,
   };
 
   contacts = contacts.filter((contact) => !oldIds.includes(contact.id));
@@ -2238,7 +2147,7 @@ function migrateContactIdentity(previousIds, nextId, nickname = "") {
   return migrated;
 }
 
-function rememberRemoteIdentity(id, nickname, accountUserId = "") {
+function rememberRemoteIdentity(id, nickname, avatar) {
   const remoteNickname = sanitizeNickname(nickname);
   if (!isValidAeroId(id) || !remoteNickname) {
     return;
@@ -2249,7 +2158,7 @@ function rememberRemoteIdentity(id, nickname, accountUserId = "") {
       remoteNickname,
       label: existing?.customLabel ? existing.label : remoteNickname,
       pinned: existing?.pinned ?? true,
-      accountUserId: accountUserId || existing?.accountUserId || "",
+      avatar: normalizeAvatarConfig(avatar),
     });
 }
 
@@ -2358,26 +2267,7 @@ function createBadge(iconClass, title, state = "") {
   return badge;
 }
 
-function createRoleBadge(role) {
-  if (!role || role.toLowerCase() === "user") return null;
-  const roleName = role.toLowerCase();
-  
-  const badge = document.createElement("span");
-  badge.className = `role-badge role-${roleName}`;
-  badge.title = role;
-  
-  if (roleName === "owner") {
-    badge.innerHTML = `<i class="fa-solid fa-crown"></i> ${role}`;
-  } else if (roleName === "mod") {
-    badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${role}`;
-  } else {
-    badge.textContent = role;
-  }
-  
-  return badge;
-}
-
-function createContactIdentityLabel(labelText, role = null) {
+function createContactIdentityLabel(labelText) {
   const identityLabel = document.createElement("span");
   identityLabel.className = "contact-identity";
 
@@ -2386,73 +2276,77 @@ function createContactIdentityLabel(labelText, role = null) {
   label.textContent = labelText;
   identityLabel.append(label);
 
-  const roleBadge = createRoleBadge(role);
-  if (roleBadge) {
-    identityLabel.append(roleBadge);
-  }
-
   return identityLabel;
 }
 
 function updateTitlebarLogo() {
-  if (identity && identity.accountUserId) {
-    titlebarLogo.classList.remove("is-app-logo");
-    titlebarLogo.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
-    titlebarLogo.style.objectFit = "cover";
-    titlebarLogo.style.borderRadius = "50%";
-    titlebarLogo.onerror = () => {
-      titlebarLogo.onerror = null;
-      titlebarLogo.classList.add("is-app-logo");
-      titlebarLogo.src = appLogo;
-      titlebarLogo.style.objectFit = "contain";
-      titlebarLogo.style.borderRadius = "0";
-    };
-  } else {
-    titlebarLogo.onerror = null;
-    titlebarLogo.classList.add("is-app-logo");
-    titlebarLogo.src = appLogo;
-    titlebarLogo.style.objectFit = "contain";
-    titlebarLogo.style.borderRadius = "0";
-  }
-  updateUserJotIdentity();
+  titlebarLogo.onerror = null;
+  titlebarLogo.classList.add("is-app-logo");
+  titlebarLogo.src = appLogo;
+  titlebarLogo.style.objectFit = "contain";
+  titlebarLogo.style.borderRadius = "0";
   updateTitlebarPresenceIndicator();
 }
 
-function updateUserJotIdentity() {
-  if (window.uj && identity && identity.accountUserId) {
-    window.uj.identify({
-      id: identity.accountUserId,
-      firstName: identity.nickname || "User",
-      avatar: `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp`
-    });
-  }
-}
-
-function createAvatar(label, id, accountUserId) {
-  if (accountUserId) {
-    const img = document.createElement("img");
-    img.className = "contact-avatar";
-    img.src = `https://aero.zorblock.de/account/pfp/${accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
-    img.onerror = () => {
-      const fallback = createCssAvatar(label, id);
-      img.replaceWith(fallback);
-    };
-    return img;
-  }
-  return createCssAvatar(label, id);
-}
-
-function createCssAvatar(label, id) {
+function createAvatar(label, id, config) {
   const avatar = document.createElement("div");
   avatar.className = "contact-avatar";
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  avatar.style.backgroundColor = `hsl(${hue}, 65%, 45%)`;
+  applyAvatarAppearance(avatar, id, config);
   avatar.textContent = (label || id || "?").charAt(0).toUpperCase();
   return avatar;
+}
+
+function applyAvatarAppearance(element, id, config) {
+  const avatar = normalizeAvatarConfig(config);
+  const seed = createAvatarSeed(id);
+  const uniqueHue = Math.floor(seed() * 360);
+  const angle = Math.floor(seed() * 360);
+  const accentHue = (uniqueHue + 28 + Math.floor(seed() * 56)) % 360;
+  const baseColor = avatar.template === "unique" ? `hsl(${uniqueHue} 68% 42%)` : avatar.color;
+  const accentColor =
+    avatar.template === "unique" ? `hsl(${accentHue} 72% 56%)` : getAccentColor(avatar.color, 34);
+
+  if (avatar.template === "solid") {
+    element.style.background = baseColor;
+  } else if (avatar.template === "rings") {
+    element.style.background = `radial-gradient(circle at 30% 25%, ${accentColor} 0 16%, transparent 17%), radial-gradient(circle at 70% 72%, ${accentColor} 0 23%, ${baseColor} 24% 100%)`;
+  } else {
+    element.style.background = `linear-gradient(${angle}deg, ${baseColor}, ${accentColor})`;
+  }
+}
+
+function getAccentColor(hex, hueOffset) {
+  const value = hex.slice(1);
+  const red = Number.parseInt(value.slice(0, 2), 16) / 255;
+  const green = Number.parseInt(value.slice(2, 4), 16) / 255;
+  const blue = Number.parseInt(value.slice(4, 6), 16) / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  let hue = 0;
+  if (delta !== 0) {
+    if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+    else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+    else hue = 60 * ((red - green) / delta + 4);
+  }
+  return `hsl(${(hue + hueOffset + 360) % 360} ${Math.round(saturation * 100)}% ${Math.min(72, Math.round(lightness * 100 + 16))}%)`;
+}
+
+function createAvatarSeed(value) {
+  let state = 2166136261;
+  for (const char of String(value || "")) {
+    state ^= char.charCodeAt(0);
+    state = Math.imul(state, 16777619);
+  }
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function createContactBadges({
@@ -3525,12 +3419,12 @@ function notifyIncomingMessage(peerId, text) {
   }
 
   const conn = connections.get(peerId);
-  const accountUserId = getVerifiedAccountUserId(peerId);
+  const identityId = getPeerIdentityId(peerId, conn);
 
   const shown = showAppNotification({
     kind: "message",
     peerId,
-    accountUserId,
+    avatar: getPeerAvatar(peerId, identityId),
     title: getPeerLabel(peerId, conn),
     body: text,
     silent: !isSoundEnabled("messages"),
@@ -3558,13 +3452,13 @@ function notifyIncomingCall(peerId, callId) {
   }
 
   const conn = connections.get(peerId);
-  const accountUserId = getVerifiedAccountUserId(peerId);
+  const identityId = getPeerIdentityId(peerId, conn);
 
   showAppNotification({
     id: getCallNotificationId(callId),
     kind: "call",
     peerId,
-    accountUserId,
+    avatar: getPeerAvatar(peerId, identityId),
     callId,
     title: "Incoming voice call",
     body: `${getPeerLabel(peerId, conn)} is calling`,
@@ -4083,26 +3977,9 @@ function refreshCallStage() {
   callStage?.classList.remove("hidden");
   if (localParticipantName) {
     localParticipantName.textContent = localLabel;
-    const role = getRoleByIdentityId(identity.id);
-    if (role) {
-      const badge = createRoleBadge(role);
-      if (badge) {
-        // Add some spacing
-        badge.style.marginLeft = "8px";
-        localParticipantName.append(badge);
-      }
-    }
   }
   if (remoteParticipantName) {
     remoteParticipantName.textContent = remoteLabel;
-    const role = getRoleByIdentityId(getPeerIdentityId(stagePeerId, null));
-    if (role) {
-      const badge = createRoleBadge(role);
-      if (badge) {
-        badge.style.marginLeft = "8px";
-        remoteParticipantName.append(badge);
-      }
-    }
   }
   if (localParticipantStatus) {
     localParticipantStatus.textContent = inCallWithStagePeer
@@ -6619,6 +6496,7 @@ function createChatMetadata() {
       identity.id,
     ),
     nickname: identity.nickname || "",
+    avatar: normalizeAvatarConfig(identity.avatar),
     protocol: PROTOCOL_VERSION,
     version: currentVersion,
   };
@@ -6636,162 +6514,27 @@ function rememberConnectionIdentity(peerId, metadata = {}) {
 
   const identityId = peerId;
   const nickname = sanitizeNickname(metadata.nickname);
+  const avatar = normalizeAvatarConfig(metadata.avatar);
   migrateContactIdentity(metadata.previousIdentityIds, identityId, nickname);
-  const oldRemote = remoteIdentities.get(peerId);
   remoteIdentities.set(peerId, {
     identityId,
-    nickname: oldRemote?.verified ? oldRemote.nickname : nickname,
-    accountUserId: oldRemote?.verified ? oldRemote.accountUserId : "",
-    role: oldRemote?.verified ? oldRemote.role : "user",
-    verified: Boolean(oldRemote?.verified),
+    nickname,
+    avatar,
   });
 
-  // Older releases disclose their reusable token in connection metadata.
-  // Accept it only as a migration bridge; this release never sends that token.
-  const legacyAccountUserId = String(metadata.accountUserId || "");
-  const legacyToken = String(metadata.authToken || "");
-  const legacyKey = `${peerId}:${legacyAccountUserId}`;
-  if (
-    legacyAccountUserId &&
-    legacyToken &&
-    !oldRemote?.verified &&
-    !legacyAccountVerificationInFlight.has(legacyKey)
-  ) {
-    legacyAccountVerificationInFlight.add(legacyKey);
-    fetch(
-      `${ACCOUNT_API_BASE}/user.php?id=${encodeURIComponent(legacyAccountUserId)}&token=${encodeURIComponent(legacyToken)}`,
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success && data.username) {
-          applyVerifiedRemoteAccount(peerId, {
-            ...data,
-            user_id: legacyAccountUserId,
-          });
-        }
-      })
-      .catch((error) =>
-        console.error("Failed to verify legacy peer account:", error),
-      )
-      .finally(() => legacyAccountVerificationInFlight.delete(legacyKey));
-  }
-
   if (nickname) {
-    rememberRemoteIdentity(
-      identityId,
-      nickname,
-      oldRemote?.verified ? oldRemote.accountUserId : "",
-    );
+    rememberRemoteIdentity(identityId, nickname, avatar);
     return;
   }
 
   const existing = findContact(identityId);
   if (existing) {
-    const updates = {
-      accountUserId: oldRemote?.verified
-        ? oldRemote.accountUserId
-        : existing.accountUserId || "",
-    };
+    const updates = { avatar };
     if (!existing.customLabel && existing.label === identity.nickname) {
       updates.label = identityId;
       updates.pinned = existing.pinned;
     }
     upsertContact(identityId, updates);
-  }
-}
-
-function applyVerifiedRemoteAccount(peerId, account) {
-  const currentRemote = remoteIdentities.get(peerId);
-  if (!currentRemote || !account?.user_id || !account?.username) {
-    return;
-  }
-
-  const username = sanitizeNickname(account.username);
-  const accountUserId = String(account.user_id);
-  remoteIdentities.set(peerId, {
-    ...currentRemote,
-    identityId: peerId,
-    nickname: username,
-    accountUserId,
-    role: String(account.role || "user"),
-    verified: true,
-  });
-  rememberRemoteIdentity(peerId, username, accountUserId);
-  window.avatarCacheBuster = Date.now();
-  refreshPeers();
-  refreshCallStage();
-}
-
-function sendAccountVerificationChallenge(conn) {
-  if (!conn?.open || !isValidAeroId(conn.peer)) {
-    return;
-  }
-  const challenge = createAccountChallenge();
-  accountVerificationChallenges.set(conn.peer, challenge);
-  sendProtocolMessage(conn, "account-challenge", { challenge });
-}
-
-async function answerAccountVerificationChallenge(conn, challenge) {
-  if (
-    !conn?.open ||
-    !ACCOUNT_CHALLENGE_PATTERN.test(String(challenge || "")) ||
-    !identity.loggedIn ||
-    !identity.accountUserId ||
-    !identity.authToken
-  ) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`${ACCOUNT_API_BASE}/ticket.php`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: identity.accountUserId,
-        auth_token: identity.authToken,
-        peer_id: identity.id,
-        audience_peer_id: conn.peer,
-        challenge,
-      }),
-    });
-    const result = await response.json();
-    if (response.ok && result.success && result.ticket && conn.open) {
-      sendProtocolMessage(conn, "account-proof", { ticket: result.ticket });
-    }
-  } catch (error) {
-    console.error("Could not create account verification proof:", error);
-  }
-}
-
-async function verifyRemoteAccountProof(peerId, ticket) {
-  const challenge = accountVerificationChallenges.get(peerId);
-  if (
-    !challenge ||
-    typeof ticket !== "string" ||
-    ticket.length === 0 ||
-    ticket.length > 2048
-  ) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`${ACCOUNT_API_BASE}/verify-ticket.php`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ticket,
-        peer_id: peerId,
-        audience_peer_id: identity.id,
-        challenge,
-      }),
-    });
-    const result = await response.json();
-    if (response.ok && result.success) {
-      accountVerificationChallenges.delete(peerId);
-      applyVerifiedRemoteAccount(peerId, result);
-    }
-  } catch (error) {
-    console.error("Could not verify peer account proof:", error);
   }
 }
 
@@ -6807,23 +6550,12 @@ function getPeerIdentityId(peerId, conn) {
   return remoteIdentities.get(peerId)?.identityId || peerId;
 }
 
-function getVerifiedAccountUserId(peerId) {
-  const remote = remoteIdentities.get(peerId);
-  return remote?.verified ? remote.accountUserId || "" : "";
-}
-
-function getRoleByIdentityId(identityId) {
-  // If it's us, check our own identity
-  if (identityId === identity.id && identity.role) {
-    return identity.role;
-  }
-  // Otherwise check remoteIdentities
-  for (const [peerId, data] of remoteIdentities.entries()) {
-    if (data.identityId === identityId) {
-      return data.role;
-    }
-  }
-  return null;
+function getPeerAvatar(peerId, identityId) {
+  return (
+    remoteIdentities.get(peerId)?.avatar ||
+    findContact(identityId)?.avatar ||
+    normalizeAvatarConfig()
+  );
 }
 
 function openContactMenu(event, id) {
@@ -7210,6 +6942,7 @@ function sendProtocolMessage(conn, type, extra = {}) {
       protocol: PROTOCOL_VERSION,
       identityId: identity.id,
       nickname: identity.nickname || "",
+      avatar: normalizeAvatarConfig(identity.avatar),
       time: formatTime(),
       ...extra,
     });
@@ -7315,7 +7048,6 @@ function removePeer(peerId, { silent = false } = {}) {
   }
   lastTypingSentAt.delete(peerId);
   remoteReadReceiptsEnabled.delete(peerId);
-  accountVerificationChallenges.delete(peerId);
   remoteIdentities.delete(peerId);
   if (callState.peerId === peerId) {
     endVoiceCall({
@@ -7372,11 +7104,10 @@ function refreshPeers() {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "contact-name";
-    name.append(createAvatar(contact.label, contact.id, contact.accountUserId));
+    name.append(createAvatar(contact.label, contact.id, contact.avatar));
     name.append(createContactBadges(contact));
     
-    const role = getRoleByIdentityId(contact.id);
-    name.append(createContactIdentityLabel(contact.label, role));
+    name.append(createContactIdentityLabel(contact.label));
     name.addEventListener("click", () => {
       connectToPeer(contact.id);
     });
@@ -7419,7 +7150,7 @@ function refreshPeers() {
       const identityId = getPeerIdentityId(peerId, entry.conn);
       const contact = findContact(identityId);
       name.append(
-        createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+        createAvatar(peerLabel, identityId, getPeerAvatar(peerId, identityId)),
       );
         name.append(
           createContactBadges({
@@ -7428,8 +7159,7 @@ function refreshPeers() {
             waiting: true,
           }),
         );
-      const role = getRoleByIdentityId(identityId);
-      name.append(createContactIdentityLabel(peerLabel, role));
+      name.append(createContactIdentityLabel(peerLabel));
 
       const actions = document.createElement("div");
       actions.className = "request-actions";
@@ -7463,7 +7193,7 @@ function refreshPeers() {
     const identityId = getPeerIdentityId(peerId, entry.conn);
     const contact = findContact(identityId);
     waiting.append(
-      createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+      createAvatar(peerLabel, identityId, getPeerAvatar(peerId, identityId)),
     );
       waiting.append(
         createContactBadges({
@@ -7499,7 +7229,7 @@ function refreshPeers() {
       const identityId = getPeerIdentityId(peerId, conn);
       const contact = findContact(identityId);
       button.append(
-        createAvatar(peerLabel, identityId, getVerifiedAccountUserId(peerId)),
+        createAvatar(peerLabel, identityId, getPeerAvatar(peerId, identityId)),
       );
       button.append(
         createContactBadges({
@@ -7508,12 +7238,8 @@ function refreshPeers() {
         online: conn.open,
       }),
     );
-    const role = getRoleByIdentityId(identityId);
     button.append(
-      createContactIdentityLabel(
-        conn.open ? peerLabel : `${peerLabel} ...`,
-        role,
-      ),
+      createContactIdentityLabel(conn.open ? peerLabel : `${peerLabel} ...`),
     );
     const unread = unreadCounts.get(peerId) || 0;
     button.setAttribute(
@@ -7559,18 +7285,6 @@ function refreshPeers() {
     ? getPeerLabel(activePeerId, activeConn)
     : "No active chat";
     
-  // Remove existing role badge in chat header
-  chatTitle.parentElement.querySelectorAll(".role-badge").forEach(e => e.remove());
-  
-  if (activePeerId) {
-    const peerIdentityId = getPeerIdentityId(activePeerId, activeConn);
-    const role = getRoleByIdentityId(peerIdentityId);
-    if (role) {
-      const roleBadge = createRoleBadge(role);
-      if (roleBadge) chatTitle.parentElement.append(roleBadge);
-    }
-  }
-
   chatMeta.textContent = activePeerId ? "Connected" : "Idle";
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
@@ -7668,7 +7382,6 @@ function attachConnectionHandlers(conn, peerId, direction) {
   conn.on("open", () => {
     hideConnectRetry();
     platformApi.vibrate("heavy");
-    sendAccountVerificationChallenge(conn);
     sendReceiptSettings(conn);
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
@@ -7713,20 +7426,9 @@ function attachConnectionHandlers(conn, peerId, direction) {
     rememberConnectionIdentity(peerId, data);
     markConnectionHeartbeat(peerId);
 
-    if (data?.type === "account-challenge") {
-      answerAccountVerificationChallenge(conn, data.challenge);
-      return;
-    }
-
-    if (data?.type === "account-proof") {
-      verifyRemoteAccountProof(peerId, data.ticket);
-      return;
-    }
-
     if (data?.type === "profile-update") {
-      window.avatarCacheBuster = Date.now();
-      updateTitlebarLogo();
       refreshPeers();
+      refreshCallStage();
       return;
     }
 
@@ -7904,7 +7606,6 @@ function attachConnectionHandlers(conn, peerId, direction) {
   });
 
   conn.on("close", () => {
-    accountVerificationChallenges.delete(peerId);
     const wasKnown =
       connections.get(peerId) === conn ||
       pendingConnections.get(peerId)?.conn === conn;
@@ -8588,37 +8289,11 @@ disconnectChat.addEventListener("click", () => {
   refreshPeers();
 });
 
-welcomeLoginUsername.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    welcomeLoginPassword.focus();
-  }
-});
-
-for (const usernameInput of [welcomeLoginUsername, loginUsernameInput]) {
-  usernameInput.addEventListener("input", () => {
-    const normalized = normalizeAccountUsername(usernameInput.value);
-    if (usernameInput.value !== normalized) {
-      usernameInput.value = normalized;
-    }
-  });
-}
-
-welcomeLoginPassword.addEventListener("keydown", (event) => {
+welcomeNickname.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     welcomeNext.click();
   }
-});
-
-welcomeSkipBtn.addEventListener("click", async () => {
-  if (!identity.nickname) {
-    identity.nickname = `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
-    appConfig.identity = identity;
-    await saveAppConfig();
-  }
-  welcomeLoginError.classList.add("hidden");
-  await finishWelcomeSetup();
 });
 
 welcomeThemeLight.addEventListener("change", () => {
@@ -9210,156 +8885,144 @@ titlebarLogo.addEventListener("keydown", (event) => {
   }
 });
 
-appMenuAccount.addEventListener("click", () => {
-  if (identity.loggedIn) {
-    loginView.classList.add("hidden");
-    profileView.classList.remove("hidden");
-    profileUsername.textContent = identity.nickname;
-    profileId.textContent = identity.id;
-    profilePic.src = `https://aero.zorblock.de/account/pfp/${identity.accountUserId}.webp?t=${window.avatarCacheBuster || Math.floor(Date.now() / 3600000)}`;
-    guestNicknameSection.classList.add("hidden");
-  } else {
-    loginView.classList.remove("hidden");
-    profileView.classList.add("hidden");
-    loginUsernameInput.value = "";
-    loginPasswordInput.value = "";
-    if (appConfig.security?.accountReloginRequired) {
-      loginError.textContent =
-        "Please sign in once to finish the account security upgrade.";
-      loginError.classList.remove("hidden");
-    } else {
-      loginError.classList.add("hidden");
-    }
-    guestNicknameSection.classList.remove("hidden");
-    guestNicknameInput.value = identity.nickname || "";
-  }
-  accountModal.classList.remove("hidden");
+appMenuProfile.addEventListener("click", () => {
+  profileNickname.value = identity.nickname || "";
+  const avatar = normalizeAvatarConfig(identity.avatar);
+  setProfileAvatarTemplate(avatar.template);
+  profileAvatarColor.value = avatar.color;
+  syncProfileAvatarColor();
+  profileId.textContent = identity.id;
+  renderProfileAvatarPreview();
+  profileModal.classList.remove("hidden");
   closeAppMenu();
+  profileNickname.focus();
 });
 
-accountClose.addEventListener("click", () => {
-  accountModal.classList.add("hidden");
+profileClose.addEventListener("click", () => {
+  profileModal.classList.add("hidden");
+  closeProfileTemplatePicker();
 });
 
-loginForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  loginUsernameInput.value = normalizeAccountUsername(loginUsernameInput.value);
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Logging in...";
-  loginError.classList.add("hidden");
-
-  try {
-    const res = await fetch("https://aero.zorblock.de/account/api/login.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: loginUsernameInput.value.trim(),
-        password: loginPasswordInput.value,
-        client_name: "AeroP2Pchat",
-        security_version: 2,
-      })
-    });
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("Non-JSON response from backend:", text);
-      throw new Error("Invalid JSON response");
-    }
-
-    if (data.success) {
-      identity.loggedIn = true;
-      identity.accountUserId = data.user_id;
-      identity.nickname = data.username;
-      identity.role = data.role || "user";
-      identity.authToken = data.auth_token || "";
-      appConfig.identity = identity;
-      markSecureAccountLoginComplete();
-      saveAppConfig();
-      
-      accountModal.classList.add("hidden");
-      updateTitlebarLogo();
-      ownId.textContent = identity.id;
-      
-      // Complete restart of peer connection to use the new ID
-      for (const conn of connections.values()) { conn.close(); }
-      for (const entry of pendingConnections.values()) { entry.conn?.close(); }
-      connections.clear();
-      pendingConnections.clear();
-      renderChatHistory();
-      refreshPeers();
-      createPeer();
-      
-      setStatus("success", `Logged in as ${data.username}`);
-    } else {
-      loginError.textContent = data.error || "Login failed";
-      loginError.classList.remove("hidden");
-    }
-  } catch (err) {
-    console.error("Backend Login Error (Account Modal):", err);
-    if (window.aeroChat && window.aeroChat.log) {
-      window.aeroChat.log(`Backend Login Error (Account): ${err.message || err}`);
-    }
-    loginError.textContent = "Could not connect to backend";
-    loginError.classList.remove("hidden");
-  } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Login";
+profileModal.addEventListener("click", (event) => {
+  if (event.target === profileModal) {
+    profileModal.classList.add("hidden");
+    closeProfileTemplatePicker();
   }
 });
 
-logoutBtn.addEventListener("click", () => {
-  const accountUserId = identity.accountUserId;
-  const authToken = identity.authToken;
-  identity.loggedIn = false;
-  identity.accountUserId = "";
-  identity.nickname = "";
-  identity.role = "";
-  identity.authToken = "";
+const PROFILE_TEMPLATE_COPY = {
+  unique: {
+    label: "Unique identity color",
+    description: "A unique color based on your Aero ID.",
+  },
+  solid: {
+    label: "Solid color",
+    description: "Use one clear color for your avatar.",
+  },
+  gradient: {
+    label: "Color gradient",
+    description: "Your color with a soft, generated accent.",
+  },
+  rings: {
+    label: "Color rings",
+    description: "Your color in a compact circular pattern.",
+  },
+};
+
+function setProfileAvatarTemplate(value) {
+  const template = normalizeAvatarConfig({ template: value }).template;
+  const copy = PROFILE_TEMPLATE_COPY[template];
+  profileAvatarTemplate.value = template;
+  profileTemplateLabel.textContent = copy.label;
+  profileTemplateDescription.textContent = copy.description;
+  for (const option of profileTemplateOptionButtons) {
+    option.setAttribute(
+      "aria-selected",
+      option.dataset.avatarTemplate === template ? "true" : "false",
+    );
+  }
+}
+
+function closeProfileTemplatePicker() {
+  profileTemplateOptions.classList.add("hidden");
+  profileTemplateToggle.setAttribute("aria-expanded", "false");
+}
+
+function syncProfileAvatarColor() {
+  profileAvatarColorValue.value = profileAvatarColor.value.toLowerCase();
+  profileAvatarColorValue.textContent = profileAvatarColor.value.toLowerCase();
+}
+
+function getProfileAvatarDraft() {
+  return normalizeAvatarConfig({
+    template: profileAvatarTemplate.value,
+    color: profileAvatarColor.value,
+  });
+}
+
+function renderProfileAvatarPreview() {
+  const avatar = getProfileAvatarDraft();
+  applyAvatarAppearance(profileAvatarPreview, identity.id, avatar);
+  profileAvatarPreview.textContent = (profileNickname.value || identity.id)
+    .charAt(0)
+    .toUpperCase();
+}
+
+function broadcastProfileUpdate() {
+  for (const conn of connections.values()) {
+    sendProtocolMessage(conn, "profile-update");
+  }
+  for (const entry of pendingConnections.values()) {
+    sendProtocolMessage(entry.conn, "profile-update");
+  }
+}
+
+function saveProfile() {
+  identity.nickname = sanitizeNickname(profileNickname.value);
+  identity.avatar = getProfileAvatarDraft();
   appConfig.identity = identity;
   saveAppConfig();
-  void revokeAccountToken(accountUserId, authToken);
-  
-  accountModal.classList.add("hidden");
-  updateTitlebarLogo();
-  ownId.textContent = identity.id;
-  
-  for (const conn of connections.values()) { conn.close(); }
-  for (const entry of pendingConnections.values()) { entry.conn?.close(); }
-  connections.clear();
-  pendingConnections.clear();
-  renderChatHistory();
+  updateTitlebarPresenceIndicator();
   refreshPeers();
-  createPeer();
-  
-  setStatus("success", "Logged out successfully");
+  refreshCallStage();
+  broadcastProfileUpdate();
+  profileModal.classList.add("hidden");
+  setStatus("pending", "Profile saved and shared with connected chat partners.");
+}
+
+profileNickname.addEventListener("input", renderProfileAvatarPreview);
+profileTemplateToggle.addEventListener("click", () => {
+  const willOpen = profileTemplateOptions.classList.contains("hidden");
+  profileTemplateOptions.classList.toggle("hidden", !willOpen);
+  profileTemplateToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
 });
-
-
-refreshAllPfpsBtn?.addEventListener("click", () => {
-    window.avatarCacheBuster = Date.now();
-    updateTitlebarLogo();
-    refreshPeers();
-    showAppDialog({ title: "Refreshed", message: "All profile pictures have been refreshed." });
+profileTemplateOptionButtons.forEach((option) => {
+  option.addEventListener("click", () => {
+    setProfileAvatarTemplate(option.dataset.avatarTemplate);
+    closeProfileTemplatePicker();
+    renderProfileAvatarPreview();
+    profileTemplateToggle.focus();
   });
+});
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".profile-template-picker")) {
+    closeProfileTemplatePicker();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !profileTemplateOptions.classList.contains("hidden")) {
+    event.preventDefault();
+    closeProfileTemplatePicker();
+    profileTemplateToggle.focus();
+  }
+});
+profileAvatarColor.addEventListener("input", () => {
+  syncProfileAvatarColor();
+  renderProfileAvatarPreview();
+});
+profileSave.addEventListener("click", saveProfile);
 
-  accountUpdatePfpBtn?.addEventListener("click", () => {
-    window.avatarCacheBuster = Date.now();
-    updateTitlebarLogo();
-    for (const [peerId, conn] of connections.entries()) {
-      sendProtocolMessage(conn, "profile-update");
-    }
-    for (const [peerId, entry] of pendingConnections.entries()) {
-      if (entry.conn && entry.conn.open) {
-        sendProtocolMessage(entry.conn, "profile-update");
-      }
-    }
-    accountModal.classList.add("hidden");
-    showAppDialog({ title: "Updated", message: "Your profile picture was refreshed and updated for all active chats!" });
-  });
-
-  appMenuSettings.addEventListener("click", () => {
+appMenuSettings.addEventListener("click", () => {
   if (platformApi.isElectron) {
     openSettings();
   } else {
@@ -9447,29 +9110,6 @@ resetAllSettingsButton.addEventListener("click", async () => {
 
 
 
-function saveOwnGuestNickname() {
-  if (identity.loggedIn) return;
-  identity.nickname = sanitizeNickname(guestNicknameInput.value);
-  guestNicknameInput.value = identity.nickname;
-  appConfig.identity = identity;
-  saveAppConfig();
-  refreshCallStage();
-  setStatus(
-    "pending",
-    identity.nickname
-      ? `Nickname set to ${identity.nickname}.`
-      : "Nickname cleared.",
-  );
-}
-
-saveGuestNickname.addEventListener("click", saveOwnGuestNickname);
-
-guestNicknameInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    saveOwnGuestNickname();
-  }
-});
 
 menuTrust.addEventListener("click", () => {
   if (!contextContactId) {
