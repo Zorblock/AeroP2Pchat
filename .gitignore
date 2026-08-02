@@ -10,6 +10,7 @@
 /.gradle-android
 [Bb]in/
 [Oo]bj/
+/online-installer-rust/target/
 AGENTS.md
 TODO.todo
 android/.kotlin/sessions/

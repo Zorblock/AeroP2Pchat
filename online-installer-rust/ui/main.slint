@@ -1,0 +1,37 @@
+import { Button, ProgressIndicator } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "Aero P2P Chat Online Installer";
+    width: 560px;
+    height: 330px;
+
+    in-out property <string> status: "Ready to install Aero P2P Chat";
+    in-out property <string> detail: "Click Install to download the newest version from GitHub.";
+    in-out property <string> version: "The newest version will be checked after you continue.";
+    in-out property <float> progress: 0;
+    in-out property <string> button-text: "Install";
+    in-out property <bool> can-install: true;
+    in-out property <bool> show-install: true;
+    callback install();
+
+    Text { x: 28px; y: 26px; width: 504px; height: 30px; text: "Aero P2P Chat"; font-size: 22px; font-weight: 700; }
+    Text { x: 28px; y: 64px; width: 504px; height: 24px; text: status; font-size: 16px; font-weight: 600; }
+    Text { x: 28px; y: 94px; width: 504px; height: 42px; text: detail; wrap: word-wrap; }
+
+    ProgressIndicator { x: 28px; y: 150px; width: 504px; height: 12px; progress: root.progress; }
+
+    Text { x: 28px; y: 178px; width: 504px; height: 22px; text: version; }
+    Text { x: 28px; y: 206px; width: 504px; height: 34px; text: "Downloads are verified against the SHA-256 checksum published on GitHub."; wrap: word-wrap; }
+
+    Button {
+        x: 412px;
+        y: 260px;
+        width: 120px;
+        height: 34px;
+        text: root.button-text;
+        primary: true;
+        enabled: root.can-install;
+        visible: root.show-install;
+        clicked => { root.install(); }
+    }
+}
