@@ -1361,18 +1361,16 @@
         <header class="profile-header">
           <span class="profile-eyebrow">Aero profile</span>
           <h2 id="profile-title">Profile settings</h2>
-          <p>Choose what chat partners see. Everything is shared directly - no account or image upload.</p>
         </header>
         <div class="profile-identity">
           <div id="profile-avatar-preview" class="contact-avatar profile-avatar-preview"></div>
           <div class="profile-identity-copy">
             <strong id="profile-id"></strong>
-            <span>Your stable Aero ID</span>
           </div>
         </div>
         <div class="profile-content">
           <label class="profile-field" for="profile-nickname">
-            <span>Display name <em>optional</em></span>
+            <span>Display name</span>
             <input id="profile-nickname" type="text" maxlength="32" autocomplete="nickname" placeholder="Optional display name" />
           </label>
           <label class="welcome-field profile-native-template hidden" for="profile-avatar-template">
@@ -1387,18 +1385,17 @@
           <section class="profile-avatar-settings" aria-labelledby="profile-avatar-settings-title">
             <div class="profile-section-heading">
               <span id="profile-avatar-settings-title">Avatar design</span>
-              <small id="profile-template-description">A unique color based on your Aero ID.</small>
             </div>
             <div class="profile-template-picker">
               <button id="profile-template-toggle" class="profile-template-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-template-options">
-                <span id="profile-template-label">Unique identity color</span>
+                <span id="profile-template-label">Unique</span>
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
               </button>
               <div id="profile-template-options" class="profile-template-options hidden" role="listbox" aria-label="Avatar template">
-                <button type="button" role="option" data-avatar-template="unique" aria-selected="true"><strong>Unique identity color</strong><span>Generated from your Aero ID</span></button>
-                <button type="button" role="option" data-avatar-template="solid" aria-selected="false"><strong>Solid color</strong><span>Your selected color</span></button>
-                <button type="button" role="option" data-avatar-template="gradient" aria-selected="false"><strong>Color gradient</strong><span>Your color with a soft accent</span></button>
-                <button type="button" role="option" data-avatar-template="rings" aria-selected="false"><strong>Color rings</strong><span>Your color in a circular pattern</span></button>
+                <button type="button" role="option" data-avatar-template="unique" aria-selected="true"><strong>Unique</strong></button>
+                <button type="button" role="option" data-avatar-template="solid" aria-selected="false"><strong>Solid</strong></button>
+                <button type="button" role="option" data-avatar-template="gradient" aria-selected="false"><strong>Gradient</strong></button>
+                <button type="button" role="option" data-avatar-template="rings" aria-selected="false"><strong>Rings</strong></button>
               </div>
             </div>
           </section>
@@ -1408,7 +1405,7 @@
             <output id="profile-avatar-color-value">#4f46e5</output>
           </label>
           <p class="card-description" style="margin: -6px 0 0;">The chosen color applies to all templates except “Unique”.</p>
-          <button id="profile-save" class="profile-save" type="button">Save and share profile</button>
+          <button id="profile-save" class="profile-save" type="button">Save profile</button>
         </div>
       </section>
     </div>

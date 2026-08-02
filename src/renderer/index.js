@@ -162,13 +162,13 @@ const profileNickname = document.querySelector("#profile-nickname");
 const profileAvatarTemplate = document.querySelector("#profile-avatar-template");
 const profileTemplateToggle = document.querySelector("#profile-template-toggle");
 const profileTemplateLabel = document.querySelector("#profile-template-label");
-const profileTemplateDescription = document.querySelector("#profile-template-description");
 const profileTemplateOptions = document.querySelector("#profile-template-options");
 const profileTemplateOptionButtons = Array.from(
   document.querySelectorAll("[data-avatar-template]"),
 );
 const profileAvatarColor = document.querySelector("#profile-avatar-color");
 const profileAvatarColorValue = document.querySelector("#profile-avatar-color-value");
+const profileColorField = profileAvatarColor.closest(".profile-color-field");
 const profileSave = document.querySelector("#profile-save");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
@@ -711,6 +711,7 @@ const peerConnectionConfig = {
 };
 let appConfig = {};
 let configSaveQueue = Promise.resolve();
+const enhancedSelects = new Map();
 
 async function loadAppConfig() {
   return platformApi.loadConfig();
@@ -750,6 +751,161 @@ function saveAppConfig() {
     .then(() => platformApi.saveConfig(snapshot));
   return configSaveQueue.catch(() => {});
 }
+
+function enhanceNativeSelects() {
+  for (const select of document.querySelectorAll("select")) {
+    if (select.id === "profile-avatar-template" || enhancedSelects.has(select)) {
+      continue;
+    }
+    enhanceNativeSelect(select);
+  }
+}
+
+function enhanceNativeSelect(select) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "aero-select";
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "aero-select-toggle";
+  toggle.setAttribute("aria-haspopup", "listbox");
+  toggle.setAttribute("aria-expanded", "false");
+  const label = document.createElement("span");
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-chevron-down";
+  icon.setAttribute("aria-hidden", "true");
+  toggle.append(label, icon);
+  const options = document.createElement("div");
+  options.className = "aero-select-options hidden";
+  options.setAttribute("role", "listbox");
+
+  select.before(wrapper);
+  wrapper.append(toggle, options, select);
+  select.classList.add("native-select");
+  select.setAttribute("aria-hidden", "true");
+
+  const close = () => {
+    options.classList.add("hidden");
+    toggle.setAttribute("aria-expanded", "false");
+  };
+  const positionOptions = () => {
+    const rect = toggle.getBoundingClientRect();
+    const gap = 6;
+    const viewportPadding = 10;
+    const preferredHeight = Math.min(196, options.scrollHeight || 196);
+    const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPadding;
+    const spaceAbove = rect.top - gap - viewportPadding;
+    const opensUp =
+      spaceBelow < Math.min(112, preferredHeight) && spaceAbove > spaceBelow;
+    const availableSpace = Math.max(84, opensUp ? spaceAbove : spaceBelow);
+    const height = Math.min(preferredHeight, availableSpace);
+    const left = Math.max(
+      viewportPadding,
+      Math.min(rect.left, window.innerWidth - rect.width - viewportPadding),
+    );
+
+    options.classList.toggle("opens-up", opensUp);
+    options.style.left = `${left}px`;
+    options.style.width = `${rect.width}px`;
+    options.style.maxHeight = `${height}px`;
+    options.style.top = `${opensUp ? Math.max(viewportPadding, rect.top - gap - height) : rect.bottom + gap}px`;
+  };
+  const open = () => {
+    for (const [otherSelect, entry] of enhancedSelects.entries()) {
+      if (otherSelect !== select) entry.close();
+    }
+    options.classList.remove("hidden");
+    toggle.setAttribute("aria-expanded", "true");
+    positionOptions();
+    options.querySelector('[aria-selected="true"]')?.scrollIntoView({
+      block: "nearest",
+    });
+  };
+  const render = () => {
+    const selected = select.selectedOptions[0];
+    label.textContent = selected?.textContent || "Select an option";
+    toggle.disabled = select.disabled || select.options.length === 0;
+    options.replaceChildren(
+      ...Array.from(select.options, (option) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.textContent;
+        button.disabled = option.disabled;
+        button.setAttribute("role", "option");
+        button.setAttribute(
+          "aria-selected",
+          option.value === select.value ? "true" : "false",
+        );
+        button.addEventListener("click", () => {
+          select.value = option.value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          close();
+          toggle.focus();
+        });
+        return button;
+      }),
+    );
+  };
+
+  toggle.addEventListener("click", () => {
+    if (toggle.disabled) return;
+    if (options.classList.contains("hidden")) {
+      open();
+      options.querySelector('[aria-selected="true"]')?.focus();
+    } else {
+      close();
+    }
+  });
+  toggle.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (options.classList.contains("hidden")) open();
+      const selected = options.querySelector('[aria-selected="true"]');
+      selected?.focus();
+    }
+  });
+  options.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      close();
+      toggle.focus();
+    }
+  });
+  select.addEventListener("change", render);
+  new MutationObserver(render).observe(select, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["disabled"],
+  });
+  enhancedSelects.set(select, { wrapper, close, render, positionOptions });
+  render();
+}
+
+function syncEnhancedSelect(select) {
+  enhancedSelects.get(select)?.render();
+}
+
+function syncEnhancedSelects() {
+  for (const { render } of enhancedSelects.values()) {
+    render();
+  }
+}
+
+document.addEventListener("pointerdown", (event) => {
+  for (const { wrapper, close } of enhancedSelects.values()) {
+    if (!wrapper.contains(event.target)) {
+      close();
+    }
+  }
+});
+
+window.addEventListener("resize", () => {
+  for (const { wrapper, positionOptions } of enhancedSelects.values()) {
+    if (!wrapper.querySelector(".aero-select-options")?.classList.contains("hidden")) {
+      positionOptions();
+    }
+  }
+});
 
 function createIdentityId() {
   const bytes = new Uint8Array(8);
@@ -832,6 +988,7 @@ function migrateLocalStorageConfig() {
   }
 }
 
+enhanceNativeSelects();
 appConfig = await loadAppConfig();
 if (stripRetiredIdentityData(appConfig)) {
   await saveAppConfig();
@@ -1278,6 +1435,7 @@ function setMicMode(mode, { persist = false } = {}) {
   appConfig.audio.micMode = mode === "manual" ? "manual" : "auto";
   if (micModeSelect) {
     micModeSelect.value = appConfig.audio.micMode;
+    syncEnhancedSelect(micModeSelect);
   }
   if (persist) {
     saveAudioConfig();
@@ -1294,6 +1452,7 @@ function setMicProfile(profile, { persist = false } = {}) {
     : "voice-isolation";
   if (micProfileSelect) {
     micProfileSelect.value = appConfig.audio.micProfile;
+    syncEnhancedSelect(micProfileSelect);
   }
   if (persist) {
     saveAudioConfig();
@@ -1305,11 +1464,13 @@ function renderAudioSettings() {
   normalizeAudioConfig();
   if (micProfileSelect) {
     micProfileSelect.value = appConfig.audio.micProfile;
+    syncEnhancedSelect(micProfileSelect);
   }
   const isCustom = appConfig.audio.micProfile === "custom";
   if (micModeSelect) {
     micModeSelect.value = appConfig.audio.micMode;
     micModeSelect.disabled = !isCustom;
+    syncEnhancedSelect(micModeSelect);
   }
   if (micSensitivitySlider) {
     micSensitivitySlider.value = String(appConfig.audio.micSensitivity);
@@ -1385,6 +1546,7 @@ function renderAudioSettings() {
   updateRangeFill(micEqLowSlider, appConfig.audio.micEqLow, -12, 12);
   updateRangeFill(micEqMidSlider, appConfig.audio.micEqMid, -12, 12);
   updateRangeFill(micEqHighSlider, appConfig.audio.micEqHigh, -12, 12);
+  syncEnhancedSelects();
   updateRangeFill(micBoostSlider, appConfig.audio.micBoost, 0, 200);
   updateRangeFill(remoteVolumeSlider, appConfig.audio.remoteVolume, 0, 100);
 }
@@ -6375,6 +6537,7 @@ function setSelectValueOrDefault(select, value) {
   if (select.value !== value) {
     select.value = "default";
   }
+  syncEnhancedSelect(select);
   return select.value;
 }
 
@@ -6382,6 +6545,7 @@ function copyDeviceOptions(source, target) {
   target.replaceChildren(
     ...Array.from(source.options, (option) => option.cloneNode(true)),
   );
+  syncEnhancedSelect(target);
 }
 
 async function refreshAudioDevices() {
@@ -6398,6 +6562,7 @@ async function refreshAudioDevices() {
     copyDeviceOptions(microphoneSelect, welcomeMicrophoneSelect);
     copyDeviceOptions(cameraSelect, welcomeCameraSelect);
     copyDeviceOptions(speakerSelect, welcomeSpeakerSelect);
+    syncEnhancedSelects();
     return;
   }
 
@@ -6481,6 +6646,7 @@ async function refreshAudioDevices() {
     appConfig.audio.outputDeviceId = nextOutputDeviceId;
     saveAppConfig();
   }
+  syncEnhancedSelects();
 }
 
 function isSupportedDataChannel() {
@@ -6859,6 +7025,8 @@ async function openStreamSetup({ reuseCurrent = false } = {}) {
   setActiveStreamSourceTab("screens");
   streamQualitySelect.value = normalizeScreenQuality(screenShareState.quality);
   streamFpsSelect.value = String(normalizeScreenFps(screenShareState.fps));
+  syncEnhancedSelect(streamQualitySelect);
+  syncEnhancedSelect(streamFpsSelect);
   streamAudioToggle.checked = Boolean(screenShareState.audioEnabled);
   streamModal.classList.remove("hidden");
   screenSourceList.replaceChildren();
@@ -8311,6 +8479,7 @@ welcomeThemeDark.addEventListener("change", () => {
 welcomeMicrophoneSelect.addEventListener("change", () => {
   appConfig.audio.inputDeviceId = welcomeMicrophoneSelect.value || "default";
   microphoneSelect.value = appConfig.audio.inputDeviceId;
+  syncEnhancedSelect(microphoneSelect);
   saveAudioConfig();
   scheduleVoiceSettingsReapply();
 });
@@ -8318,6 +8487,7 @@ welcomeMicrophoneSelect.addEventListener("change", () => {
 welcomeCameraSelect.addEventListener("change", () => {
   appConfig.audio.cameraDeviceId = welcomeCameraSelect.value || "default";
   cameraSelect.value = appConfig.audio.cameraDeviceId;
+  syncEnhancedSelect(cameraSelect);
   saveAudioConfig();
   if (callState.localCameraEnabled) {
     setLocalCameraEnabled(true);
@@ -8327,6 +8497,7 @@ welcomeCameraSelect.addEventListener("change", () => {
 welcomeSpeakerSelect.addEventListener("change", async () => {
   appConfig.audio.outputDeviceId = welcomeSpeakerSelect.value || "default";
   speakerSelect.value = appConfig.audio.outputDeviceId;
+  syncEnhancedSelect(speakerSelect);
   saveAudioConfig();
   await applyAudioOutputDevice();
 });
@@ -8910,31 +9081,18 @@ profileModal.addEventListener("click", (event) => {
   }
 });
 
-const PROFILE_TEMPLATE_COPY = {
-  unique: {
-    label: "Unique identity color",
-    description: "A unique color based on your Aero ID.",
-  },
-  solid: {
-    label: "Solid color",
-    description: "Use one clear color for your avatar.",
-  },
-  gradient: {
-    label: "Color gradient",
-    description: "Your color with a soft, generated accent.",
-  },
-  rings: {
-    label: "Color rings",
-    description: "Your color in a compact circular pattern.",
-  },
+const PROFILE_TEMPLATE_LABELS = {
+  unique: "Unique",
+  solid: "Solid",
+  gradient: "Gradient",
+  rings: "Rings",
 };
 
 function setProfileAvatarTemplate(value) {
   const template = normalizeAvatarConfig({ template: value }).template;
-  const copy = PROFILE_TEMPLATE_COPY[template];
   profileAvatarTemplate.value = template;
-  profileTemplateLabel.textContent = copy.label;
-  profileTemplateDescription.textContent = copy.description;
+  profileTemplateLabel.textContent = PROFILE_TEMPLATE_LABELS[template];
+  profileColorField.classList.toggle("hidden", template === "unique");
   for (const option of profileTemplateOptionButtons) {
     option.setAttribute(
       "aria-selected",

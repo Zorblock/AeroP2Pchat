@@ -614,6 +614,99 @@ textarea:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* Unified select menus: keep native selects for app logic, render one theme-aware UI. */
+select.native-select {
+  display: none !important;
+}
+.aero-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.aero-select-toggle {
+  display: flex;
+  width: 100%;
+  height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+  text-align: left;
+}
+.aero-select-toggle:hover:not(:disabled),
+.aero-select-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+.aero-select-toggle:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.aero-select-toggle > span {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aero-select-toggle > i {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  transition: transform 150ms ease;
+}
+.aero-select-toggle[aria-expanded="true"] > i {
+  transform: rotate(180deg);
+}
+.aero-select-options {
+  position: fixed;
+  z-index: 1250;
+  display: grid;
+  max-height: 196px;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+.aero-select-options button {
+  overflow: hidden;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aero-select-options button:hover:not(:disabled),
+.aero-select-options button[aria-selected="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.aero-select-options button:disabled {
+  color: var(--faint);
+}
+.aero-select-options::-webkit-scrollbar {
+  width: 8px;
+}
+.aero-select-options::-webkit-scrollbar-thumb {
+  border: 2px solid var(--surface-raised);
+  border-radius: 999px;
+  background: var(--line-strong);
+}
 .icon-button,
 .ghost-button,
 .call-action,
@@ -3270,6 +3363,7 @@ body.platform-android .call-stage {
 }
 body.platform-android input,
 body.platform-android select,
+body.platform-android .aero-select-toggle,
 body.platform-android #message-input,
 body.platform-android .icon-button,
 body.platform-android #connect-button,
