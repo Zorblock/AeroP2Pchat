@@ -18,6 +18,7 @@ slint::include_modules!();
 
 const REPOSITORY: &str = "Zorblock/AeroP2Pchat";
 const INSTALLER_ASSET: &str = "Aero-P2P-Chat-Windows-x64-Setup.exe";
+const TEMP_SETUP_DIRECTORY_PREFIX: &str = "aero-p2p-setup-";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let instance = SingleInstance::new("Zorblock.AeroP2PChat.OnlineInstaller.8B09B5D9")?;
@@ -198,7 +199,9 @@ fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error
     );
     let actual_hash = sha256_file(&target_path)?;
     if !actual_hash.eq_ignore_ascii_case(&expected_hash) {
-        let _ = fs::remove_file(&target_path);
+        if let Some(parent) = target_path.parent() {
+            let _ = fs::remove_dir_all(parent);
+        }
         return Err("The downloaded installer did not match the published checksum.".into());
     }
 
@@ -212,23 +215,13 @@ fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error
         false,
         true,
     );
-    let status = Command::new(&target_path).status()?;
-    let _ = fs::remove_file(&target_path);
-    if !status.success() && status.code() != Some(3010) {
-        return Err(format!("The setup ended with exit code {:?}.", status.code()).into());
-    }
+    Command::new(&target_path)
+        .args(["/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"])
+        .spawn()?;
 
-    update_ui(
-        ui,
-        "Installation complete.",
-        "Aero P2P Chat is ready to use. You can close this window.",
-        &format!("Latest version: {latest_version}"),
-        1.0,
-        "Install",
-        false,
-        false,
-    );
-    Ok(())
+    // The setup updates this executable in the installation directory. Exit now
+    // so it is no longer locked when Inno Setup copies the new version.
+    std::process::exit(0);
 }
 
 fn download_file(
@@ -238,6 +231,9 @@ fn download_file(
     ui: &Weak<MainWindow>,
     version: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     let mut response = client.get(url).send()?.error_for_status()?;
     let total = response.content_length();
     let mut target = File::create(target_path)?;
@@ -315,7 +311,12 @@ fn manifest_value(manifest: &str, key: &str) -> Option<String> {
 }
 
 fn temporary_installer_path() -> PathBuf {
-    std::env::temp_dir().join(format!("{INSTALLER_ASSET}-{}.exe", std::process::id()))
+    std::env::temp_dir()
+        .join(format!(
+            "{TEMP_SETUP_DIRECTORY_PREFIX}{}",
+            std::process::id()
+        ))
+        .join(INSTALLER_ASSET)
 }
 
 fn sha256_file(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {

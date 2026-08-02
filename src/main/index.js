@@ -21,6 +21,7 @@ const {
   cp,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rename,
   rm,
@@ -71,6 +72,7 @@ const userConfigKeyFileName = "config.key";
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const updateDownloadTimeoutMs = 60000;
+const updateSetupDirectoryPrefix = "aero-p2p-setup-";
 const defaultSidebarWidth = 230;
 const minSidebarWidth = 170;
 const maxSidebarWidth = 360;
@@ -1161,6 +1163,33 @@ async function hasInstalledOnlineInstaller(filePath) {
   }
 }
 
+async function cleanupCompletedUpdateSetups() {
+  if (process.platform !== "win32") return;
+
+  let entries;
+  try {
+    entries = await readdir(tmpdir(), { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  await Promise.all(
+    entries
+      .filter(
+        (entry) =>
+          entry.isDirectory() && entry.name.startsWith(updateSetupDirectoryPrefix),
+      )
+      .map((entry) =>
+        rm(join(tmpdir(), entry.name), {
+          recursive: true,
+          force: true,
+          maxRetries: 2,
+          retryDelay: 100,
+        }).catch(() => {}),
+      ),
+  );
+}
+
 function assertTrustedManifestUrl(rawUrl) {
   const url = new URL(rawUrl);
   if (url.toString() !== latestManifestUrl) {
@@ -1563,6 +1592,7 @@ function createWindow({ hidden = false } = {}) {
 }
 
 app.whenReady().then(async () => {
+  await cleanupCompletedUpdateSetups();
   await migratePackagedUserData();
   appConfig = await loadConfig();
   await applyAutostartSettings();
