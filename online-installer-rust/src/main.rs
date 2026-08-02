@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use std::{
+    cmp::Ordering,
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -13,6 +14,11 @@ use reqwest::{Url, blocking::Client};
 use sha2::{Digest, Sha256};
 use single_instance::SingleInstance;
 use slint::{ComponentHandle, SharedString, Weak};
+#[cfg(windows)]
+use winreg::{
+    RegKey,
+    enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
+};
 
 slint::include_modules!();
 
@@ -28,6 +34,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let options = launch_options();
     let ui = MainWindow::new()?;
+    if let Some(installed_version) = installed_aero_version() {
+        ui.set_version(format!(
+            "Installed version: {installed_version} · Latest version will be checked after you continue."
+        )
+        .into());
+    }
     let weak_ui = ui.as_weak();
     let wait_for_pid = options.wait_for_pid;
     ui.on_install(move || {
@@ -174,6 +186,27 @@ fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error
         return Err("The release did not provide a trusted GitHub download URL.".into());
     }
 
+    if let Some(installed_version) = installed_aero_version()
+        && compare_versions(&installed_version, &latest_version) != Ordering::Less
+    {
+        let detail = if installed_version == latest_version {
+            "The newest version is already installed. No download is needed."
+        } else {
+            "A newer version is already installed. Aero will not be downgraded."
+        };
+        update_ui(
+            ui,
+            "Aero P2P Chat is up to date.",
+            detail,
+            &format!("Installed: {installed_version} · Latest: {latest_version}"),
+            1.0,
+            "Check again",
+            true,
+            true,
+        );
+        return Ok(());
+    }
+
     update_ui(
         ui,
         &format!("Downloading Aero P2P Chat {latest_version}"),
@@ -308,6 +341,68 @@ fn manifest_value(manifest: &str, key: &str) -> Option<String> {
         line.strip_prefix(&prefix)
             .map(|value| value.trim().trim_matches('"').to_owned())
     })
+}
+
+fn compare_versions(left: &str, right: &str) -> Ordering {
+    let parse = |value: &str| {
+        value
+            .trim_start_matches('v')
+            .split(['-', '+'])
+            .next()
+            .unwrap_or_default()
+            .split('.')
+            .map(|part| part.parse::<u64>().unwrap_or(0))
+            .collect::<Vec<_>>()
+    };
+
+    let left_parts = parse(left);
+    let right_parts = parse(right);
+    let length = left_parts.len().max(right_parts.len());
+    for index in 0..length {
+        match left_parts
+            .get(index)
+            .copied()
+            .unwrap_or(0)
+            .cmp(&right_parts.get(index).copied().unwrap_or(0))
+        {
+            Ordering::Equal => continue,
+            ordering => return ordering,
+        }
+    }
+    Ordering::Equal
+}
+
+#[cfg(windows)]
+fn installed_aero_version() -> Option<String> {
+    const UNINSTALL_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+    for hive in [
+        RegKey::predef(HKEY_CURRENT_USER),
+        RegKey::predef(HKEY_LOCAL_MACHINE),
+    ] {
+        let Ok(uninstall) = hive.open_subkey(UNINSTALL_PATH) else {
+            continue;
+        };
+        for key_name in uninstall.enum_keys().filter_map(Result::ok) {
+            let Ok(app_key) = uninstall.open_subkey(&key_name) else {
+                continue;
+            };
+            let Ok(display_name) = app_key.get_value::<String, _>("DisplayName") else {
+                continue;
+            };
+            if display_name.trim() != "Aero P2P Chat" {
+                continue;
+            }
+            if let Ok(version) = app_key.get_value::<String, _>("DisplayVersion") {
+                return Some(version.trim().to_owned());
+            }
+        }
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn installed_aero_version() -> Option<String> {
+    None
 }
 
 fn temporary_installer_path() -> PathBuf {

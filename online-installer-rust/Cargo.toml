@@ -12,3 +12,6 @@ slint = "1.17.1"
 [build-dependencies]
 slint-build = "1.17.1"
 winres = "0.1"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
