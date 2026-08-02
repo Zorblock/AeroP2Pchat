@@ -1,56 +1,52 @@
 # Aero P2P Chat
 
-Aero P2P Chat ist eine schnelle, direkte Chat-App für Windows, Linux und Android.
-Du verbindest dich direkt mit anderen Personen. Nachrichten werden nicht über
-einen zentralen Chat-Server weitergeleitet.
+Aero P2P Chat is a fast, direct chat app for Windows, Linux, and Android.
+Connect directly with other people without routing messages through a central
+chat server.
 
 ## Download
 
-Lade die aktuelle Version auf der
-[SourceForge-Downloadseite](https://sourceforge.net/projects/aerop2pchat/files/) herunter.
+Download the latest version from the
+[SourceForge download page](https://sourceforge.net/projects/aerop2pchat/files/).
 
-Alternativ findest du die App und weitere Informationen auf der
-[offiziellen Website](https://zorblock.github.io/AeroP2Pchat).
+You can also find the app and more information on the
+[official website](https://zorblock.github.io/AeroP2Pchat).
 
 ## Installation
 
 ### Windows
 
-Lade die Setup-Datei (`.exe`) herunter und öffne sie. Folge anschließend den
-Anweisungen des Installationsprogramms.
+Download and open the setup file (`.exe`), then follow the installer steps.
 
 ### Linux
 
-Lade die Datei mit der Endung `.AppImage` herunter. Mache sie ausführbar und
-öffne sie anschließend.
+Download the `.AppImage` file, make it executable, and open it.
 
 ### Android
 
-Lade die APK-Datei herunter und öffne sie auf deinem Android-Gerät. Eventuell
-musst du Android erlauben, Apps aus dieser Quelle zu installieren.
+Download and open the APK file on your Android device. You may need to allow
+installation from this source in your Android settings.
 
-## So startest du einen Chat
+## Start a chat
 
-1. Öffne Aero P2P Chat.
-2. Kopiere deine angezeigte Peer-ID und sende sie an die Person, mit der du
-   chatten möchtest.
-3. Füge die Peer-ID der anderen Person in das Feld für die entfernte Peer-ID
-   ein.
-4. Wähle „Connect“ und beginne den Chat.
+1. Open Aero P2P Chat.
+2. Copy your displayed Peer ID and send it to the person you want to chat with.
+3. Paste their Peer ID into the Remote Peer ID field.
+4. Select Connect and start chatting.
 
-## Funktionen
+## Features
 
-- Direkte Peer-to-Peer-Nachrichten
-- Bildschirmfreigabe
-- Schnelle, direkte Verbindungen
-- Verfügbar für Windows, Linux und Android
+- Direct peer-to-peer messaging
+- Screen sharing
+- Fast, direct connections
+- Available for Windows, Linux, and Android
 
-## Hilfe und Feedback
+## Help and feedback
 
-Fragen, Fehlerberichte und Verbesserungsvorschläge kannst du über die
-[GitHub-Issues](https://github.com/Zorblock/AeroP2Pchat/issues) senden.
+Send questions, bug reports, and suggestions through
+[GitHub Issues](https://github.com/Zorblock/AeroP2Pchat/issues).
 
-## Quellcode und Lizenz
+## Source code and license
 
-Der Quellcode ist auf [GitHub](https://github.com/Zorblock/AeroP2Pchat)
-verfügbar. Aero P2P Chat steht unter der [MIT-Lizenz](./LICENSE).
+The source code is available on [GitHub](https://github.com/Zorblock/AeroP2Pchat).
+Aero P2P Chat is licensed under the [MIT License](./LICENSE).
