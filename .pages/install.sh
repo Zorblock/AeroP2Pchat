@@ -35,6 +35,7 @@ DESKTOP_PATH="${APPLICATIONS_DIR}/${APP_ID}.desktop"
 ICON_PATH="${ICON_DIR}/${APP_ID}.png"
 
 ACTION="${1:-menu}"
+sudo_access="unknown"
 
 color_enabled=0
 if [ -t 1 ]; then
@@ -372,11 +373,29 @@ has_fuse2() {
 run_privileged() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
-    elif command -v sudo >/dev/null 2>&1; then
-        sudo "$@"
-    else
+        return
+    fi
+
+    if [ "$sudo_access" = "unavailable" ]; then
         return 1
     fi
+
+    if ! command -v sudo >/dev/null 2>&1; then
+        sudo_access="unavailable"
+        return 1
+    fi
+
+    # Validate once before invoking a package manager. This prevents repeated
+    # password prompts when the current user is not allowed to use sudo.
+    if [ "$sudo_access" = "unknown" ]; then
+        if ! sudo -v; then
+            sudo_access="unavailable"
+            return 1
+        fi
+        sudo_access="available"
+    fi
+
+    sudo "$@"
 }
 
 install_dependencies() {
