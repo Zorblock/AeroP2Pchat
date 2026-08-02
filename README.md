@@ -20,7 +20,18 @@ Download and open the setup file (`.exe`), then follow the installer steps.
 
 ### Linux
 
-Download the `.AppImage` file, make it executable, and open it.
+For a normal desktop installation (application-menu entry, icon, update
+command, and AppImage dependencies), run:
+
+```sh
+curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | sh -s -- install
+```
+
+The installer places the app in your user account, so no application files are
+written into the system installation directory. It installs the FUSE 2 runtime
+when the distribution supports it; if FUSE is unavailable, the launcher uses
+the AppImage extraction fallback instead. To update later, run
+`aerop2p update`.
 
 ### Android
 

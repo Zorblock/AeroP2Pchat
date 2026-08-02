@@ -189,7 +189,23 @@ write_launcher() {
     mkdir -p "$BIN_DIR"
     cat > "$BIN_PATH" <<EOF
 #!/usr/bin/env sh
+set -eu
+
+has_fuse2() {
+    if command -v ldconfig >/dev/null 2>&1 \
+        && ldconfig -p 2>/dev/null | grep -q '[[:space:]]libfuse\.so\.2[[:space:]]'; then
+        return 0
+    fi
+    find /lib /usr/lib -type f -name 'libfuse.so.2' -print -quit 2>/dev/null | grep -q .
+}
+
 if [ -x "$APPIMAGE_PATH" ]; then
+    # AppImages built with the type-2 runtime need FUSE 2.  The extraction
+    # fallback keeps the desktop launcher usable on locked-down systems and
+    # containers where FUSE cannot be installed or mounted.
+    if ! has_fuse2 || [ ! -r /dev/fuse ] || [ ! -w /dev/fuse ]; then
+        export APPIMAGE_EXTRACT_AND_RUN=1
+    fi
     exec "$APPIMAGE_PATH" "\$@"
 fi
 printf '%s\n' "$APP_NAME is not installed." >&2
@@ -248,12 +264,18 @@ write_desktop_entry() {
 Type=Application
 Name=${APP_NAME}
 Comment=Peer-to-peer chat client
-Exec=${APPIMAGE_PATH} %U
+Exec="${BIN_PATH}" %U
 Icon=${APP_ID}
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
 StartupWMClass=${APP_ID}
+StartupNotify=true
 EOF
+
+    if command -v desktop-file-validate >/dev/null 2>&1 \
+        && ! desktop-file-validate "$DESKTOP_PATH" >/dev/null 2>&1; then
+        warn "The desktop entry could not be validated, but it was installed."
+    fi
 }
 
 install_icon() {
@@ -339,14 +361,27 @@ close_running_instances() {
     fi
 }
 
-install_dependencies() {
-    needs_fuse=0
-    if ! command -v fusermount >/dev/null 2>&1 \
-        && [ ! -f /lib/x86_64-linux-gnu/libfuse.so.2 ] \
-        && [ ! -f /usr/lib/libfuse.so.2 ] \
-        && [ ! -f /usr/lib64/libfuse.so.2 ]; then
-        needs_fuse=1
+has_fuse2() {
+    if command -v ldconfig >/dev/null 2>&1 \
+        && ldconfig -p 2>/dev/null | grep -q '[[:space:]]libfuse\.so\.2[[:space:]]'; then
+        return 0
     fi
+    find /lib /usr/lib -type f -name 'libfuse.so.2' -print -quit 2>/dev/null | grep -q .
+}
+
+run_privileged() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        return 1
+    fi
+}
+
+install_dependencies() {
+    needs_fuse=1
+    has_fuse2 && needs_fuse=0
 
     needs_download=0
     if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
@@ -359,31 +394,69 @@ install_dependencies() {
 
     info "Installing missing AppImage dependencies (sudo may be required)..."
     if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update
-        [ "$needs_download" -eq 0 ] || sudo apt-get install -y curl
+        run_privileged apt-get update || warn "Could not refresh the APT package index."
+        if [ "$needs_download" -eq 1 ] && ! run_privileged apt-get install -y curl; then
+            fail "Could not install curl. Install curl or wget, then run the installer again."
+        fi
         if [ "$needs_fuse" -eq 1 ]; then
-            sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64
+            # Ubuntu 24.04 renamed libfuse2 to libfuse2t64.  Trying both
+            # also covers Debian and older Ubuntu releases.
+            run_privileged apt-get install -y libfuse2t64 \
+                || run_privileged apt-get install -y libfuse2 \
+                || warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
         fi
     elif command -v pacman >/dev/null 2>&1; then
         deps=""
         [ "$needs_fuse" -eq 0 ] || deps="$deps fuse2"
         [ "$needs_download" -eq 0 ] || deps="$deps curl"
         # shellcheck disable=SC2086
-        sudo pacman -S --needed --noconfirm $deps
+        if ! run_privileged pacman -S --needed --noconfirm $deps; then
+            [ "$needs_download" -eq 0 ] || fail "Could not install curl. Install curl or wget, then run the installer again."
+            warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
+        fi
     elif command -v dnf >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 0 ] || deps="$deps fuse-libs"
+        [ "$needs_download" -eq 0 ] || deps="$deps curl"
+        # shellcheck disable=SC2086
+        if ! run_privileged dnf install -y $deps; then
+            [ "$needs_download" -eq 0 ] || fail "Could not install curl. Install curl or wget, then run the installer again."
+            warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
+        fi
+    elif command -v yum >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 0 ] || deps="$deps fuse-libs"
+        [ "$needs_download" -eq 0 ] || deps="$deps curl"
+        # shellcheck disable=SC2086
+        if ! run_privileged yum install -y $deps; then
+            [ "$needs_download" -eq 0 ] || fail "Could not install curl. Install curl or wget, then run the installer again."
+            warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
+        fi
+    elif command -v zypper >/dev/null 2>&1; then
+        deps=""
+        [ "$needs_fuse" -eq 0 ] || deps="$deps fuse libfuse2"
+        [ "$needs_download" -eq 0 ] || deps="$deps curl"
+        # shellcheck disable=SC2086
+        if ! run_privileged zypper --non-interactive install $deps; then
+            [ "$needs_download" -eq 0 ] || fail "Could not install curl. Install curl or wget, then run the installer again."
+            warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
+        fi
+    elif command -v apk >/dev/null 2>&1; then
         deps=""
         [ "$needs_fuse" -eq 0 ] || deps="$deps fuse"
         [ "$needs_download" -eq 0 ] || deps="$deps curl"
         # shellcheck disable=SC2086
-        sudo dnf install -y $deps
-    elif command -v zypper >/dev/null 2>&1; then
-        deps=""
-        [ "$needs_fuse" -eq 0 ] || deps="$deps libfuse2"
-        [ "$needs_download" -eq 0 ] || deps="$deps curl"
-        # shellcheck disable=SC2086
-        sudo zypper --non-interactive install $deps
+        if ! run_privileged apk add $deps; then
+            [ "$needs_download" -eq 0 ] || fail "Could not install curl. Install curl or wget, then run the installer again."
+            warn "Could not install FUSE 2. The launcher will use AppImage extraction mode."
+        fi
     else
-        warn "Install libfuse2 and curl manually if the AppImage does not start."
+        [ "$needs_download" -eq 0 ] || fail "No supported package manager found. Install curl or wget, then run the installer again."
+        warn "No supported package manager found for FUSE 2. The launcher will use AppImage extraction mode."
+    fi
+
+    if [ "$needs_fuse" -eq 1 ] && has_fuse2; then
+        ok "FUSE 2 runtime is available."
     fi
 }
 
