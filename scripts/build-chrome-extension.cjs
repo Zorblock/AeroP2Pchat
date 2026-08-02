@@ -50,11 +50,9 @@ function writeManifest() {
     // actually uses. Config is saved with chrome.storage.local and copying an
     // Aero ID or message uses the Clipboard API.
     permissions: ["clipboardWrite", "storage"],
-    host_permissions: [
-      // PeerJS defaults to this signalling host when no custom host is set.
-      "https://0.peerjs.com/*",
-      "https://aero.zorblock.de/*",
-    ],
+    // PeerJS uses this signalling service to establish direct P2P connections.
+    // No website or account host permission is required.
+    host_permissions: ["https://0.peerjs.com/*"],
   };
 
   fs.mkdirSync(path.join(unpackedDir, "icons"), { recursive: true });
