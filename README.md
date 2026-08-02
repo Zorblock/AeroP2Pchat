@@ -80,15 +80,15 @@ dist/release/               # final files, replaced only after all builds pass
 Chrome extension into `dist/build/artifacts` first. Once every artifact and
 update manifest exists, the workflow promotes that directory to `dist/release`
 immediately before it creates the GitHub release. The Chrome extension ZIP
-remains local in `dist/release` and is published to the Chrome Web Store.
+remains local in `dist/release` and is not uploaded to GitHub.
 
 ### Chrome Web Store
 
 Copy `.env.chrome.example` to `.env.chrome`, then add the Google OAuth client
 credentials, refresh token, extension ID, and publisher ID. The local
 `.env.chrome` file is ignored by Git. Use `npm run chrome:publish` to build,
-upload, and publish only the extension. Normal `npm run release` and
-`npm run patch` publish it automatically after all release artifacts are ready.
+upload, and publish the extension manually. Normal `npm run release` and
+`npm run patch` only build the local ZIP.
 
 ### Required updates
 

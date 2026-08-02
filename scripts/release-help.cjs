@@ -625,7 +625,6 @@ function main() {
   // 1. Run tests first (before any version bump)
   console.log("Running tests...");
   run("npm", ["run", "test"]);
-  run("node", ["scripts/publish-chrome-extension.cjs", "--check"]);
 
   // Store original package files for rollback
   const originalPkg = fs.readFileSync(packagePath, "utf8");
@@ -702,21 +701,12 @@ function main() {
     githubReleaseCreated = true;
     uploadReleaseFiles(tag, githubReleaseFiles);
 
-    const chromeExtension = releaseFiles.find(isLocalOnlyReleaseFile);
-    if (!chromeExtension) {
-      throw new Error("Chrome extension package is missing from the release.");
-    }
-    run("node", [
-      "scripts/publish-chrome-extension.cjs",
-      `--source=${path.relative(root, chromeExtension)}`,
-    ]);
-
     console.log("");
     console.log(
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, Linux, and the Chrome Web Store extension were published.",
+      "Windows, Android, Linux, and a local Chrome extension package were built.",
     );
     console.log("Website deployment was triggered after the source push.");
     printArtifactLinks(releaseFiles);
