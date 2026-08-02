@@ -28,10 +28,7 @@ const {
   stat,
   writeFile,
 } = require("node:fs/promises");
-const {
-  createHash,
-  randomBytes,
-} = require("node:crypto");
+const { createHash, randomBytes } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join, resolve } = require("node:path");
@@ -354,9 +351,7 @@ async function readExistingConfigKey() {
   let lastError = null;
   for (const keyPath of keyPaths) {
     try {
-      cachedConfigKey = decodeStoredConfigKey(
-        await readFile(keyPath, "utf8"),
-      );
+      cachedConfigKey = decodeStoredConfigKey(await readFile(keyPath, "utf8"));
       return cachedConfigKey;
     } catch (error) {
       if (error.code !== "ENOENT") {
@@ -416,7 +411,9 @@ async function createConfigKey() {
     await archiveUnreadableConfigFiles();
     const key = randomBytes(KEY_BYTES);
     const protectedValue = safeStorage.isEncryptionAvailable()
-      ? `SAFE:${safeStorage.encryptString(key.toString("base64")).toString("base64")}`
+      ? `SAFE:${safeStorage
+          .encryptString(key.toString("base64"))
+          .toString("base64")}`
       : `LOCAL:${key.toString("base64")}`;
     const keyPath = getConfigKeyPath();
     const keyBackupPath = getConfigKeyBackupPath();
@@ -521,14 +518,13 @@ async function loadConfig() {
         app.isPackaged &&
         (isProtectedConfigPath || existingKey)
       ) {
-        throw new Error("Refused unauthenticated config after security migration.");
+        throw new Error(
+          "Refused unauthenticated config after security migration.",
+        );
       }
       const plaintext = authenticated
         ? decryptAuthenticatedConfig(fileData, existingKey)
-        : decryptLegacyConfig(
-            fileData,
-            projectConfig.app.id || "AeroP2Pchat",
-          );
+        : decryptLegacyConfig(fileData, projectConfig.app.id || "AeroP2Pchat");
       const parsedConfig = JSON.parse(plaintext);
       const config = normalizeConfig(
         authenticated
@@ -1177,7 +1173,8 @@ async function cleanupCompletedUpdateSetups() {
     entries
       .filter(
         (entry) =>
-          entry.isDirectory() && entry.name.startsWith(updateSetupDirectoryPrefix),
+          entry.isDirectory() &&
+          entry.name.startsWith(updateSetupDirectoryPrefix),
       )
       .map((entry) =>
         rm(join(tmpdir(), entry.name), {

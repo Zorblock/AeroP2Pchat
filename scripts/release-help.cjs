@@ -250,7 +250,8 @@ function describeReleaseFile(filePath) {
   const lowerName = name.toLowerCase();
   if (name === config.release.windowsOnlineInstallerAsset) {
     return {
-      description: "Windows online installer · always downloads the latest version",
+      description:
+        "Windows online installer · always downloads the latest version",
       download: true,
     };
   }
@@ -267,7 +268,10 @@ function describeReleaseFile(filePath) {
     return { description: "Android direct-install package", download: true };
   }
   if (name === config.release.chromeExtensionAsset) {
-    return { description: "Chrome extension package (local only)", download: false };
+    return {
+      description: "Chrome extension package (local only)",
+      download: false,
+    };
   }
   if (lowerName === "latest.yml") {
     return {

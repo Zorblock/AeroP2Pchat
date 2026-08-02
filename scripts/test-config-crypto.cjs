@@ -47,11 +47,7 @@ expectFailure(
 const appId = "de.zorblock.aerop2pchat";
 const legacyKey = crypto.createHash("sha256").update(appId).digest();
 const legacyIv = crypto.randomBytes(16);
-const legacyCipher = crypto.createCipheriv(
-  "aes-256-cbc",
-  legacyKey,
-  legacyIv,
-);
+const legacyCipher = crypto.createCipheriv("aes-256-cbc", legacyKey, legacyIv);
 const legacyEncrypted =
   `ENC:${legacyIv.toString("hex")}:` +
   legacyCipher.update(plaintext, "utf8", "base64") +

@@ -103,7 +103,9 @@ function replaceReleaseContents() {
       }
     }
 
-    for (const entry of fs.readdirSync(nextReleaseDir, { withFileTypes: true })) {
+    for (const entry of fs.readdirSync(nextReleaseDir, {
+      withFileTypes: true,
+    })) {
       if (!entry.isFile()) continue;
       fs.copyFileSync(
         path.join(nextReleaseDir, entry.name),
@@ -128,7 +130,11 @@ function replaceReleaseDirectory() {
     renameWithRetry(nextReleaseDir, releaseDir);
     fs.rmSync(previousReleaseDir, { recursive: true, force: true });
   } catch (error) {
-    if (hadPreviousRelease && fs.existsSync(releaseDir) && isWindowsDirectoryLock(error)) {
+    if (
+      hadPreviousRelease &&
+      fs.existsSync(releaseDir) &&
+      isWindowsDirectoryLock(error)
+    ) {
       replaceReleaseContents();
       return;
     }

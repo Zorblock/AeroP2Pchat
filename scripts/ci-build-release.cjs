@@ -165,7 +165,10 @@ function buildLinux(version) {
     "--linux",
     "--publish",
     "never",
-    `--config.directories.output=${path.relative(root, path.join(buildDir, "linux"))}`,
+    `--config.directories.output=${path.relative(
+      root,
+      path.join(buildDir, "linux"),
+    )}`,
   ]);
 
   const extensions = [".AppImage"];

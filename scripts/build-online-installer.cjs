@@ -8,15 +8,13 @@ const config = JSON.parse(
 );
 // Release builds clean dist/build. Keep the Rust target cache separate from artifacts.
 const outputDir = path.join(root, "dist", "online-installer");
-const projectPath = path.join(
-  root,
-  "online-installer-rust",
-  "Cargo.toml",
-);
-const cargoHome = process.env.CARGO_HOME || path.join(process.env.USERPROFILE || "", ".cargo");
-const cargoCommand = process.platform === "win32"
-  ? path.join(cargoHome, "bin", "cargo.exe")
-  : "cargo";
+const projectPath = path.join(root, "online-installer-rust", "Cargo.toml");
+const cargoHome =
+  process.env.CARGO_HOME || path.join(process.env.USERPROFILE || "", ".cargo");
+const cargoCommand =
+  process.platform === "win32"
+    ? path.join(cargoHome, "bin", "cargo.exe")
+    : "cargo";
 const cargoTargetDir = path.join(root, "dist", ".rust-target");
 
 fs.rmSync(outputDir, { recursive: true, force: true });
@@ -39,8 +37,15 @@ const result = spawnSync(
 );
 
 if (result.status === 0) {
-  const generatedExe = path.join(cargoTargetDir, "release", "aero-online-installer.exe");
-  const output = path.join(outputDir, config.release.windowsOnlineInstallerAsset);
+  const generatedExe = path.join(
+    cargoTargetDir,
+    "release",
+    "aero-online-installer.exe",
+  );
+  const output = path.join(
+    outputDir,
+    config.release.windowsOnlineInstallerAsset,
+  );
   if (!fs.existsSync(generatedExe)) {
     console.error(`Online installer executable not found: ${generatedExe}`);
     process.exit(1);
