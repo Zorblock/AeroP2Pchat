@@ -82,6 +82,18 @@ update manifest exists, the workflow promotes that directory to `dist/release`
 immediately before it creates the GitHub release. The Chrome extension ZIP
 remains local in `dist/release` and is not uploaded to GitHub.
 
+### Required updates
+
+Use the important release commands to make the new version the minimum supported version:
+
+```text
+npm run release:important
+npm run patch:important
+```
+
+The setting is retained in `update-policy.json` for later releases. Use
+`npm run release:clear-important` to remove the requirement deliberately.
+
 ---
 
 ## 🚀 How to Use

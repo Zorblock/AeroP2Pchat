@@ -6,6 +6,12 @@ const root = path.join(__dirname, "..");
 const artifactsDir = process.argv[2]
   ? path.resolve(root, process.argv[2])
   : path.join(root, "artifacts");
+const minimumVersionArg = process.argv
+  .slice(3)
+  .find((arg) => arg.startsWith("--minimum-version="));
+const minimumVersion = minimumVersionArg
+  ? minimumVersionArg.slice("--minimum-version=".length)
+  : "";
 const config = JSON.parse(
   fs.readFileSync(path.join(root, "config.json"), "utf8"),
 );
@@ -31,6 +37,9 @@ function main() {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   const version = manifest.version;
   if (!version) throw new Error("No version in Windows manifest.");
+  if (minimumVersion && !/^\d+\.\d+\.\d+$/.test(minimumVersion)) {
+    throw new Error("minimum version must be x.y.z or empty.");
+  }
 
   const tag = `v${version}`;
   const asset = manifest.asset;
@@ -57,6 +66,9 @@ function main() {
 
   const lines = [
     `version: ${yamlQuote(version)}`,
+    ...(minimumVersion
+      ? [`minimumVersion: ${yamlQuote(minimumVersion)}`]
+      : []),
     `releaseDate: ${yamlQuote(new Date().toISOString())}`,
     `repo: ${yamlQuote(config.repo)}`,
     `path: ${yamlQuote(asset.name)}`,

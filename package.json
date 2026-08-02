@@ -26,6 +26,9 @@
     "setup": "npm run build:online-installer && npm run build && node scripts/build-inno.cjs",
     "release": "node scripts/release-help.cjs --minor",
     "patch": "node scripts/release-help.cjs --patch",
+    "release:important": "node scripts/release-help.cjs --minor --important",
+    "patch:important": "node scripts/release-help.cjs --patch --important",
+    "release:clear-important": "node scripts/release-help.cjs --minor --clear-important",
     "pages": "node scripts/deploy-pages.cjs"
   },
   "devDependencies": {

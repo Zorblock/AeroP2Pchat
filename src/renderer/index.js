@@ -3158,6 +3158,8 @@ function compareVersions(left, right) {
 function clearUpdateAvailableUi() {
   availableUpdate = null;
   ignoredUpdateVersion = "";
+  startupUpdateModal.dataset.required = "false";
+  updateModal.dataset.required = "false";
   headerUpdateButton.classList.add("hidden");
   updateCard.classList.add("hidden");
   titlebarLogo.classList.remove("update-available");
@@ -3180,9 +3182,12 @@ function syncAvailableUpdateUi() {
     return;
   }
 
-  const isIgnored = ignoredUpdateVersion === availableUpdate.version;
-  updateTitle.textContent = "Update available";
-  updateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+  const isMandatory = Boolean(availableUpdate.mandatory);
+  const isIgnored = !isMandatory && ignoredUpdateVersion === availableUpdate.version;
+  updateTitle.textContent = isMandatory ? "Update required" : "Update available";
+  updateText.textContent = isMandatory
+    ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
+    : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
   updateButton.textContent = platformApi.supportsNativeUpdateInstall
     ? "Install update"
     : platform === "linux"
@@ -3190,11 +3195,16 @@ function syncAvailableUpdateUi() {
       : "Open release";
   updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
   updateIgnoreButton.disabled = isIgnored;
+  updateIgnoreButton.classList.toggle("hidden", isMandatory);
   headerUpdateButton.classList.add("hidden");
   titlebarLogo.classList.add("update-available");
-    if (!isIgnored && startupUpdateModalShownForVersion !== availableUpdate.version) {
+    if ((isMandatory || !isIgnored) && startupUpdateModalShownForVersion !== availableUpdate.version) {
       startupUpdateModalShownForVersion = availableUpdate.version;
-      startupUpdateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+      startupUpdateModal.dataset.required = String(isMandatory);
+      startupUpdateTitle.textContent = isMandatory ? "Update required" : "Update available";
+      startupUpdateText.textContent = isMandatory
+        ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
+        : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
       startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
         ? "Install update"
         : platform === "linux"
@@ -3202,6 +3212,8 @@ function syncAvailableUpdateUi() {
           : "Open release";
       startupUpdateModal.classList.remove("hidden");
     }
+  startupUpdateClose.classList.toggle("hidden", isMandatory);
+  startupUpdateIgnoreButton.classList.toggle("hidden", isMandatory);
   titlebarLogo.title = isIgnored
     ? `Update ${availableUpdate.version} available`
     : `Update ${availableUpdate.version} available`;
@@ -3213,7 +3225,7 @@ function syncAvailableUpdateUi() {
       : platform === "linux"
         ? "fa-solid fa-terminal"
         : "fa-solid fa-arrow-up-right-from-square";
-  appMenuUpdateIgnore.classList.remove("hidden");
+  appMenuUpdateIgnore.classList.toggle("hidden", isMandatory);
   setTitlebarActionLabel(
     appMenuUpdate,
     platformApi.supportsNativeUpdateInstall
@@ -3244,7 +3256,7 @@ function setUpdateMenuStatus(text, { reset = true } = {}) {
 }
 
 function ignoreAvailableUpdateHint() {
-  if (!availableUpdate) {
+  if (!availableUpdate || availableUpdate.mandatory) {
     return;
   }
 
@@ -3289,8 +3301,17 @@ async function checkForUpdates({ manual = false } = {}) {
 
     const manifest = parseManifest(manifestText);
     const latestVersion = manifest.version;
-      const effectiveCurrentVersion = debugSimulateUpdate ? "0.0.0" : currentVersion;
-      if (!latestVersion || compareVersions(latestVersion, effectiveCurrentVersion) <= 0) {
+    const effectiveCurrentVersion = debugSimulateUpdate ? "0.0.0" : currentVersion;
+    const minimumVersion = /^\d+\.\d+\.\d+$/.test(manifest.minimumVersion || "")
+      ? manifest.minimumVersion
+      : "";
+    const mandatory =
+      Boolean(minimumVersion) &&
+      compareVersions(effectiveCurrentVersion, minimumVersion) < 0;
+    if (
+      !latestVersion ||
+      (!mandatory && compareVersions(latestVersion, effectiveCurrentVersion) <= 0)
+    ) {
       clearUpdateAvailableUi();
       if (manual) {
         setUpdateMenuStatus("No update found");
@@ -3356,6 +3377,8 @@ async function checkForUpdates({ manual = false } = {}) {
 
     availableUpdate = {
       version: latestVersion,
+      minimumVersion,
+      mandatory,
       windowsUrl,
       windowsSha256,
       windowsSha512,
@@ -8791,7 +8814,12 @@ platformApi.onNotificationAction((action) => {
 });
 
 function openLinuxUpdateModal() {
-  modalText.textContent = `Update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}. Use the installed command first, or reinstall through the official installer while keeping your settings.`;
+  const required = Boolean(availableUpdate?.mandatory);
+  updateModal.dataset.required = String(required);
+  modalText.textContent = required
+    ? `Update to version ${availableUpdate.minimumVersion} or later to continue.`
+    : `Update ${appDisplayName} to version ${availableUpdate?.version ?? "latest"}. Use the installed command first, or reinstall through the official installer while keeping your settings.`;
+  modalClose.classList.toggle("hidden", required);
   linuxCommand.textContent = linuxInstallCommand;
   linuxWebsiteCommand.textContent = linuxWebsiteUpdateCommand;
   updateModal.classList.remove("hidden");
@@ -8892,8 +8920,10 @@ async function installAvailableUpdate() {
       updateButton.textContent = "Install update";
       headerUpdateButton.textContent = "Update";
       startupUpdateButton.disabled = false;
-      startupUpdateIgnoreButton.classList.remove("hidden");
-      startupUpdateClose.classList.remove("hidden");
+      if (!availableUpdate?.mandatory) {
+        startupUpdateIgnoreButton.classList.remove("hidden");
+        startupUpdateClose.classList.remove("hidden");
+      }
       startupUpdateButton.textContent = "Retry update";
       setStatus("offline", error.message || "Update failed.");
     }
@@ -8917,10 +8947,16 @@ headerUpdateButton.addEventListener("click", installAvailableUpdate);
 updateButton.addEventListener("click", installAvailableUpdate);
 updateIgnoreButton.addEventListener("click", ignoreAvailableUpdateHint);
 startupUpdateClose.addEventListener("click", () => {
-  startupUpdateModal.classList.add("hidden");
+  if (!availableUpdate?.mandatory) {
+    startupUpdateModal.classList.add("hidden");
+  }
 });
 startupUpdateModal.addEventListener("click", (event) => {
-    if (event.target === startupUpdateModal && !startupUpdateButton.disabled) {
+    if (
+      event.target === startupUpdateModal &&
+      !startupUpdateButton.disabled &&
+      !availableUpdate?.mandatory
+    ) {
       startupUpdateModal.classList.add("hidden");
     }
   });
@@ -8929,12 +8965,13 @@ startupUpdateButton.addEventListener("click", () => {
       startupUpdateButton.disabled = true;
       startupUpdateIgnoreButton.classList.add("hidden");
       startupUpdateClose.classList.add("hidden");
-    } else {
+    } else if (!availableUpdate?.mandatory) {
       startupUpdateModal.classList.add("hidden");
     }
     installAvailableUpdate();
   });
 startupUpdateIgnoreButton.addEventListener("click", () => {
+  if (availableUpdate?.mandatory) return;
   startupUpdateModal.classList.add("hidden");
   ignoreAvailableUpdateHint();
 });
@@ -8942,7 +8979,15 @@ startupUpdateIgnoreButton.addEventListener("click", () => {
 appMenuUpdate.addEventListener("click", () => {
     if (availableUpdate) {
       startupUpdateModalShownForVersion = availableUpdate.version;
-      startupUpdateText.textContent = `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+      startupUpdateModal.dataset.required = String(availableUpdate.mandatory);
+      startupUpdateTitle.textContent = availableUpdate.mandatory
+        ? "Update required"
+        : "Update available";
+      startupUpdateText.textContent = availableUpdate.mandatory
+        ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
+        : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+      startupUpdateIgnoreButton.classList.toggle("hidden", availableUpdate.mandatory);
+      startupUpdateClose.classList.toggle("hidden", availableUpdate.mandatory);
       startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
         ? "Install update"
         : platform === "linux"
@@ -9019,11 +9064,13 @@ windowClose.addEventListener("click", () => {
 });
 
 modalClose.addEventListener("click", () => {
-  updateModal.classList.add("hidden");
+  if (!availableUpdate?.mandatory) {
+    updateModal.classList.add("hidden");
+  }
 });
 
 updateModal.addEventListener("click", (event) => {
-  if (event.target === updateModal) {
+  if (event.target === updateModal && !availableUpdate?.mandatory) {
     updateModal.classList.add("hidden");
   }
 });
@@ -9370,7 +9417,9 @@ document.addEventListener("keydown", (event) => {
     closeMessageMenu();
     closeParticipantMenu();
     closeStreamMenu();
-    updateModal.classList.add("hidden");
+    if (!availableUpdate?.mandatory) {
+      updateModal.classList.add("hidden");
+    }
     settingsModal.classList.add("hidden");
     closeStreamSetup();
   }
@@ -9547,7 +9596,9 @@ platformApi.onBackButton(() => {
     return;
   }
   if (!updateModal.classList.contains("hidden")) {
-    updateModal.classList.add("hidden");
+    if (!availableUpdate?.mandatory) {
+      updateModal.classList.add("hidden");
+    }
     return;
   }
   if (!settingsModal.classList.contains("hidden")) {

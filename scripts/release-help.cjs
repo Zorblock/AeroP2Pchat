@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
 const lockPath = path.join(root, "package-lock.json");
+const updatePolicyPath = path.join(root, "update-policy.json");
 const config = require("../config.json");
 const buildArtifactsDir = path.join(root, "dist", "build", "artifacts");
 const releaseDir = path.join(root, "dist", "release");
@@ -83,6 +84,22 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
+function isVersion(value) {
+  return /^\d+\.\d+\.\d+$/.test(String(value || ""));
+}
+
+function readUpdatePolicy() {
+  if (!fs.existsSync(updatePolicyPath)) {
+    return { minimumVersion: "" };
+  }
+  const policy = readJson(updatePolicyPath);
+  const minimumVersion = String(policy.minimumVersion || "").trim();
+  if (minimumVersion && !isVersion(minimumVersion)) {
+    throw new Error("update-policy.json minimumVersion must be x.y.z or empty.");
+  }
+  return { minimumVersion };
+}
+
 function parseArgs() {
   const options = {
     bump: "minor",
@@ -94,6 +111,8 @@ function parseArgs() {
     else if (arg === "--minor") options.bump = "minor";
     else if (arg === "--major") options.bump = "major";
     else if (arg === "--no-bump") options.bump = "none";
+    else if (arg === "--important") options.important = true;
+    else if (arg === "--clear-important") options.clearImportant = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg.startsWith("--version=")) {
       options.version = arg.slice("--version=".length).replace(/^v/, "");
@@ -101,6 +120,10 @@ function parseArgs() {
     } else {
       throw new Error(`Unknown release option: ${arg}`);
     }
+  }
+
+  if (options.important && options.clearImportant) {
+    throw new Error("Use either --important or --clear-important, not both.");
   }
 
   return options;
@@ -575,6 +598,14 @@ function main() {
   const nextVersion =
     options.version || bumpVersion(pkgBefore.version, options.bump);
   const tag = `v${nextVersion}`;
+  const previousUpdatePolicy = readUpdatePolicy();
+  const nextUpdatePolicy = {
+    minimumVersion: options.important
+      ? nextVersion
+      : options.clearImportant
+        ? ""
+        : previousUpdatePolicy.minimumVersion,
+  };
 
   ensureTagDoesNotExist(tag);
 
@@ -582,6 +613,9 @@ function main() {
   console.log(`Bump:    ${options.bump}`);
   console.log(`Branch:  ${branch}`);
   console.log(`Tag:     ${tag}`);
+  console.log(
+    `Minimum: ${nextUpdatePolicy.minimumVersion || "none"}${options.important ? " (required update)" : ""}`,
+  );
 
   if (options.dryRun) {
     console.log("Dry run only. No files, commits, or tags were changed.");
@@ -597,12 +631,16 @@ function main() {
   const originalLock = fs.existsSync(lockPath)
     ? fs.readFileSync(lockPath, "utf8")
     : null;
+  const originalUpdatePolicy = fs.existsSync(updatePolicyPath)
+    ? fs.readFileSync(updatePolicyPath, "utf8")
+    : null;
   let commitCreated = false;
   let githubReleaseCreated = false;
 
   try {
     // 2. Bump version
     setPackageVersion(nextVersion);
+    writeJson(updatePolicyPath, nextUpdatePolicy);
 
     // 3. Build every platform into dist/build/artifacts. dist/release stays
     // untouched until every local build and update manifest has succeeded.
@@ -615,7 +653,11 @@ function main() {
     ]);
     run("node", ["scripts/build-android.cjs"]);
     run("node", ["scripts/build-chrome-extension.cjs"]);
-    run("node", ["scripts/ci-create-latest.cjs", "dist/build/artifacts"]);
+    run("node", [
+      "scripts/ci-create-latest.cjs",
+      "dist/build/artifacts",
+      `--minimum-version=${nextUpdatePolicy.minimumVersion}`,
+    ]);
 
     // 4. Docker adds the Linux candidate to the same build staging directory.
     buildLinuxWithDocker(nextVersion);
@@ -676,6 +718,11 @@ function main() {
       fs.writeFileSync(packagePath, originalPkg, "utf8");
       if (originalLock) {
         fs.writeFileSync(lockPath, originalLock, "utf8");
+      }
+      if (originalUpdatePolicy) {
+        fs.writeFileSync(updatePolicyPath, originalUpdatePolicy, "utf8");
+      } else {
+        fs.rmSync(updatePolicyPath, { force: true });
       }
     } else if (githubReleaseCreated) {
       console.log(
