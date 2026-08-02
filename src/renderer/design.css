@@ -1156,8 +1156,12 @@ select.native-select {
 .profile-panel {
   position: relative;
   width: min(430px, calc(100vw - 36px));
-  max-height: min(720px, calc(100vh - 36px));
-  overflow: visible;
+  max-height: min(720px, calc(100dvh - var(--titlebar-height) - 32px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
   padding: 25px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xl);
@@ -1370,17 +1374,96 @@ select.native-select {
   font-size: 10px;
   text-transform: uppercase;
 }
+.profile-toggle {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.profile-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.profile-name-preview {
+  display: grid;
+  gap: 7px;
+  padding-top: 2px;
+}
+.profile-name-preview-label {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 750;
+}
+.profile-name-preview-samples {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.profile-name-preview-sample {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+}
+.profile-name-preview-sample > span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.58;
+}
+.profile-name-preview-sample strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-name-preview-sample.is-light {
+  border: 1px solid #c3d2d9;
+  background: #f5fafc;
+  color: #102936;
+}
+.profile-name-preview-sample.is-dark {
+  border: 1px solid #383838;
+  background: #161616;
+  color: #f5f5f5;
+}
 .profile-content > .card-description {
   display: none;
 }
+.profile-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 8px;
+}
+.profile-reset,
 .profile-save {
   min-height: 42px;
-  border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--on-accent);
   font-size: 12px;
   font-weight: 800;
+}
+.profile-reset {
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text-soft);
+}
+.profile-reset:hover {
+  border-color: var(--text-soft);
+  color: var(--text);
+}
+.profile-save {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 .profile-save:hover {
   background: var(--accent-hover);
@@ -2063,7 +2146,9 @@ select.native-select {
   left: 0;
   z-index: 500;
   display: grid;
-  padding: 24px;
+  padding: clamp(12px, 3vh, 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   place-items: center;
   background: var(--overlay);
   backdrop-filter: blur(8px);
@@ -3413,7 +3498,7 @@ body.platform-android .stream-audio-toggle {
 }
 body.platform-android .profile-panel {
   width: min(430px, calc(100vw - 24px));
-  max-height: calc(100dvh - 32px);
+  max-height: calc(100dvh - 54px - env(safe-area-inset-top) - 24px);
   overflow-y: auto;
   padding: 20px;
 }
@@ -3501,6 +3586,7 @@ body.platform-android .incoming-call-screen {
 
 .contact-avatar {
   grid-area: avatar;
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -3514,6 +3600,59 @@ body.platform-android .incoming-call-screen {
   user-select: none;
   background-color: var(--surface-hover);
   object-fit: cover;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border-color);
+}
+.contact-avatar[data-decoration="sparkle"]::after,
+.contact-avatar[data-decoration="crown"]::after {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  right: -7px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, #fff 40%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, #10131a 70%, transparent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+}
+.contact-avatar[data-decoration="sparkle"]::after {
+  content: "✦";
+}
+.contact-avatar[data-decoration="crown"]::after {
+  content: "♛";
+  color: #ffd35a;
+  font-size: 12px;
+}
+.contact-avatar[data-decoration="orbit"]::before {
+  position: absolute;
+  z-index: 1;
+  width: 47px;
+  height: 18px;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 50%;
+  content: "";
+  transform: rotate(-28deg);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 14%);
+  pointer-events: none;
+}
+.contact-avatar.avatar-without-initial {
+  color: transparent;
+}
+.contact-label[data-name-font="rounded"],
+[data-name-font="rounded"] {
+  font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+}
+.contact-label[data-name-font="mono"],
+[data-name-font="mono"] {
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+.contact-label[data-name-font="serif"],
+[data-name-font="serif"] {
+  font-family: Georgia, "Times New Roman", serif;
 }
