@@ -22,6 +22,7 @@ const remoteIdInput = document.querySelector("#remote-id");
 const connectButton = document.querySelector("#connect-button");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
+const titlebarStatus = document.querySelector(".titlebar-status");
 const retryConnectButton = document.querySelector("#retry-connect");
 const appShell = document.querySelector(".app-shell");
 const sidebarResizer = document.querySelector("#sidebar-resizer");
@@ -2992,6 +2993,7 @@ function renderPresenceStatus() {
   statusDot.className = `status-dot ${presenceStatus}`;
   statusText.textContent = getPresenceStatusLabel(presenceStatus);
   statusText.removeAttribute("title");
+  titlebarStatus?.classList.toggle("hidden", presenceStatus === "online");
 }
 
 function setStatus(kind, text) {
@@ -3020,6 +3022,7 @@ function setStatus(kind, text) {
   statusDot.className = `status-dot ${kind}`;
   statusText.textContent = text;
   statusText.title = text;
+  titlebarStatus?.classList.remove("hidden");
   statusResetTimer = setTimeout(() => {
     statusResetTimer = null;
     renderPresenceStatus();
