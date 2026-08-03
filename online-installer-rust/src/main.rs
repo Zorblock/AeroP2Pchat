@@ -67,7 +67,6 @@ struct LaunchOptions {
 
 struct UiTheme {
     window: Color,
-    frame: Color,
     surface: Color,
     border: Color,
     text: Color,
@@ -102,7 +101,6 @@ fn system_theme() -> UiTheme {
     if system_prefers_dark_mode() {
         UiTheme {
             window: color(0, 0, 0),
-            frame: color(0, 0, 0),
             surface: color(10, 10, 10),
             border: color(35, 35, 35),
             text: color(245, 245, 245),
@@ -115,7 +113,6 @@ fn system_theme() -> UiTheme {
     } else {
         UiTheme {
             window: color(234, 241, 245),
-            frame: color(248, 251, 252),
             surface: color(255, 255, 255),
             border: color(215, 226, 231),
             text: color(16, 41, 54),
@@ -131,7 +128,6 @@ fn system_theme() -> UiTheme {
 fn apply_system_theme(ui: &MainWindow) {
     let theme = system_theme();
     ui.set_window_color(theme.window);
-    ui.set_frame_color(theme.frame);
     ui.set_surface_color(theme.surface);
     ui.set_border_color(theme.border);
     ui.set_text_color(theme.text);
