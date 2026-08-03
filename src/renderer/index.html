@@ -1060,9 +1060,51 @@
             Close
           </button>
         </header>
+        <div class="settings-layout">
+          <nav class="settings-nav" aria-label="Settings categories">
+            <span class="settings-nav-label">Settings</span>
+            <button type="button" class="settings-nav-item active" data-settings-nav="appearance">
+              <i class="fa-solid fa-palette" aria-hidden="true"></i>
+              Appearance
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="themes">
+              <i class="fa-solid fa-brush" aria-hidden="true"></i>
+              Themes
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="general">
+              <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+              General
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="notifications">
+              <i class="fa-solid fa-bell" aria-hidden="true"></i>
+              Notifications
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="sounds">
+              <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+              Sounds
+            </button>
+            <span class="settings-nav-label">Chat</span>
+            <button type="button" class="settings-nav-item" data-settings-nav="voice">
+              <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+              Voice & video
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="contacts">
+              <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+              Contacts
+            </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="feedback">
+              <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+              Feedback
+            </button>
+            <span class="settings-nav-divider"></span>
+            <button type="button" class="settings-nav-item danger" data-settings-nav="reset">
+              <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
+              Reset
+            </button>
+          </nav>
         <div class="settings-grid">
           <div class="settings-column">
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="appearance">
               <h3>Appearance</h3>
               <div class="theme-switcher" role="radiogroup" aria-label="Theme">
                 <label>
@@ -1087,7 +1129,7 @@
               </div>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="themes">
               <h3>Themes</h3>
               <label class="settings-field">
                 <span>Custom CSS theme</span>
@@ -1100,7 +1142,7 @@
               </p>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="general">
               <h3>Startup & tray</h3>
               <div class="settings-options">
                 <label class="settings-check">
@@ -1136,7 +1178,7 @@
               </div>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="notifications">
               <h3>Notifications</h3>
               <div class="settings-options">
                 <label class="settings-check">
@@ -1162,7 +1204,7 @@
               </div>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="sounds">
               <h3>Sounds</h3>
               <div class="settings-options">
                 <label class="settings-check">
@@ -1190,7 +1232,7 @@
           </div>
 
           <div class="settings-column">
-            <section class="settings-section">
+            <section class="settings-section" data-settings-page="voice">
               <h3>Voice</h3>
               <div class="device-settings">
               <label for="microphone-select">Microphone</label>
@@ -1334,7 +1376,7 @@
             </section>
           </div>
 
-          <section class="settings-section">
+          <section class="settings-section" data-settings-page="contacts">
             <h3>Contacts</h3>
             <span class="label">Contact nicknames</span>
             <div id="contact-nickname-list" class="contact-nickname-list"></div>
@@ -1342,7 +1384,7 @@
             <div id="blocked-list" class="blocked-list"></div>
           </section>
 
-          <section class="settings-section mobile-feedback-section">
+          <section class="settings-section mobile-feedback-section" data-settings-page="feedback">
             <h3>Feedback</h3>
             <button
               id="feedback-button-mobile"
@@ -1354,7 +1396,7 @@
             </button>
           </section>
 
-          <section class="settings-section settings-reset-section">
+          <section class="settings-section settings-reset-section" data-settings-page="reset">
             <h3>Reset</h3>
             <button
               id="reset-all-settings"
@@ -1364,6 +1406,7 @@
               Reset all settings
             </button>
           </section>
+        </div>
         </div>
       </section>
     </div>

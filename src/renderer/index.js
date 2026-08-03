@@ -153,6 +153,13 @@ const welcomeBack = document.querySelector("#welcome-back");
 const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
+const settingsNavItems = Array.from(
+  document.querySelectorAll("[data-settings-nav]"),
+);
+const settingsPages = Array.from(
+  document.querySelectorAll("[data-settings-page]"),
+);
+const settingsContent = document.querySelector(".settings-grid");
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
 const profileModal = document.querySelector("#profile-modal");
 const profileClose = document.querySelector("#profile-close");
@@ -8250,6 +8257,26 @@ function renderContactNicknameList() {
   }
 }
 
+function selectSettingsPage(page = "appearance") {
+  const selectedPage = settingsPages.some(
+    (section) => section.dataset.settingsPage === page,
+  )
+    ? page
+    : "appearance";
+  for (const item of settingsNavItems) {
+    const active = item.dataset.settingsNav === selectedPage;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-current", active ? "page" : "false");
+  }
+  for (const section of settingsPages) {
+    section.classList.toggle(
+      "hidden",
+      section.dataset.settingsPage !== selectedPage,
+    );
+  }
+  settingsContent?.scrollTo({ top: 0, behavior: "auto" });
+}
+
 function openSettings(focusContactId = "") {
   refreshAudioDevices();
   renderAppSettings();
@@ -8257,6 +8284,7 @@ function openSettings(focusContactId = "") {
   renderAudioSettings();
   renderContactNicknameList(focusContactId);
   renderBlockedList();
+  selectSettingsPage(focusContactId ? "contacts" : "appearance");
   settingsModal.classList.remove("hidden");
   if (focusContactId) {
     requestAnimationFrame(() => {
@@ -9553,6 +9581,10 @@ function openFeedbackWidget() {
 
 feedbackButton?.addEventListener("click", openFeedbackWidget);
 mobileFeedbackButton?.addEventListener("click", openFeedbackWidget);
+
+for (const item of settingsNavItems) {
+  item.addEventListener("click", () => selectSettingsPage(item.dataset.settingsNav));
+}
 
 settingsClose.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
