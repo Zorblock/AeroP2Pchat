@@ -11,6 +11,23 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 const BackgroundMode = registerPlugin("AeroBackgroundMode");
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
+const MAX_REMOTE_THEME_BYTES = 2 * 1024 * 1024;
+
+function assertRemoteThemeUrl(value) {
+  const url = new URL(String(value || "").trim());
+  if (url.protocol !== "https:" || url.username || url.password) {
+    throw new Error("Only valid HTTPS theme URLs are allowed.");
+  }
+  return url;
+}
+
+function assertRemoteThemeSize(text) {
+  const css = String(text || "");
+  if (new TextEncoder().encode(css).length > MAX_REMOTE_THEME_BYTES) {
+    throw new Error("Theme file is too large.");
+  }
+  return css;
+}
 
 function getChromeStorage() {
   const chromeApi = globalThis.chrome;
@@ -193,6 +210,37 @@ export function createPlatformApi() {
         return electron.loadTheme(fileName);
       }
       return { ok: false, error: "Custom themes are available in the desktop app." };
+    },
+
+    async fetchOnlineTheme(url) {
+      const parsedUrl = assertRemoteThemeUrl(url);
+      if (electron?.fetchOnlineTheme) {
+        const result = await electron.fetchOnlineTheme(parsedUrl.toString());
+        if (!result?.ok) throw new Error(result?.error || "Theme could not be loaded.");
+        return assertRemoteThemeSize(result.css);
+      }
+
+      const chromeApi = globalThis.chrome;
+      if (isChromeExtension && chromeApi?.permissions) {
+        const origin = `${parsedUrl.origin}/*`;
+        const hasPermission = await chromeApi.permissions.contains({ origins: [origin] });
+        if (!hasPermission) {
+          const granted = await chromeApi.permissions.request({ origins: [origin] });
+          if (!granted) throw new Error("Permission for this theme host was not granted.");
+        }
+      }
+
+      if (isNativeCapacitor()) {
+        const response = await CapacitorHttp.get({ url: parsedUrl.toString() });
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(`Theme request failed (${response.status}).`);
+        }
+        return assertRemoteThemeSize(response.data);
+      }
+
+      const response = await fetch(parsedUrl.toString(), { cache: "no-store" });
+      if (!response.ok) throw new Error(`Theme request failed (${response.status}).`);
+      return assertRemoteThemeSize(await response.text());
     },
 
     async writeClipboard(text) {

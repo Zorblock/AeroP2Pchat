@@ -2,7 +2,6 @@ const {
   app,
   BrowserWindow,
   Menu,
-  nativeTheme,
   nativeImage,
   Notification,
   Tray,
@@ -70,6 +69,8 @@ const userConfigFileName = "config.aero";
 const userConfigKeyFileName = "config.key";
 const themesDirectoryName = "Themes";
 const maxThemeFileSize = 2 * 1024 * 1024;
+const maxOnlineThemeCount = 8;
+const maxOnlineThemeSize = 2 * 1024 * 1024;
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const updateDownloadTimeoutMs = 60000;
@@ -158,6 +159,71 @@ function isThemeFileName(fileName) {
     fileName === basename(fileName) &&
     fileName.toLowerCase().endsWith(".css")
   );
+}
+
+function normalizeOnlineThemeUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "https:" || url.username || url.password) {
+      return "";
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function normalizeOnlineThemeUrls(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map(normalizeOnlineThemeUrl).filter(Boolean))].slice(
+    0,
+    maxOnlineThemeCount,
+  );
+}
+
+function fetchOnlineThemeCss(rawUrl, redirects = 0) {
+  const url = normalizeOnlineThemeUrl(rawUrl);
+  if (!url) {
+    return Promise.reject(new Error("Only valid HTTPS theme URLs are allowed."));
+  }
+  return new Promise((resolve, reject) => {
+    const request = get(url, { headers: { Accept: "text/css,*/*;q=0.1" } }, (response) => {
+      if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
+        response.resume();
+        if (redirects >= 4) {
+          reject(new Error("Too many theme URL redirects."));
+          return;
+        }
+        fetchOnlineThemeCss(new URL(response.headers.location, url).toString(), redirects + 1).then(resolve, reject);
+        return;
+      }
+      if (response.statusCode !== 200) {
+        response.resume();
+        reject(new Error(`Theme request failed (${response.statusCode || "unknown"}).`));
+        return;
+      }
+      const length = Number(response.headers["content-length"] || 0);
+      if (length > maxOnlineThemeSize) {
+        response.resume();
+        reject(new Error("Theme file is too large."));
+        return;
+      }
+      let size = 0;
+      const chunks = [];
+      response.on("data", (chunk) => {
+        size += chunk.length;
+        if (size > maxOnlineThemeSize) {
+          request.destroy(new Error("Theme file is too large."));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+      response.on("error", reject);
+    });
+    request.setTimeout(12000, () => request.destroy(new Error("Theme request timed out.")));
+    request.on("error", reject);
+  });
 }
 
 function parseThemeMetadata(css, fileName) {
@@ -327,12 +393,13 @@ function normalizeConfig(config = {}) {
     )
       ? settings.presenceStatus
       : "online",
-    theme: ["light", "dark"].includes(settings.theme)
+    theme: ["system", "light", "dark"].includes(settings.theme)
       ? settings.theme
-      : "light",
+      : "system",
     customTheme: isThemeFileName(settings.customTheme)
       ? settings.customTheme
       : "",
+    onlineThemeUrls: normalizeOnlineThemeUrls(settings.onlineThemeUrls),
     sidebarWidth: Number.isFinite(settings.sidebarWidth)
       ? Math.round(
           Math.max(
@@ -1733,6 +1800,13 @@ app.whenReady().then(async () => {
   }));
   ipcMain.handle("open-themes-folder", () => openThemesFolder());
   ipcMain.handle("load-theme", (_event, fileName) => loadTheme(fileName));
+  ipcMain.handle("fetch-online-theme", async (_event, url) => {
+    try {
+      return { ok: true, css: await fetchOnlineThemeCss(url) };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Theme could not be loaded." };
+    }
+  });
   ipcMain.on("update-tray-state", (_event, state) => {
     const nextTrayState = { ...trayState, ...state };
     // The renderer synchronizes every 1.5 seconds. Replacing an open native

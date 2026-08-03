@@ -53,6 +53,8 @@ function writeManifest() {
     // PeerJS uses this signalling service to establish direct P2P connections.
     // No website or account host permission is required.
     host_permissions: ["https://0.peerjs.com/*"],
+    // Requested only after the user adds a remote CSS theme from that host.
+    optional_host_permissions: ["https://*/*"],
   };
 
   fs.mkdirSync(path.join(unpackedDir, "icons"), { recursive: true });

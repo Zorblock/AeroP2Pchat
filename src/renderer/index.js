@@ -197,8 +197,12 @@ const chatFontSizeSelect = document.querySelector("#chat-font-size-select");
 const compactLayoutToggle = document.querySelector("#compact-layout-toggle");
 const reduceMotionToggle = document.querySelector("#reduce-motion-toggle");
 const resetSidebarWidthButton = document.querySelector("#reset-sidebar-width");
-const customThemeSelect = document.querySelector("#custom-theme-select");
-const customThemeDetails = document.querySelector("#custom-theme-details");
+const localThemeList = document.querySelector("#local-theme-list");
+const themeTabButtons = Array.from(document.querySelectorAll("[data-theme-tab]"));
+const themePanels = Array.from(document.querySelectorAll("[data-theme-panel]"));
+const onlineThemeUrlsInput = document.querySelector("#online-theme-urls");
+const applyOnlineThemesButton = document.querySelector("#apply-online-themes");
+const onlineThemeStatus = document.querySelector("#online-theme-status");
 const openThemesFolderButton = document.querySelector("#open-themes-folder");
 const reloadThemesButton = document.querySelector("#reload-themes");
 const microphoneSelect = document.querySelector("#microphone-select");
@@ -701,10 +705,6 @@ function applyPlatformUi() {
   autostartToggle
     ?.closest(".settings-section")
     ?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
-
-  document
-    .querySelector('[data-settings-nav="themes"]')
-    ?.classList.toggle("hidden", !platformApi.isElectron);
 
   if (!platformApi.hasDesktopIntegration) {
     setTitlebarActionLabel(appMenuUpdate, "Open latest release");
@@ -1696,6 +1696,20 @@ function normalizeAppSettings() {
       typeof appConfig.appSettings.customTheme === "string"
         ? appConfig.appSettings.customTheme
         : "",
+    onlineThemeUrls: Array.isArray(appConfig.appSettings.onlineThemeUrls)
+      ? [...new Set(appConfig.appSettings.onlineThemeUrls
+          .map((value) => {
+            try {
+              const url = new URL(String(value || "").trim());
+              return url.protocol === "https:" && !url.username && !url.password
+                ? url.toString()
+                : "";
+            } catch {
+              return "";
+            }
+          })
+          .filter(Boolean))].slice(0, 8)
+      : [],
     sidebarWidth: Number.isFinite(appConfig.appSettings.sidebarWidth)
       ? appConfig.appSettings.sidebarWidth
       : DEFAULT_SIDEBAR_WIDTH,
@@ -1771,7 +1785,7 @@ function applyAccentColor(accentColor = "system") {
       ? systemAccentColor
       : accentColors[accentColor] || accentColors.aero;
   document.documentElement.dataset.accentColor = accentColor;
-  appearanceAccentStyle.textContent = `:root { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); }`;
+  appearanceAccentStyle.textContent = `:root[data-accent-color] { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); }`;
 }
 
 function applyAppearancePreferences() {
@@ -1842,6 +1856,90 @@ function renderCustomThemePicker() {
   syncEnhancedSelect(customThemeSelect);
 }
 
+function renderLocalThemes() {
+  if (!localThemeList) return;
+  const selectedTheme = appConfig.appSettings?.customTheme || "";
+  openThemesFolderButton?.classList.toggle("hidden", !platformApi.isElectron);
+  reloadThemesButton?.classList.toggle("hidden", !platformApi.isElectron);
+  const themes = platformApi.isElectron ? availableCustomThemes : [];
+  const cards = [
+    { id: "", name: "Default Aero theme", description: "Use Aero P2P Chat without a local CSS theme." },
+    ...themes,
+  ];
+  localThemeList.replaceChildren(
+    ...cards.map((theme) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "local-theme-card";
+      const active = theme.id === selectedTheme;
+      card.classList.toggle("active", active);
+      card.setAttribute("aria-pressed", active ? "true" : "false");
+      const title = document.createElement("strong");
+      title.textContent = theme.name;
+      const details = document.createElement("span");
+      details.textContent = [theme.author && `by ${theme.author}`, theme.version && `v${theme.version}`, theme.description]
+        .filter(Boolean)
+        .join(" · ") || "Local CSS theme";
+      card.append(title, details);
+      card.addEventListener("click", async () => {
+        if (await applyAllThemes(theme.id)) {
+          saveAppSettings({ customTheme: theme.id });
+        }
+      });
+      return card;
+    }),
+  );
+}
+
+function normalizeOnlineThemeUrls(value) {
+  return [...new Set(String(value || "").split(/\r?\n/).map((line) => {
+    try {
+      const url = new URL(line.trim());
+      return url.protocol === "https:" && !url.username && !url.password
+        ? url.toString()
+        : "";
+    } catch {
+      return "";
+    }
+  }).filter(Boolean))].slice(0, 8);
+}
+
+async function applyAllThemes(localThemeId = appConfig.appSettings?.customTheme || "") {
+  let localCss = "";
+  if (localThemeId && platformApi.isElectron) {
+    const result = await platformApi.loadTheme(localThemeId);
+    if (!result?.ok) return false;
+    localCss = result.css;
+  }
+
+  const onlineUrls = appConfig.appSettings?.onlineThemeUrls || [];
+  const onlineResults = await Promise.allSettled(
+    onlineUrls.map((url) => platformApi.fetchOnlineTheme(url)),
+  );
+  const onlineCss = onlineResults
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => result.value.replace(/@import\s+[^;]+;/gi, ""));
+  customThemeStyle.textContent = [localCss, ...onlineCss].filter(Boolean).join("\n\n");
+  if (onlineThemeStatus) {
+    const failed = onlineResults.filter((result) => result.status === "rejected").length;
+    onlineThemeStatus.textContent = onlineUrls.length
+      ? `${onlineCss.length} online theme${onlineCss.length === 1 ? "" : "s"} loaded${failed ? `, ${failed} failed` : ""}.`
+      : "";
+  }
+  return true;
+}
+
+function selectThemeTab(tab = "local") {
+  for (const button of themeTabButtons) {
+    const active = button.dataset.themeTab === tab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  }
+  for (const panel of themePanels) {
+    panel.classList.toggle("hidden", panel.dataset.themePanel !== tab);
+  }
+}
+
 async function applyCustomTheme(themeId) {
   if (!themeId) {
     customThemeStyle.textContent = "";
@@ -1857,19 +1955,17 @@ async function applyCustomTheme(themeId) {
 }
 
 async function refreshCustomThemes() {
-  if (!platformApi.isElectron) {
-    renderCustomThemePicker();
-    return;
+  if (platformApi.isElectron) {
+    try {
+      const result = await platformApi.listThemes();
+      availableCustomThemes = Array.isArray(result?.themes) ? result.themes : [];
+      customThemesPath = typeof result?.path === "string" ? result.path : "";
+    } catch {
+      availableCustomThemes = [];
+    }
   }
-  try {
-    const result = await platformApi.listThemes();
-    availableCustomThemes = Array.isArray(result?.themes) ? result.themes : [];
-    customThemesPath = typeof result?.path === "string" ? result.path : "";
-  } catch {
-    availableCustomThemes = [];
-  }
-  renderCustomThemePicker();
-  await applyCustomTheme(appConfig.appSettings?.customTheme || "");
+  renderLocalThemes();
+  await applyAllThemes();
 }
 
 function renderWelcomeSettings() {
@@ -1997,7 +2093,10 @@ function renderAppSettings() {
   syncEnhancedSelect(accentColorSelect);
   syncEnhancedSelect(messageDensitySelect);
   syncEnhancedSelect(chatFontSizeSelect);
-  renderCustomThemePicker();
+  renderLocalThemes();
+  if (onlineThemeUrlsInput && document.activeElement !== onlineThemeUrlsInput) {
+    onlineThemeUrlsInput.value = (appConfig.appSettings.onlineThemeUrls || []).join("\n");
+  }
   autostartToggle.checked = appConfig.appSettings.autostart;
   autostartOpen.checked = !appConfig.appSettings.startHidden;
   autostartHidden.checked = appConfig.appSettings.startHidden;
@@ -9118,12 +9217,25 @@ resetSidebarWidthButton.addEventListener("click", () => {
   setSidebarWidth(DEFAULT_SIDEBAR_WIDTH, { persist: true });
 });
 
-customThemeSelect.addEventListener("change", async () => {
-  const themeId = customThemeSelect.value;
-  if (await applyCustomTheme(themeId)) {
-    saveAppSettings({ customTheme: themeId });
-  } else {
-    renderCustomThemePicker();
+for (const button of themeTabButtons) {
+  button.addEventListener("click", () => selectThemeTab(button.dataset.themeTab));
+}
+
+applyOnlineThemesButton?.addEventListener("click", async () => {
+  const urls = normalizeOnlineThemeUrls(onlineThemeUrlsInput?.value);
+  const enteredLines = String(onlineThemeUrlsInput?.value || "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim()).length;
+  if (enteredLines !== urls.length) {
+    onlineThemeStatus.textContent = "Only valid HTTPS URLs are kept (up to 8).";
+  }
+  applyOnlineThemesButton.disabled = true;
+  try {
+    appConfig.appSettings.onlineThemeUrls = urls;
+    await applyAllThemes();
+    saveAppSettings({ onlineThemeUrls: urls });
+  } finally {
+    applyOnlineThemesButton.disabled = false;
   }
 });
 
