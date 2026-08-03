@@ -182,6 +182,8 @@ const profileReset = document.querySelector("#profile-reset");
 const profileSave = document.querySelector("#profile-save");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
+const customThemeSelect = document.querySelector("#custom-theme-select");
+const customThemeDetails = document.querySelector("#custom-theme-details");
 const microphoneSelect = document.querySelector("#microphone-select");
 const cameraSelect = document.querySelector("#camera-select");
 const speakerSelect = document.querySelector("#speaker-select");
@@ -353,6 +355,11 @@ const DEFAULT_SIDEBAR_WIDTH = 360;
 const DEFAULT_THEME = window.matchMedia("(prefers-color-scheme: dark)").matches
   ? "dark"
   : "light";
+const customThemeStyle = document.createElement("style");
+customThemeStyle.id = "custom-theme-style";
+document.head.append(customThemeStyle);
+let availableCustomThemes = [];
+let customThemesPath = "";
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
 const MIN_CHAT_WIDTH = 320;
@@ -1035,6 +1042,7 @@ if (stripRetiredIdentityData(appConfig)) {
 }
 normalizeAppSettings();
 applyAppTheme(appConfig.appSettings.theme);
+await refreshCustomThemes();
 setBootProgress(42, "Loading settings");
 migrateLocalStorageConfig();
 if (stripRetiredIdentityData(appConfig)) {
@@ -1625,6 +1633,10 @@ function normalizeAppSettings() {
     theme: ["light", "dark"].includes(appConfig.appSettings.theme)
       ? appConfig.appSettings.theme
       : DEFAULT_THEME,
+    customTheme:
+      typeof appConfig.appSettings.customTheme === "string"
+        ? appConfig.appSettings.customTheme
+        : "",
     sidebarWidth: Number.isFinite(appConfig.appSettings.sidebarWidth)
       ? appConfig.appSettings.sidebarWidth
       : DEFAULT_SIDEBAR_WIDTH,
@@ -1677,6 +1689,69 @@ function applyAppTheme(theme = DEFAULT_THEME) {
     // The active platform config remains the source of truth if storage is blocked.
   }
   void platformApi.setSystemTheme(nextTheme);
+}
+
+function renderCustomThemePicker() {
+  if (!customThemeSelect || !customThemeDetails) return;
+  const selectedTheme = appConfig.appSettings?.customTheme || "";
+  customThemeSelect.replaceChildren(
+    new Option("Default Aero theme", ""),
+    ...availableCustomThemes.map((theme) => new Option(theme.name, theme.id)),
+  );
+  customThemeSelect.value = availableCustomThemes.some(
+    (theme) => theme.id === selectedTheme,
+  )
+    ? selectedTheme
+    : "";
+
+  const activeTheme = availableCustomThemes.find(
+    (theme) => theme.id === customThemeSelect.value,
+  );
+  if (activeTheme) {
+    const details = [activeTheme.description, activeTheme.author && `by ${activeTheme.author}`, activeTheme.version && `v${activeTheme.version}`]
+      .filter(Boolean)
+      .join(" · ");
+    customThemeDetails.textContent = details || activeTheme.id;
+  } else if (platformApi.isElectron) {
+    customThemeDetails.textContent = customThemesPath
+      ? `Add .css files to ${customThemesPath}, then reopen Settings.`
+      : "Loading themes…";
+  } else {
+    customThemeSelect.disabled = true;
+    customThemeDetails.textContent =
+      "Custom CSS themes are available in the desktop app.";
+  }
+  syncEnhancedSelect(customThemeSelect);
+}
+
+async function applyCustomTheme(themeId) {
+  if (!themeId) {
+    customThemeStyle.textContent = "";
+    return true;
+  }
+  const result = await platformApi.loadTheme(themeId);
+  if (!result?.ok) {
+    customThemeStyle.textContent = "";
+    return false;
+  }
+  customThemeStyle.textContent = result.css;
+  return true;
+}
+
+async function refreshCustomThemes() {
+  if (!platformApi.isElectron) {
+    renderCustomThemePicker();
+    return;
+  }
+  try {
+    const result = await platformApi.listThemes();
+    availableCustomThemes = Array.isArray(result?.themes) ? result.themes : [];
+    customThemesPath = typeof result?.path === "string" ? result.path : "";
+  } catch {
+    availableCustomThemes = [];
+  }
+  renderCustomThemePicker();
+  await applyCustomTheme(appConfig.appSettings?.customTheme || "");
 }
 
 function renderWelcomeSettings() {
@@ -1795,6 +1870,7 @@ function renderAppSettings() {
   updateTitlebarPresenceIndicator();
   themeLight.checked = appConfig.appSettings.theme === "light";
   themeDark.checked = appConfig.appSettings.theme === "dark";
+  renderCustomThemePicker();
   autostartToggle.checked = appConfig.appSettings.autostart;
   autostartOpen.checked = !appConfig.appSettings.startHidden;
   autostartHidden.checked = appConfig.appSettings.startHidden;
@@ -8177,6 +8253,7 @@ function renderContactNicknameList() {
 function openSettings(focusContactId = "") {
   refreshAudioDevices();
   renderAppSettings();
+  void refreshCustomThemes();
   renderAudioSettings();
   renderContactNicknameList(focusContactId);
   renderBlockedList();
@@ -8843,6 +8920,15 @@ themeLight.addEventListener("change", () => {
 themeDark.addEventListener("change", () => {
   if (themeDark.checked) {
     saveAppSettings({ theme: "dark" });
+  }
+});
+
+customThemeSelect.addEventListener("change", async () => {
+  const themeId = customThemeSelect.value;
+  if (await applyCustomTheme(themeId)) {
+    saveAppSettings({ customTheme: themeId });
+  } else {
+    renderCustomThemePicker();
   }
 });
 

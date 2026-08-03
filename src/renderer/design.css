@@ -2532,6 +2532,13 @@ select.native-select {
   font-size: 10px;
   font-weight: 720;
 }
+.settings-description {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 .settings-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

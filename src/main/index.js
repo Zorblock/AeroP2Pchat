@@ -67,6 +67,8 @@ const changelogFeedUrl =
 const appDisplayName = projectConfig.app.name;
 const userConfigFileName = "config.aero";
 const userConfigKeyFileName = "config.key";
+const themesDirectoryName = "Themes";
+const maxThemeFileSize = 2 * 1024 * 1024;
 const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const updateDownloadTimeoutMs = 60000;
@@ -144,6 +146,75 @@ function getConfigPath() {
   return join(app.getPath("userData"), userConfigFileName);
 }
 
+function getThemesPath() {
+  return join(app.getPath("userData"), themesDirectoryName);
+}
+
+function isThemeFileName(fileName) {
+  return (
+    typeof fileName === "string" &&
+    fileName.length > 0 &&
+    fileName === basename(fileName) &&
+    fileName.toLowerCase().endsWith(".css")
+  );
+}
+
+function parseThemeMetadata(css, fileName) {
+  const header = String(css || "").slice(0, 8192);
+  const metadataComment = header.match(/\/\*[\s\S]*?\*\//)?.[0] || header;
+  const readField = (field) => {
+    const match = metadataComment.match(
+      new RegExp(`@${field}\\s+([^\\r\\n*]+)`, "i"),
+    );
+    return match?.[1]?.trim() || "";
+  };
+  const fallbackName = fileName.replace(/\.css$/i, "");
+  return {
+    id: fileName,
+    name: readField("name") || fallbackName,
+    author: readField("author"),
+    version: readField("version"),
+    description: readField("description"),
+  };
+}
+
+async function listThemes() {
+  const themesPath = getThemesPath();
+  await mkdir(themesPath, { recursive: true });
+  const entries = await readdir(themesPath, { withFileTypes: true });
+  const themes = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !isThemeFileName(entry.name)) continue;
+    const themePath = join(themesPath, entry.name);
+    try {
+      const details = await stat(themePath);
+      if (details.size > maxThemeFileSize) continue;
+      const css = await readFile(themePath, "utf8");
+      themes.push(parseThemeMetadata(css, entry.name));
+    } catch {
+      // Ignore a theme that is currently being edited or cannot be read.
+    }
+  }
+  return themes.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+async function loadTheme(fileName) {
+  if (!isThemeFileName(fileName)) {
+    return { ok: false, error: "Invalid theme file." };
+  }
+  const themePath = join(getThemesPath(), fileName);
+  try {
+    const details = await stat(themePath);
+    if (!details.isFile() || details.size > maxThemeFileSize) {
+      return { ok: false, error: "Theme file is unavailable or too large." };
+    }
+    const css = await readFile(themePath, "utf8");
+    return { ok: true, css, metadata: parseThemeMetadata(css, fileName) };
+  } catch {
+    return { ok: false, error: "Theme file could not be read." };
+  }
+}
+
 function getConfigBackupPath() {
   return `${getConfigPath()}.bak`;
 }
@@ -204,6 +275,7 @@ function getDefaultAppSettings() {
     readReceipts: true,
     sidebarWidth: defaultSidebarWidth,
     theme: nativeTheme.shouldUseDarkColors ? "dark" : "light",
+    customTheme: "",
     presenceStatus: "online",
   };
 }
@@ -250,6 +322,9 @@ function normalizeConfig(config = {}) {
     theme: ["light", "dark"].includes(settings.theme)
       ? settings.theme
       : "light",
+    customTheme: isThemeFileName(settings.customTheme)
+      ? settings.customTheme
+      : "",
     sidebarWidth: Number.isFinite(settings.sidebarWidth)
       ? Math.round(
           Math.max(
@@ -1632,6 +1707,11 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("list-themes", async () => ({
+    path: getThemesPath(),
+    themes: await listThemes(),
+  }));
+  ipcMain.handle("load-theme", (_event, fileName) => loadTheme(fileName));
   ipcMain.on("update-tray-state", (_event, state) => {
     const nextTrayState = { ...trayState, ...state };
     // The renderer synchronizes every 1.5 seconds. Replacing an open native

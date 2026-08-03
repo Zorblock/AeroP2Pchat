@@ -167,6 +167,20 @@ export function createPlatformApi() {
       return { ok: true };
     },
 
+    async listThemes() {
+      if (electron?.listThemes) {
+        return electron.listThemes();
+      }
+      return { path: "", themes: [] };
+    },
+
+    async loadTheme(fileName) {
+      if (electron?.loadTheme) {
+        return electron.loadTheme(fileName);
+      }
+      return { ok: false, error: "Custom themes are available in the desktop app." };
+    },
+
     async writeClipboard(text) {
       if (electron?.writeClipboard) {
         return electron.writeClipboard(text);
