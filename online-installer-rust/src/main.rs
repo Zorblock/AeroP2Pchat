@@ -752,7 +752,13 @@ fn install_latest(
         true,
     );
     Command::new(&target_path)
-        .args(["/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"])
+        .args([
+            "/SILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/FORCECLOSEAPPLICATIONS",
+            "/RESTARTAPPLICATIONS",
+        ])
         .spawn()?;
 
     // The setup updates this executable in the installation directory. Exit now
