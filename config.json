@@ -13,6 +13,10 @@
     "commandName": "aero-p2p-chat",
     "autostartDesktopFileName": "aero-p2p-chat.desktop"
   },
+  "windowsStore": {
+    "productId": "9MTXC0M7P403",
+    "packageFamilyName": "Zorblock.AeroP2PChat_cgb7tdbkexs70"
+  },
   "release": {
     "windowsSetupBaseName": "Aero-P2P-Chat-Setup",
     "windowsSetupAsset": "Aero-P2P-Chat-Windows-x64-Setup.exe",

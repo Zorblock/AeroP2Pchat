@@ -7,6 +7,7 @@ export component MainWindow inherits Window {
     in-out property <string> status: "Ready to install Aero P2P Chat";
     in-out property <string> detail: "Click Install to download the newest version from GitHub.";
     in-out property <string> version: "The newest version will be checked after you continue.";
+    in-out property <string> security-note: "Each download is checked against its GitHub SHA-256 checksum.";
     in-out property <float> progress: 0;
     in-out property <string> button-text: "Install";
     in-out property <bool> can-install: true;
@@ -91,7 +92,7 @@ export component MainWindow inherits Window {
             y: 148px;
             width: 330px;
             height: 20px;
-            text: "Each download is checked against its GitHub SHA-256 checksum.";
+            text: root.security-note;
             color: root.muted-color;
             font-size: 11px;
             vertical-alignment: center;

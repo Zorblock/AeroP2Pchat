@@ -15,6 +15,8 @@ use sha2::{Digest, Sha256};
 use single_instance::SingleInstance;
 use slint::{Color, ComponentHandle, SharedString, Weak};
 #[cfg(windows)]
+use std::os::windows::process::CommandExt;
+#[cfg(windows)]
 use winreg::{
     RegKey,
     enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
@@ -25,8 +27,8 @@ use windows::{
         Foundation::HWND,
         System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
         UI::{
-            Shell::{ITaskbarList3, TBPF_NOPROGRESS, TBPF_NORMAL, TaskbarList},
-            WindowsAndMessaging::FindWindowW,
+            Shell::{ITaskbarList3, ShellExecuteW, TBPF_NOPROGRESS, TBPF_NORMAL, TaskbarList},
+            WindowsAndMessaging::{FindWindowW, SW_SHOWNORMAL},
         },
     },
     core::PCWSTR,
@@ -38,6 +40,10 @@ const REPOSITORY: &str = "Zorblock/AeroP2Pchat";
 const INSTALLER_ASSET: &str = "Aero-P2P-Chat-Windows-x64-Setup.exe";
 const TEMP_SETUP_DIRECTORY_PREFIX: &str = "aero-p2p-setup-";
 const WINDOW_TITLE: &str = "Aero P2P Chat Online Installer";
+const MICROSOFT_STORE_PACKAGE_FAMILY_NAME: &str = "Zorblock.AeroP2PChat_cgb7tdbkexs70";
+const MICROSOFT_STORE_PRODUCT_URI: &str = "ms-windows-store://pdp/?productid=9MTXC0M7P403";
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let instance = SingleInstance::new("Zorblock.AeroP2PChat.OnlineInstaller.8B09B5D9")?;
@@ -48,7 +54,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = launch_options();
     let ui = MainWindow::new()?;
     apply_system_theme(&ui);
-    if let Some(installed_version) = installed_aero_version() {
+    let store_version = installed_microsoft_store_version();
+    if let Some(store_version) = &store_version {
+        configure_microsoft_store_update_ui(&ui, store_version, false);
+    } else if let Some(installed_version) = installed_aero_version() {
         ui.set_version(format!(
             "Installed version: {installed_version} · Latest version will be checked after you continue."
         )
@@ -56,15 +65,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let weak_ui = ui.as_weak();
     let wait_for_pid = options.wait_for_pid;
+    let store_version_for_install = store_version.clone();
     ui.on_install(move || {
-        if let Some(pid) = wait_for_pid {
+        if let Some(store_version) = &store_version_for_install {
+            open_microsoft_store_updates(&weak_ui, store_version);
+        } else if let Some(pid) = wait_for_pid {
             wait_then_install(weak_ui.clone(), pid, true);
         } else {
             start_installation(weak_ui.clone());
         }
     });
 
-    if let Some(pid) = options.wait_for_pid {
+    if store_version.is_none() && let Some(pid) = options.wait_for_pid {
         wait_then_install(ui.as_weak(), pid, options.auto_install);
     }
 
@@ -250,6 +262,84 @@ fn start_installation(ui: Weak<MainWindow>) {
             );
         }
     });
+}
+
+fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_opened: bool) {
+    ui.set_status(
+        if store_opened {
+        "Microsoft Store opened"
+    } else {
+        "Aero P2P Chat is installed from Microsoft Store"
+    }
+        .into(),
+    );
+    ui.set_detail(
+        if store_opened {
+        "Use the Store's Library to check for and install updates."
+    } else {
+        "This installer will not replace a Microsoft Store installation."
+    }
+        .into(),
+    );
+    ui.set_version(format!("Microsoft Store version: {version}").into());
+    ui.set_progress(0.0);
+    ui.set_button_text("Open Store updates".into());
+    ui.set_can_install(true);
+    ui.set_show_install(true);
+    ui.set_security_note(
+        "Updates for this installation are verified and delivered by Microsoft Store."
+            .into(),
+    );
+}
+
+fn show_microsoft_store_update_ui(ui: &Weak<MainWindow>, version: &str, store_opened: bool) {
+    let version = version.to_owned();
+    let _ = ui.upgrade_in_event_loop(move |window| {
+        configure_microsoft_store_update_ui(&window, &version, store_opened);
+    });
+}
+
+fn open_microsoft_store_updates(ui: &Weak<MainWindow>, version: &str) {
+    #[cfg(windows)]
+    let result = {
+        let operation: Vec<u16> = "open\0".encode_utf16().collect();
+        let uri: Vec<u16> = format!("{MICROSOFT_STORE_PRODUCT_URI}\0")
+            .encode_utf16()
+            .collect();
+        let handle = unsafe {
+            ShellExecuteW(
+                None,
+                PCWSTR(operation.as_ptr()),
+                PCWSTR(uri.as_ptr()),
+                PCWSTR::null(),
+                PCWSTR::null(),
+                SW_SHOWNORMAL,
+            )
+        };
+        if handle.0 as isize > 32 {
+            Ok(())
+        } else {
+            Err(std::io::Error::other("Microsoft Store did not accept the product link."))
+        }
+    };
+
+    #[cfg(not(windows))]
+    let result: Result<(), std::io::Error> =
+        Err(std::io::Error::other("Microsoft Store is only available on Windows."));
+
+    match result {
+        Ok(_) => show_microsoft_store_update_ui(ui, version, true),
+        Err(error) => update_ui(
+            ui,
+            "Microsoft Store could not be opened.",
+            &error.to_string(),
+            &format!("Microsoft Store version: {version}"),
+            0.0,
+            "Try again",
+            true,
+            true,
+        ),
+    }
 }
 
 fn wait_then_install(ui: Weak<MainWindow>, pid: u32, install_when_closed: bool) {
@@ -553,8 +643,57 @@ fn installed_aero_version() -> Option<String> {
     None
 }
 
+#[cfg(windows)]
+fn installed_microsoft_store_version() -> Option<String> {
+    installed_microsoft_store_version_from_powershell()
+        .or_else(installed_microsoft_store_version_from_registry)
+}
+
+#[cfg(windows)]
+fn installed_microsoft_store_version_from_powershell() -> Option<String> {
+    const STORE_IDENTITY_NAME: &str = "Zorblock.AeroP2PChat";
+    let command = format!(
+        "$package = Get-AppxPackage -Name '{STORE_IDENTITY_NAME}' -ErrorAction SilentlyContinue | Where-Object {{ $_.PackageFamilyName -eq '{MICROSOFT_STORE_PACKAGE_FAMILY_NAME}' }} | Select-Object -First 1; if ($package) {{ $package.Version }}"
+    );
+    let mut process = Command::new("powershell.exe");
+    process.args(["-NoProfile", "-NonInteractive", "-Command", &command]);
+    process.creation_flags(CREATE_NO_WINDOW);
+    let output = process.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .find(|value| !value.is_empty())
+        .map(str::to_owned)
+}
+
+#[cfg(windows)]
+fn installed_microsoft_store_version_from_registry() -> Option<String> {
+    const ACTIVATABLE_PACKAGES_PATH: &str = "Software\\Classes\\ActivatableClasses\\Package";
+    const STORE_IDENTITY_NAME: &str = "Zorblock.AeroP2PChat";
+
+    let packages = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(ACTIVATABLE_PACKAGES_PATH)
+        .ok()?;
+    packages.enum_keys().filter_map(Result::ok).find_map(|full_name| {
+        let suffix = full_name.strip_prefix(&format!("{STORE_IDENTITY_NAME}_"))?;
+        if !full_name.ends_with("_cgb7tdbkexs70") {
+            return None;
+        }
+        suffix.split('_').next().map(str::to_owned)
+    })
+}
+
 #[cfg(not(windows))]
 fn installed_aero_version() -> Option<String> {
+    None
+}
+
+#[cfg(not(windows))]
+fn installed_microsoft_store_version() -> Option<String> {
     None
 }
 

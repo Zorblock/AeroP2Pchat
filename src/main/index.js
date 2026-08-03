@@ -1597,6 +1597,16 @@ app.whenReady().then(async () => {
       },
     ),
   );
+  ipcMain.handle("open-microsoft-store-updates", async () => {
+    if (process.platform !== "win32" || !process.windowsStore) {
+      return { ok: false };
+    }
+    const storeUri = projectConfig.windowsStore?.productId
+      ? `ms-windows-store://pdp/?productid=${projectConfig.windowsStore.productId}`
+      : "ms-windows-store://downloadsandupdates";
+    await shell.openExternal(storeUri);
+    return { ok: true };
+  });
   ipcMain.handle("fetch-update-manifest", async (_event, url) => {
     try {
       return { ok: true, text: await fetchUpdateManifest(url) };

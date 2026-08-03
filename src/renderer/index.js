@@ -3231,7 +3231,10 @@ function clearUpdateAvailableUi() {
   titlebarLogo.removeAttribute("title");
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
-  setTitlebarActionLabel(appMenuUpdate, "Check for updates");
+  setTitlebarActionLabel(
+    appMenuUpdate,
+    platformApi.isWindowsStore ? "Open Microsoft Store updates" : "Check for updates",
+  );
   appMenuUpdate.querySelector("i").className = "fa-solid fa-rotate-right";
   appMenuUpdateIgnore.classList.add("hidden");
 }
@@ -3330,6 +3333,19 @@ function ignoreAvailableUpdateHint() {
 }
 
 async function checkForUpdates({ manual = false } = {}) {
+  if (platformApi.isWindowsStore) {
+    if (manual) {
+      const result = await platformApi.openMicrosoftStoreUpdates();
+      if (result?.ok) {
+        setUpdateMenuStatus("Microsoft Store opened");
+        setStatus("online", "Updates are managed by the Microsoft Store.");
+      } else {
+        setUpdateMenuStatus("Microsoft Store unavailable");
+      }
+    }
+    return;
+  }
+
   if (isNetworkOffline()) {
     if (manual) {
       setStatus("offline", "You're offline. Internet connection required.");
