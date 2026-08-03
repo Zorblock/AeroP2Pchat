@@ -45,6 +45,7 @@ slint::include_modules!();
 
 const REPOSITORY: &str = "Zorblock/AeroP2Pchat";
 const INSTALLER_ASSET: &str = "Aero-P2P-Chat-Windows-x64-Setup.exe";
+const AERO_EXECUTABLE_NAME: &str = "Aero P2P Chat.exe";
 const TEMP_SETUP_DIRECTORY_PREFIX: &str = "aero-p2p-setup-";
 const WINDOW_TITLE: &str = "Aero P2P Chat Online Installer";
 const MICROSOFT_STORE_PACKAGE_FAMILY_NAME: &str = "Zorblock.AeroP2PChat_cgb7tdbkexs70";
@@ -95,6 +96,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             confirm_uninstall_ui.clone(),
             Arc::clone(&is_uninstalling_for_action),
         );
+    });
+    let close_app_ui = ui.as_weak();
+    let is_uninstalling_for_close = Arc::clone(&is_uninstalling);
+    ui.on_close_running_app(move || {
+        close_aero_then_uninstall(close_app_ui.clone(), Arc::clone(&is_uninstalling_for_close));
     });
     let cancel_uninstall_ui = ui.as_weak();
     ui.on_cancel_uninstall(move || check_for_updates(cancel_uninstall_ui.clone()));
@@ -378,11 +384,18 @@ fn show_uninstall_confirmation(ui: &Weak<MainWindow>) {
         window.set_show_maintenance_actions(false);
         window.set_show_security_note(false);
         window.set_show_uninstall_confirmation(true);
+        window.set_show_close_app_action(false);
     });
 }
 
 fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
     if is_uninstalling.swap(true, AtomicOrdering::AcqRel) {
+        return;
+    }
+
+    if aero_application_is_running() {
+        is_uninstalling.store(false, AtomicOrdering::Release);
+        show_close_aero_before_uninstall_ui(&ui);
         return;
     }
 
@@ -422,6 +435,52 @@ fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
     }
 
     wait_for_silent_uninstall(ui, uninstaller, is_uninstalling);
+}
+
+fn show_close_aero_before_uninstall_ui(ui: &Weak<MainWindow>) {
+    let _ = ui.upgrade_in_event_loop(|window| {
+        window.set_status("Close Aero P2P Chat before uninstalling".into());
+        window.set_detail("Aero is still running and would keep installation files locked.".into());
+        window.set_version("Close the app to remove all files cleanly.".into());
+        window.set_progress(0.0);
+        window.set_show_progress(false);
+        window.set_show_install(false);
+        window.set_show_switch_action(false);
+        window.set_show_maintenance_actions(false);
+        window.set_show_security_note(false);
+        window.set_show_uninstall_confirmation(false);
+        window.set_show_close_app_action(true);
+    });
+}
+
+fn close_aero_then_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
+    if is_uninstalling.swap(true, AtomicOrdering::AcqRel) {
+        return;
+    }
+    update_ui(
+        &ui,
+        "Closing Aero P2P Chat...",
+        "Waiting for Aero to close before uninstalling.",
+        "The uninstaller will start automatically.",
+        0.0,
+        "Closing...",
+        false,
+        true,
+    );
+    thread::spawn(move || {
+        let _ = request_aero_application_close();
+        let deadline = std::time::Instant::now() + Duration::from_secs(20);
+        while aero_application_is_running() {
+            if std::time::Instant::now() >= deadline {
+                is_uninstalling.store(false, AtomicOrdering::Release);
+                show_close_aero_before_uninstall_ui(&ui);
+                return;
+            }
+            thread::sleep(Duration::from_millis(250));
+        }
+        is_uninstalling.store(false, AtomicOrdering::Release);
+        start_uninstall(ui, is_uninstalling);
+    });
 }
 
 fn wait_for_silent_uninstall(
@@ -504,6 +563,7 @@ fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_ope
     ui.set_show_security_note(true);
     ui.set_show_progress(false);
     ui.set_show_uninstall_confirmation(false);
+    ui.set_show_close_app_action(false);
     ui.set_security_note("Uninstall the Store version first.".into());
 }
 
@@ -659,6 +719,42 @@ fn process_is_running(pid: u32) -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(windows)]
+fn aero_application_is_running() -> bool {
+    let mut process = Command::new("tasklist.exe");
+    process.args([
+        "/FI",
+        &format!("IMAGENAME eq {AERO_EXECUTABLE_NAME}"),
+        "/FO",
+        "CSV",
+        "/NH",
+    ]);
+    process.creation_flags(CREATE_NO_WINDOW);
+    process
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains(AERO_EXECUTABLE_NAME))
+        .unwrap_or(false)
+}
+
+#[cfg(windows)]
+fn request_aero_application_close() -> Result<(), std::io::Error> {
+    let mut process = Command::new("taskkill.exe");
+    process.args(["/IM", AERO_EXECUTABLE_NAME, "/T"]);
+    process.creation_flags(CREATE_NO_WINDOW);
+    let _ = process.status()?;
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn aero_application_is_running() -> bool {
+    false
+}
+
+#[cfg(not(windows))]
+fn request_aero_application_close() -> Result<(), std::io::Error> {
+    Ok(())
+}
+
 fn check_for_updates(ui: Weak<MainWindow>) {
     let installed_version = installed_aero_version();
     let installed_display = installed_version
@@ -763,6 +859,7 @@ fn show_setup_maintenance_actions(ui: &Weak<MainWindow>) {
         window.set_show_maintenance_actions(true);
         window.set_show_security_note(false);
         window.set_show_uninstall_confirmation(false);
+        window.set_show_close_app_action(false);
     });
 }
 
@@ -806,12 +903,13 @@ fn install_latest(
             ui,
             "Aero P2P Chat is up to date.",
             detail,
-            &format!("Installed: {installed_version} · Latest: {latest_version}"),
-            1.0,
+            &format!("Installed: {installed_version} / Latest: {latest_version}"),
+            0.0,
             "Check again",
             true,
             true,
         );
+        show_setup_maintenance_actions(ui);
         return Ok(());
     }
 
@@ -965,6 +1063,7 @@ fn update_ui(
         window.set_show_security_note(true);
         window.set_show_progress(progress > 0.0);
         window.set_show_uninstall_confirmation(false);
+        window.set_show_close_app_action(false);
     });
 }
 

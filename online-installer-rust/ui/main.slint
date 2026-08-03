@@ -17,6 +17,7 @@ export component MainWindow inherits Window {
     in-out property <bool> show-security-note: true;
     in-out property <bool> show-progress: false;
     in-out property <bool> show-uninstall-confirmation: false;
+    in-out property <bool> show-close-app-action: false;
     in-out property <color> window-color: #f5f5f5;
     in-out property <color> surface-color: #ffffff;
     in-out property <color> border-color: #dedede;
@@ -40,6 +41,7 @@ export component MainWindow inherits Window {
     callback uninstall();
     callback confirm-uninstall();
     callback cancel-uninstall();
+    callback close-running-app();
 
     background: root.window-color;
 
@@ -231,6 +233,33 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => { root.confirm-uninstall(); }
+            }
+        }
+
+        Rectangle {
+            x: 340px;
+            y: 150px;
+            width: 180px;
+            height: 36px;
+            background: close-app-area.pressed ? root.accent-pressed-color : root.accent-color;
+            border-radius: 9px;
+            visible: root.show-close-app-action;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Close Aero P2P Chat";
+                color: root.accent-text-color;
+                font-size: 12px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            close-app-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.close-running-app(); }
             }
         }
 
