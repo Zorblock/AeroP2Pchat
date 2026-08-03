@@ -2,6 +2,7 @@ const {
   app,
   BrowserWindow,
   Menu,
+  nativeTheme,
   nativeImage,
   Notification,
   Tray,
@@ -202,7 +203,7 @@ function getDefaultAppSettings() {
     closeToTray: true,
     readReceipts: true,
     sidebarWidth: defaultSidebarWidth,
-    theme: "light",
+    theme: nativeTheme.shouldUseDarkColors ? "dark" : "light",
     presenceStatus: "online",
   };
 }

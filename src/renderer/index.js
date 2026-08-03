@@ -350,7 +350,9 @@ const DEFAULT_MIC_EQ_LOW = 0;
 const DEFAULT_MIC_EQ_MID = 0;
 const DEFAULT_MIC_EQ_HIGH = 0;
 const DEFAULT_SIDEBAR_WIDTH = 360;
-const DEFAULT_THEME = "light";
+const DEFAULT_THEME = window.matchMedia("(prefers-color-scheme: dark)").matches
+  ? "dark"
+  : "light";
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
 const MIN_CHAT_WIDTH = 320;
