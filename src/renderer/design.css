@@ -2078,7 +2078,8 @@ select.native-select {
 .mine .bubble {
   border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
   border-radius: 15px 15px 5px 15px;
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-subtle));
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .bubble p {
   color: inherit;
@@ -2185,6 +2186,10 @@ body.reduce-motion *::after {
   padding: 10px 14px 12px;
   border-top: 1px solid var(--line);
   background: var(--surface);
+}
+.message-form:focus-within {
+  border-top-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 3%, var(--surface));
 }
 #message-input {
   height: 42px;

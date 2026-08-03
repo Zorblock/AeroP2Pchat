@@ -1813,7 +1813,7 @@ function applyAccentColor(accentColor = "system") {
   const foreground = getAccentForeground(color);
   document.documentElement.dataset.accentColor = accentColor;
   document.body.dataset.accentColor = accentColor;
-  appearanceAccentStyle.textContent = `:root[data-accent-color], body[data-accent-color] { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); --on-accent: ${foreground}; }`;
+  appearanceAccentStyle.textContent = `:root[data-accent-color], body[data-accent-color] { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); --line-accent: color-mix(in srgb, ${color} 48%, var(--line)); --on-accent: ${foreground}; }`;
 }
 
 function applyAppearancePreferences() {
