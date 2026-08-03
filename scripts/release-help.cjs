@@ -236,10 +236,7 @@ function collectReleaseFiles() {
   const files = fs
     .readdirSync(releaseDir)
     .map((name) => path.join(releaseDir, name))
-    .filter(
-      (filePath) =>
-        fs.statSync(filePath).isFile() && !/\.(appx|msix)$/i.test(filePath),
-    );
+    .filter((filePath) => fs.statSync(filePath).isFile());
 
   if (files.length === 0) {
     throw new Error("No release artifacts found in dist/release/.");
@@ -249,7 +246,11 @@ function collectReleaseFiles() {
 }
 
 function isLocalOnlyReleaseFile(filePath) {
-  return path.basename(filePath) === config.release.chromeExtensionAsset;
+  const name = path.basename(filePath);
+  return (
+    name === config.release.chromeExtensionAsset ||
+    name === config.release.windowsStoreAppxAsset
+  );
 }
 
 function getGitHubReleaseFiles(files) {
@@ -289,6 +290,12 @@ function describeReleaseFile(filePath) {
   }
   if (lowerName.endsWith(".apk")) {
     return { description: "Android direct-install package", download: true };
+  }
+  if (name === config.release.windowsStoreAppxAsset) {
+    return {
+      description: "Microsoft Store submission package (local only)",
+      download: false,
+    };
   }
   if (name === config.release.chromeExtensionAsset) {
     return {
@@ -493,6 +500,19 @@ function printArtifactLinks(releaseFiles) {
     );
   }
 
+  const storePackage = releaseFiles.find(
+    (filePath) => path.basename(filePath) === config.release.windowsStoreAppxAsset,
+  );
+  if (storePackage) {
+    console.log(`\n${colored("MICROSOFT STORE", color.bold, color.green)}`);
+    printArtifact(
+      "Store submission package (.appx)",
+      storePackage,
+      "Upload this file in Microsoft Partner Center; it is intentionally not uploaded to GitHub.",
+      [color.green],
+    );
+  }
+
   const appImage = findReleaseFile(".appimage");
   if (appImage) {
     console.log(`\n${colored("LINUX DOWNLOADS", color.bold, color.magenta)}`);
@@ -504,7 +524,9 @@ function printArtifactLinks(releaseFiles) {
     );
   }
 
-  const chromeExtension = releaseFiles.find(isLocalOnlyReleaseFile);
+  const chromeExtension = releaseFiles.find(
+    (filePath) => path.basename(filePath) === config.release.chromeExtensionAsset,
+  );
   if (chromeExtension) {
     console.log(`\n${colored("CHROME EXTENSION", color.bold, color.yellow)}`);
     printArtifact(

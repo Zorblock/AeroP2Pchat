@@ -153,6 +153,15 @@ function buildWindows(version) {
     ),
     config.release.windowsOnlineInstallerAsset,
   );
+  run("node", [
+    "scripts/build-store.cjs",
+    "--skip-compile",
+    `--output=${path.relative(root, path.join(buildDir, "store"))}`,
+    `--artifact=${path.relative(
+      root,
+      path.join(artifactsDir, config.release.windowsStoreAppxAsset),
+    )}`,
+  ]);
   writePlatformManifest("windows", version, asset);
 }
 

@@ -31,6 +31,17 @@ module.exports = {
     target: "dir",
     icon: "assets/app.ico",
   },
+  // This identity is assigned to Aero P2P Chat in Microsoft Partner Center.
+  // The Store replaces the package signature after certification.
+  appx: {
+    identityName: "Zorblock.AeroP2PChat",
+    publisher: "CN=9C56695C-1431-40D0-A466-EAE7BFAE9231",
+    publisherDisplayName: "Zorblock",
+    displayName: projectConfig.app.name,
+    backgroundColor: "transparent",
+    languages: ["en-US", "de-DE"],
+    capabilities: ["runFullTrust", "internetClient", "microphone", "webcam"],
+  },
 
   linux: {
     target: ["AppImage"],
