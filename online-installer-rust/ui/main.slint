@@ -1,10 +1,8 @@
-import { Button, ProgressIndicator } from "std-widgets.slint";
-
 export component MainWindow inherits Window {
     title: "Aero P2P Chat Online Installer";
     icon: @image-url("../../assets/app-150.png");
-    width: 560px;
-    height: 330px;
+    width: 600px;
+    height: 346px;
 
     in-out property <string> status: "Ready to install Aero P2P Chat";
     in-out property <string> detail: "Click Install to download the newest version from GitHub.";
@@ -13,26 +11,161 @@ export component MainWindow inherits Window {
     in-out property <string> button-text: "Install";
     in-out property <bool> can-install: true;
     in-out property <bool> show-install: true;
+    in-out property <color> window-color: #f5f5f5;
+    in-out property <color> frame-color: #ffffff;
+    in-out property <color> surface-color: #ffffff;
+    in-out property <color> border-color: #dedede;
+    in-out property <color> text-color: #1b1b1b;
+    in-out property <color> muted-color: #616161;
+    in-out property <color> accent-color: #0078d4;
+    in-out property <color> accent-pressed-color: #005a9e;
+    in-out property <color> accent-text-color: #ffffff;
+    in-out property <color> disabled-color: #c8c8c8;
     callback install();
 
-    Text { x: 28px; y: 26px; width: 504px; height: 30px; text: "Aero P2P Chat"; font-size: 22px; font-weight: 700; }
-    Text { x: 28px; y: 64px; width: 504px; height: 24px; text: status; font-size: 16px; font-weight: 600; }
-    Text { x: 28px; y: 94px; width: 504px; height: 42px; text: detail; wrap: word-wrap; }
+    background: root.window-color;
 
-    ProgressIndicator { x: 28px; y: 150px; width: 504px; height: 12px; progress: root.progress; }
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 76px;
+        background: root.frame-color;
 
-    Text { x: 28px; y: 178px; width: 504px; height: 22px; text: version; }
-    Text { x: 28px; y: 206px; width: 504px; height: 34px; text: "Downloads are verified against the SHA-256 checksum published on GitHub."; wrap: word-wrap; }
+        Image {
+            x: 28px;
+            y: 19px;
+            width: 38px;
+            height: 38px;
+            source: @image-url("../../assets/app-150.png");
+        }
 
-    Button {
-        x: 412px;
-        y: 260px;
-        width: 120px;
-        height: 34px;
-        text: root.button-text;
-        primary: true;
-        enabled: root.can-install;
-        visible: root.show-install;
-        clicked => { root.install(); }
+        Text {
+            x: 80px;
+            y: 17px;
+            width: 400px;
+            height: 25px;
+            text: "Aero P2P Chat";
+            color: root.text-color;
+            font-size: 18px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+
+        Text {
+            x: 81px;
+            y: 42px;
+            width: 400px;
+            height: 18px;
+            text: "Windows installer";
+            color: root.muted-color;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            y: 75px;
+            width: parent.width;
+            height: 1px;
+            background: root.border-color;
+        }
+    }
+
+    Rectangle {
+        x: 28px;
+        y: 104px;
+        width: 544px;
+        height: 214px;
+        background: root.surface-color;
+        border-color: root.border-color;
+        border-width: 1px;
+        border-radius: 13px;
+
+        Text {
+            x: 24px;
+            y: 22px;
+            width: 496px;
+            height: 27px;
+            text: root.status;
+            color: root.text-color;
+            font-size: 16px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+
+        Text {
+            x: 24px;
+            y: 54px;
+            width: 496px;
+            height: 33px;
+            text: root.detail;
+            color: root.muted-color;
+            font-size: 13px;
+            wrap: word-wrap;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            x: 24px;
+            y: 102px;
+            width: 496px;
+            height: 4px;
+            background: root.border-color;
+            clip: true;
+
+            Rectangle {
+                width: parent.width * root.progress;
+                height: parent.height;
+                background: root.accent-color;
+            }
+        }
+
+        Text {
+            x: 24px;
+            y: 116px;
+            width: 496px;
+            height: 20px;
+            text: root.version;
+            color: root.muted-color;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            x: 24px;
+            y: 148px;
+            width: 330px;
+            height: 20px;
+            text: "Each download is checked against its GitHub SHA-256 checksum.";
+            color: root.muted-color;
+            font-size: 11px;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            x: 388px;
+            y: 150px;
+            width: 132px;
+            height: 36px;
+            background: !root.can-install ? root.disabled-color : install-area.pressed ? root.accent-pressed-color : root.accent-color;
+            border-radius: 9px;
+            visible: root.show-install;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.button-text;
+                color: root.accent-text-color;
+                font-size: 13px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            install-area := TouchArea {
+                enabled: root.can-install;
+                clicked => { root.install(); }
+            }
+        }
     }
 }

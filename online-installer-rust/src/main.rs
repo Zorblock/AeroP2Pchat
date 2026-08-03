@@ -13,7 +13,7 @@ use std::{
 use reqwest::{Url, blocking::Client};
 use sha2::{Digest, Sha256};
 use single_instance::SingleInstance;
-use slint::{ComponentHandle, SharedString, Weak};
+use slint::{Color, ComponentHandle, SharedString, Weak};
 #[cfg(windows)]
 use winreg::{
     RegKey,
@@ -34,6 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let options = launch_options();
     let ui = MainWindow::new()?;
+    apply_system_theme(&ui);
     if let Some(installed_version) = installed_aero_version() {
         ui.set_version(format!(
             "Installed version: {installed_version} · Latest version will be checked after you continue."
@@ -62,6 +63,83 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct LaunchOptions {
     wait_for_pid: Option<u32>,
     auto_install: bool,
+}
+
+struct UiTheme {
+    window: Color,
+    frame: Color,
+    surface: Color,
+    border: Color,
+    text: Color,
+    muted: Color,
+    accent: Color,
+    accent_pressed: Color,
+    accent_text: Color,
+    disabled: Color,
+}
+
+fn color(red: u8, green: u8, blue: u8) -> Color {
+    Color::from_rgb_u8(red, green, blue)
+}
+
+fn system_prefers_dark_mode() -> bool {
+    #[cfg(windows)]
+    {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        if let Ok(personalize) = hkcu.open_subkey(
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        ) {
+            if let Ok(value) = personalize.get_value::<u32, _>("AppsUseLightTheme") {
+                return value == 0;
+            }
+        }
+    }
+
+    false
+}
+
+fn system_theme() -> UiTheme {
+    if system_prefers_dark_mode() {
+        UiTheme {
+            window: color(0, 0, 0),
+            frame: color(0, 0, 0),
+            surface: color(10, 10, 10),
+            border: color(35, 35, 35),
+            text: color(245, 245, 245),
+            muted: color(154, 154, 154),
+            accent: color(242, 242, 242),
+            accent_pressed: color(215, 215, 215),
+            accent_text: color(5, 5, 5),
+            disabled: color(56, 56, 56),
+        }
+    } else {
+        UiTheme {
+            window: color(234, 241, 245),
+            frame: color(248, 251, 252),
+            surface: color(255, 255, 255),
+            border: color(215, 226, 231),
+            text: color(16, 41, 54),
+            muted: color(106, 129, 140),
+            accent: color(20, 127, 166),
+            accent_pressed: color(11, 92, 123),
+            accent_text: color(255, 255, 255),
+            disabled: color(195, 210, 217),
+        }
+    }
+}
+
+fn apply_system_theme(ui: &MainWindow) {
+    let theme = system_theme();
+    ui.set_window_color(theme.window);
+    ui.set_frame_color(theme.frame);
+    ui.set_surface_color(theme.surface);
+    ui.set_border_color(theme.border);
+    ui.set_text_color(theme.text);
+    ui.set_muted_color(theme.muted);
+    ui.set_accent_color(theme.accent);
+    ui.set_accent_pressed_color(theme.accent_pressed);
+    ui.set_accent_text_color(theme.accent_text);
+    ui.set_disabled_color(theme.disabled);
 }
 
 fn launch_options() -> LaunchOptions {
