@@ -53,12 +53,12 @@ const MICROSOFT_STORE_PRODUCT_URI: &str = "ms-windows-store://pdp/?productid=9MT
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = launch_options();
     let instance = SingleInstance::new("Zorblock.AeroP2PChat.OnlineInstaller.8B09B5D9")?;
     if !instance.is_single() {
         return Ok(());
     }
 
-    let options = launch_options();
     let ui = MainWindow::new()?;
     apply_system_theme(&ui);
     let store_version = installed_microsoft_store_version();
@@ -401,20 +401,50 @@ fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
         return;
     };
 
-    match Command::new(uninstaller)
-        .args([
-            "/VERYSILENT",
-            "/SUPPRESSMSGBOXES",
-            "/NORESTART",
-            "/CLOSEAPPLICATIONS",
-            "/FORCECLOSEAPPLICATIONS",
-        ])
-        .spawn()
-    {
-        Ok(_) => std::process::exit(0),
-        Err(error) => {
-            is_uninstalling.store(false, AtomicOrdering::Release);
-            update_ui(
+    if online_installer_runs_from_installation_dir(&uninstaller) {
+        match spawn_silent_uninstaller(&uninstaller) {
+            Ok(_) => std::process::exit(0),
+            Err(error) => {
+                is_uninstalling.store(false, AtomicOrdering::Release);
+                update_ui(
+                    &ui,
+                    "Aero P2P Chat could not be uninstalled.",
+                    &error.to_string(),
+                    "The Windows setup uninstaller could not be started.",
+                    0.0,
+                    "Check again",
+                    true,
+                    true,
+                );
+            }
+        }
+        return;
+    }
+
+    wait_for_silent_uninstall(ui, uninstaller, is_uninstalling);
+}
+
+fn wait_for_silent_uninstall(
+    ui: Weak<MainWindow>,
+    uninstaller: PathBuf,
+    is_uninstalling: Arc<AtomicBool>,
+) {
+    update_ui(
+        &ui,
+        "Uninstalling Aero P2P Chat...",
+        "Closing Aero P2P Chat and removing the Windows setup.",
+        "Please keep this window open.",
+        0.0,
+        "Uninstalling...",
+        false,
+        true,
+    );
+    thread::spawn(move || {
+        let result = spawn_silent_uninstaller(&uninstaller).and_then(|mut process| process.wait());
+        is_uninstalling.store(false, AtomicOrdering::Release);
+        match result {
+            Ok(_) => check_for_updates(ui),
+            Err(error) => update_ui(
                 &ui,
                 "Aero P2P Chat could not be uninstalled.",
                 &error.to_string(),
@@ -423,9 +453,28 @@ fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
                 "Check again",
                 true,
                 true,
-            );
+            ),
         }
-    }
+    });
+}
+
+fn online_installer_runs_from_installation_dir(uninstaller: &Path) -> bool {
+    let Ok(current_executable) = std::env::current_exe() else {
+        return false;
+    };
+    current_executable.parent() == uninstaller.parent()
+}
+
+fn spawn_silent_uninstaller(uninstaller: &Path) -> Result<std::process::Child, std::io::Error> {
+    Command::new(uninstaller)
+        .args([
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/CLOSEAPPLICATIONS",
+            "/FORCECLOSEAPPLICATIONS",
+        ])
+        .spawn()
 }
 
 fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_opened: bool) {
@@ -807,7 +856,7 @@ fn install_latest(
         false,
         true,
     );
-    Command::new(&target_path)
+    let mut setup = Command::new(&target_path)
         .args([
             "/SILENT",
             "/SUPPRESSMSGBOXES",
@@ -817,9 +866,20 @@ fn install_latest(
         ])
         .spawn()?;
 
-    // The setup updates this executable in the installation directory. Exit now
-    // so it is no longer locked when Inno Setup copies the new version.
-    std::process::exit(0);
+    if installed_aero_uninstaller()
+        .as_deref()
+        .is_some_and(online_installer_runs_from_installation_dir)
+    {
+        // The setup replaces this executable in the installation directory.
+        std::process::exit(0);
+    }
+
+    let status = setup.wait()?;
+    if !status.success() {
+        return Err("Windows setup did not complete successfully.".into());
+    }
+    check_for_updates(ui.clone());
+    Ok(())
 }
 
 fn download_file(
