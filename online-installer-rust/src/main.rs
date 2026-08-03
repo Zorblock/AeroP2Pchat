@@ -48,7 +48,6 @@ const INSTALLER_ASSET: &str = "Aero-P2P-Chat-Windows-x64-Setup.exe";
 const AERO_EXECUTABLE_NAME: &str = "Aero P2P Chat.exe";
 const TEMP_SETUP_DIRECTORY_PREFIX: &str = "aero-p2p-setup-";
 const WINDOW_TITLE: &str = "Aero P2P Chat Online Installer";
-const MICROSOFT_STORE_PACKAGE_FAMILY_NAME: &str = "Zorblock.AeroP2PChat_cgb7tdbkexs70";
 const MICROSOFT_STORE_PRODUCT_URI: &str = "ms-windows-store://pdp/?productid=9MTXC0M7P403";
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -1183,29 +1182,10 @@ fn uninstaller_executable_from_command(command: &str) -> Option<PathBuf> {
 
 #[cfg(windows)]
 fn installed_microsoft_store_version() -> Option<String> {
-    installed_microsoft_store_version_from_powershell()
-        .or_else(installed_microsoft_store_version_from_registry)
-}
-
-#[cfg(windows)]
-fn installed_microsoft_store_version_from_powershell() -> Option<String> {
-    const STORE_IDENTITY_NAME: &str = "Zorblock.AeroP2PChat";
-    let command = format!(
-        "$package = Get-AppxPackage -Name '{STORE_IDENTITY_NAME}' -ErrorAction SilentlyContinue | Where-Object {{ $_.PackageFamilyName -eq '{MICROSOFT_STORE_PACKAGE_FAMILY_NAME}' }} | Select-Object -First 1; if ($package) {{ $package.Version }}"
-    );
-    let mut process = Command::new("powershell.exe");
-    process.args(["-NoProfile", "-NonInteractive", "-Command", &command]);
-    process.creation_flags(CREATE_NO_WINDOW);
-    let output = process.output().ok()?;
-    if !output.status.success() {
-        return None;
-    }
-
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(str::trim)
-        .find(|value| !value.is_empty())
-        .map(str::to_owned)
+    // Microsoft Store packages are registered per user. Reading the package
+    // registration is sufficient for the current user and avoids starting a
+    // shell process just to check whether this package is installed.
+    installed_microsoft_store_version_from_registry()
 }
 
 #[cfg(windows)]
