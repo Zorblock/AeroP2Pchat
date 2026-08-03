@@ -2471,7 +2471,7 @@ function getSidebarWidthBounds() {
   const shellWidth = appShell?.clientWidth ?? 0;
   const maxByLayout =
     shellWidth > 0
-      ? shellWidth - MIN_CHAT_WIDTH - RESIZER_WIDTH
+      ? shellWidth - MIN_CHAT_WIDTH - RESIZER_WIDTH - 28
       : MAX_SIDEBAR_WIDTH;
   const lowerBound = window.innerWidth <= 700 ? 170 : MIN_SIDEBAR_WIDTH;
   return {
