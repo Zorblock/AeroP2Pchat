@@ -2147,6 +2147,7 @@ select.native-select {
   z-index: 500;
   display: grid;
   padding: clamp(12px, 3vh, 24px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   place-items: center;
@@ -2474,18 +2475,26 @@ select.native-select {
 /* Settings */
 #settings-modal .modal-panel {
   display: grid;
-  width: min(980px, calc(100vw - 36px));
+  /* The overlay already has padding, so use its available width instead of
+     viewport units. This keeps the dialog genuinely centered at every size. */
+  width: min(980px, 100%);
+  max-width: 100%;
+  height: min(720px, calc(100dvh - var(--titlebar-height) - 32px));
+  max-height: min(720px, calc(100dvh - var(--titlebar-height) - 32px));
   grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
 }
 .settings-layout {
   display: grid;
   grid-template-columns: 188px minmax(0, 1fr);
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 .settings-nav {
   display: flex;
   min-height: 0;
+  min-width: 0;
   flex-direction: column;
   gap: 3px;
   overflow-y: auto;
@@ -2549,8 +2558,11 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
+  min-width: 0;
   padding: 4px 4px 4px 16px;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .settings-column {
   display: contents;
@@ -2563,6 +2575,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .settings-section {
   align-self: start;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -2581,7 +2594,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .settings-reset-section button {
   min-height: 36px;
 }
-@media (max-width: 680px) {
+@media (max-width: 840px) {
   .settings-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
@@ -2604,7 +2617,29 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
     padding-inline: 9px;
   }
   .settings-grid {
-    padding-left: 1px;
+    padding: 12px 1px 1px;
+  }
+}
+@media (max-width: 460px) {
+  #settings-modal .modal-panel {
+    width: 100%;
+    height: min(720px, calc(100dvh - var(--titlebar-height) - 20px));
+    max-height: min(720px, calc(100dvh - var(--titlebar-height) - 20px));
+    padding: 12px;
+  }
+  .settings-nav-item {
+    min-height: 32px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .settings-section {
+    padding: 12px;
+  }
+  .device-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-choice {
+    margin-left: 0;
   }
 }
 .settings-section h3 {
