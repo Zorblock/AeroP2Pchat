@@ -338,6 +338,14 @@ fn open_windows_setup_switch(
     store_install_state: Arc<Mutex<Option<String>>>,
     is_waiting_for_store_removal: Arc<AtomicBool>,
 ) {
+    if installed_microsoft_store_version().is_none() {
+        if let Ok(mut state) = store_install_state.lock() {
+            *state = None;
+        }
+        show_ready_for_windows_setup_ui(ui);
+        return;
+    }
+
     if let Err(error) = open_windows_uri("ms-settings:appsfeatures") {
         update_ui(
             ui,
@@ -355,7 +363,6 @@ fn open_windows_setup_switch(
     if is_waiting_for_store_removal.swap(true, AtomicOrdering::AcqRel) {
         return;
     }
-    show_waiting_for_store_removal_ui(ui);
 
     let ui = ui.clone();
     thread::spawn(move || {
@@ -372,23 +379,6 @@ fn open_windows_setup_switch(
             show_ready_for_windows_setup_ui(&ui);
             break;
         }
-    });
-}
-
-fn show_waiting_for_store_removal_ui(ui: &Weak<MainWindow>) {
-    let _ = ui.upgrade_in_event_loop(|window| {
-        window.set_status("Switching to the Windows setup version".into());
-        window.set_detail(
-            "Uninstall the Microsoft Store version in Installed apps. This installer will continue automatically."
-                .into(),
-        );
-        window.set_version("Waiting for the Microsoft Store version to be removed...".into());
-        window.set_progress(0.0);
-        window.set_button_text("Waiting...".into());
-        window.set_can_install(false);
-        window.set_show_install(true);
-        window.set_show_switch_action(false);
-        window.set_security_note("Keep this window open. Install unlocks automatically.".into());
     });
 }
 
