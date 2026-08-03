@@ -16,6 +16,7 @@ export component MainWindow inherits Window {
     in-out property <bool> show-maintenance-actions: false;
     in-out property <bool> show-security-note: true;
     in-out property <bool> show-progress: false;
+    in-out property <bool> show-uninstall-confirmation: false;
     in-out property <color> window-color: #f5f5f5;
     in-out property <color> surface-color: #ffffff;
     in-out property <color> border-color: #dedede;
@@ -25,10 +26,20 @@ export component MainWindow inherits Window {
     in-out property <color> accent-pressed-color: #005a9e;
     in-out property <color> accent-text-color: #ffffff;
     in-out property <color> disabled-color: #c8c8c8;
+    in-out property <color> repair-color: #e8f4fa;
+    in-out property <color> repair-hover-color: #d8edf7;
+    in-out property <color> repair-border-color: #8bc3da;
+    in-out property <color> repair-text-color: #0d5474;
+    in-out property <color> danger-color: #fff0f0;
+    in-out property <color> danger-hover-color: #ffe2e2;
+    in-out property <color> danger-border-color: #e3a2a2;
+    in-out property <color> danger-text-color: #9d2727;
     callback install();
     callback switch-to-windows-setup();
     callback repair();
     callback uninstall();
+    callback confirm-uninstall();
+    callback cancel-uninstall();
 
     background: root.window-color;
 
@@ -112,8 +123,8 @@ export component MainWindow inherits Window {
             y: 150px;
             width: 104px;
             height: 36px;
-            background: repair-area.has-hover ? root.border-color : transparent;
-            border-color: root.border-color;
+            background: repair-area.has-hover ? root.repair-hover-color : root.repair-color;
+            border-color: root.repair-border-color;
             border-width: 1px;
             border-radius: 9px;
             visible: root.show-maintenance-actions;
@@ -122,7 +133,7 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 text: "Repair";
-                color: root.text-color;
+                color: root.repair-text-color;
                 font-size: 12px;
                 font-weight: 600;
                 horizontal-alignment: center;
@@ -141,8 +152,8 @@ export component MainWindow inherits Window {
             y: 150px;
             width: 112px;
             height: 36px;
-            background: uninstall-area.has-hover ? root.border-color : transparent;
-            border-color: root.border-color;
+            background: uninstall-area.has-hover ? root.danger-hover-color : root.danger-color;
+            border-color: root.danger-border-color;
             border-width: 1px;
             border-radius: 9px;
             visible: root.show-maintenance-actions;
@@ -151,7 +162,7 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 text: "Uninstall";
-                color: root.text-color;
+                color: root.danger-text-color;
                 font-size: 12px;
                 font-weight: 600;
                 horizontal-alignment: center;
@@ -162,6 +173,64 @@ export component MainWindow inherits Window {
                 width: parent.width;
                 height: parent.height;
                 clicked => { root.uninstall(); }
+            }
+        }
+
+        Rectangle {
+            x: 300px;
+            y: 150px;
+            width: 92px;
+            height: 36px;
+            background: cancel-uninstall-area.has-hover ? root.border-color : transparent;
+            border-color: root.border-color;
+            border-width: 1px;
+            border-radius: 9px;
+            visible: root.show-uninstall-confirmation;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "No";
+                color: root.text-color;
+                font-size: 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            cancel-uninstall-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.cancel-uninstall(); }
+            }
+        }
+
+        Rectangle {
+            x: 400px;
+            y: 150px;
+            width: 120px;
+            height: 36px;
+            background: confirm-uninstall-area.has-hover ? root.danger-hover-color : root.danger-color;
+            border-color: root.danger-border-color;
+            border-width: 1px;
+            border-radius: 9px;
+            visible: root.show-uninstall-confirmation;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Yes, uninstall";
+                color: root.danger-text-color;
+                font-size: 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            confirm-uninstall-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.confirm-uninstall(); }
             }
         }
 

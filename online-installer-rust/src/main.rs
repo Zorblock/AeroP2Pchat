@@ -88,12 +88,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let uninstall_ui = ui.as_weak();
     let is_uninstalling = Arc::new(AtomicBool::new(false));
     let is_uninstalling_for_action = Arc::clone(&is_uninstalling);
-    ui.on_uninstall(move || {
+    ui.on_uninstall(move || show_uninstall_confirmation(&uninstall_ui));
+    let confirm_uninstall_ui = ui.as_weak();
+    ui.on_confirm_uninstall(move || {
         start_uninstall(
-            uninstall_ui.clone(),
+            confirm_uninstall_ui.clone(),
             Arc::clone(&is_uninstalling_for_action),
         );
     });
+    let cancel_uninstall_ui = ui.as_weak();
+    ui.on_cancel_uninstall(move || check_for_updates(cancel_uninstall_ui.clone()));
     let is_waiting_for_store_removal = Arc::new(AtomicBool::new(false));
     let store_install_state_for_switch = Arc::clone(&store_install_state);
     let is_waiting_for_store_removal_for_switch = Arc::clone(&is_waiting_for_store_removal);
@@ -133,6 +137,14 @@ struct UiTheme {
     accent_pressed: Color,
     accent_text: Color,
     disabled: Color,
+    repair: Color,
+    repair_hover: Color,
+    repair_border: Color,
+    repair_text: Color,
+    danger: Color,
+    danger_hover: Color,
+    danger_border: Color,
+    danger_text: Color,
 }
 
 fn color(red: u8, green: u8, blue: u8) -> Color {
@@ -167,6 +179,14 @@ fn system_theme() -> UiTheme {
             accent_pressed: color(215, 215, 215),
             accent_text: color(5, 5, 5),
             disabled: color(56, 56, 56),
+            repair: color(18, 31, 40),
+            repair_hover: color(27, 47, 60),
+            repair_border: color(48, 80, 98),
+            repair_text: color(190, 225, 242),
+            danger: color(42, 22, 24),
+            danger_hover: color(65, 29, 32),
+            danger_border: color(112, 52, 56),
+            danger_text: color(255, 193, 190),
         }
     } else {
         UiTheme {
@@ -179,6 +199,14 @@ fn system_theme() -> UiTheme {
             accent_pressed: color(11, 92, 123),
             accent_text: color(255, 255, 255),
             disabled: color(195, 210, 217),
+            repair: color(232, 244, 250),
+            repair_hover: color(216, 237, 247),
+            repair_border: color(139, 195, 218),
+            repair_text: color(13, 84, 116),
+            danger: color(255, 240, 240),
+            danger_hover: color(255, 226, 226),
+            danger_border: color(227, 162, 162),
+            danger_text: color(157, 39, 39),
         }
     }
 }
@@ -194,6 +222,14 @@ fn apply_system_theme(ui: &MainWindow) {
     ui.set_accent_pressed_color(theme.accent_pressed);
     ui.set_accent_text_color(theme.accent_text);
     ui.set_disabled_color(theme.disabled);
+    ui.set_repair_color(theme.repair);
+    ui.set_repair_hover_color(theme.repair_hover);
+    ui.set_repair_border_color(theme.repair_border);
+    ui.set_repair_text_color(theme.repair_text);
+    ui.set_danger_color(theme.danger);
+    ui.set_danger_hover_color(theme.danger_hover);
+    ui.set_danger_border_color(theme.danger_border);
+    ui.set_danger_text_color(theme.danger_text);
 }
 
 #[cfg(windows)]
@@ -328,6 +364,23 @@ fn start_repair(ui: Weak<MainWindow>) {
     });
 }
 
+fn show_uninstall_confirmation(ui: &Weak<MainWindow>) {
+    let _ = ui.upgrade_in_event_loop(|window| {
+        window.set_status("Uninstall Aero P2P Chat?".into());
+        window.set_detail(
+            "This removes the standard Windows setup and its installation folder.".into(),
+        );
+        window.set_version("This cannot be undone from the installer.".into());
+        window.set_progress(0.0);
+        window.set_show_progress(false);
+        window.set_show_install(false);
+        window.set_show_switch_action(false);
+        window.set_show_maintenance_actions(false);
+        window.set_show_security_note(false);
+        window.set_show_uninstall_confirmation(true);
+    });
+}
+
 fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
     if is_uninstalling.swap(true, AtomicOrdering::AcqRel) {
         return;
@@ -348,16 +401,17 @@ fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
         return;
     };
 
-    match Command::new(uninstaller).spawn() {
-        Ok(mut process) => {
-            thread::spawn(move || {
-                let _ = process.wait();
-                is_uninstalling.store(false, AtomicOrdering::Release);
-                if installed_aero_version().is_none() {
-                    check_for_updates(ui);
-                }
-            });
-        }
+    match Command::new(uninstaller)
+        .args([
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/CLOSEAPPLICATIONS",
+            "/FORCECLOSEAPPLICATIONS",
+        ])
+        .spawn()
+    {
+        Ok(_) => std::process::exit(0),
         Err(error) => {
             is_uninstalling.store(false, AtomicOrdering::Release);
             update_ui(
@@ -400,6 +454,7 @@ fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_ope
     ui.set_show_maintenance_actions(false);
     ui.set_show_security_note(true);
     ui.set_show_progress(false);
+    ui.set_show_uninstall_confirmation(false);
     ui.set_security_note("Uninstall the Store version first.".into());
 }
 
@@ -658,6 +713,7 @@ fn show_setup_maintenance_actions(ui: &Weak<MainWindow>) {
     let _ = ui.upgrade_in_event_loop(|window| {
         window.set_show_maintenance_actions(true);
         window.set_show_security_note(false);
+        window.set_show_uninstall_confirmation(false);
     });
 }
 
@@ -848,6 +904,7 @@ fn update_ui(
         window.set_show_maintenance_actions(false);
         window.set_show_security_note(true);
         window.set_show_progress(progress > 0.0);
+        window.set_show_uninstall_confirmation(false);
     });
 }
 
