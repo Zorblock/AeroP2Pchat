@@ -556,7 +556,7 @@ body.is-resizing-sidebar * {
 }
 .id-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--sidebar-action-width);
+  grid-template-columns: minmax(0, 1fr) repeat(2, var(--sidebar-action-width));
   align-items: center;
   gap: var(--sidebar-control-gap);
 }
@@ -677,6 +677,11 @@ select.native-select {
   min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.id-row code.is-private {
+  color: transparent;
+  text-shadow: 0 0 7px color-mix(in srgb, var(--text-soft) 82%, transparent);
+  user-select: none;
 }
 .aero-select-toggle > i {
   flex: 0 0 auto;
@@ -3791,7 +3796,10 @@ body.platform-android .update-card,
 body.platform-android .peers-card {
   padding-inline: 4px;
 }
-body.platform-android .id-row,
+body.platform-android .id-row {
+  grid-template-columns: minmax(0, 1fr) repeat(2, 44px);
+  gap: 8px;
+}
 body.platform-android .connect-row {
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 8px;

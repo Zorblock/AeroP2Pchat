@@ -16,6 +16,7 @@ const windowMinimize = document.querySelector("#window-minimize");
 const windowMaximize = document.querySelector("#window-maximize");
 const windowClose = document.querySelector("#window-close");
 const ownId = document.querySelector("#own-id");
+const ownIdPrivacyToggle = document.querySelector("#toggle-own-id-privacy");
 const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
 const remoteIdInput = document.querySelector("#remote-id");
@@ -1692,6 +1693,7 @@ function normalizeAppSettings() {
     customAccentColor: /^#[0-9a-f]{6}$/i.test(appConfig.appSettings.customAccentColor)
       ? appConfig.appSettings.customAccentColor
       : "#147fa6",
+    hideOwnId: Boolean(appConfig.appSettings.hideOwnId),
     compactLayout: Boolean(appConfig.appSettings.compactLayout),
     messageDensity: ["comfortable", "compact"].includes(
       appConfig.appSettings.messageDensity,
@@ -2159,6 +2161,17 @@ function renderAppSettings() {
     appConfig.appSettings.closeToTray = false;
   }
   applyAppearancePreferences();
+  const ownIdHidden = Boolean(appConfig.appSettings.hideOwnId);
+  ownId.classList.toggle("is-private", ownIdHidden);
+  ownId.setAttribute("aria-label", ownIdHidden ? "Aero ID hidden" : "Your Aero ID");
+  ownIdPrivacyToggle.setAttribute(
+    "aria-label",
+    ownIdHidden ? "Show Aero ID" : "Hide Aero ID",
+  );
+  ownIdPrivacyToggle.title = ownIdPrivacyToggle.getAttribute("aria-label");
+  ownIdPrivacyToggle.querySelector("i").className = ownIdHidden
+    ? "fa-regular fa-eye-slash"
+    : "fa-regular fa-eye";
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
   updateTitlebarPresenceIndicator();
@@ -8732,6 +8745,10 @@ copyId.addEventListener("click", async () => {
   } catch {
     setStatus("offline", "Could not copy Aero ID.");
   }
+});
+
+ownIdPrivacyToggle.addEventListener("click", () => {
+  saveAppSettings({ hideOwnId: !appConfig.appSettings.hideOwnId });
 });
 
 connectForm.addEventListener("submit", (event) => {

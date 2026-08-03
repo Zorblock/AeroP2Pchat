@@ -75,7 +75,7 @@ const updateManifestTimeoutMs = 12000;
 const updateManifestRetryDelayMs = 800;
 const updateDownloadTimeoutMs = 60000;
 const updateSetupDirectoryPrefix = "aero-p2p-setup-";
-const defaultSidebarWidth = 230;
+const defaultSidebarWidth = 360;
 const minSidebarWidth = 170;
 const maxSidebarWidth = 360;
 const defaultMicBoost = 100;
@@ -347,6 +347,7 @@ function getDefaultAppSettings() {
     startHidden: true,
     closeToTray: true,
     readReceipts: true,
+    hideOwnId: false,
     sidebarWidth: defaultSidebarWidth,
     theme: "system",
     customTheme: "",
@@ -388,6 +389,7 @@ function normalizeConfig(config = {}) {
     startHidden: Boolean(settings.startHidden),
     closeToTray: settings.closeToTray !== false,
     readReceipts: settings.readReceipts !== false,
+    hideOwnId: Boolean(settings.hideOwnId),
     presenceStatus: ["online", "dnd", "offline"].includes(
       settings.presenceStatus,
     )
