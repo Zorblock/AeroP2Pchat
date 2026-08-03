@@ -128,8 +128,15 @@ const welcomeProgress = Array.from(
   document.querySelectorAll("[data-welcome-progress]"),
 );
 const welcomeNickname = document.querySelector("#welcome-nickname");
+const welcomeThemeSystem = document.querySelector("#welcome-theme-system");
 const welcomeThemeLight = document.querySelector("#welcome-theme-light");
 const welcomeThemeDark = document.querySelector("#welcome-theme-dark");
+const welcomeAccentColorSelect = document.querySelector(
+  "#welcome-accent-color-select",
+);
+const welcomeCustomAccentColorInput = document.querySelector(
+  "#welcome-custom-accent-color",
+);
 const welcomeMicrophoneSelect = document.querySelector(
   "#welcome-microphone-select",
 );
@@ -2039,8 +2046,16 @@ function renderWelcomeSettings() {
   }
 
   const settings = appConfig.appSettings || {};
-  welcomeThemeLight.checked = settings.theme !== "dark";
+  welcomeThemeSystem.checked = settings.theme === "system";
+  welcomeThemeLight.checked = settings.theme === "light";
   welcomeThemeDark.checked = settings.theme === "dark";
+  welcomeAccentColorSelect.value = settings.accentColor;
+  welcomeCustomAccentColorInput.value = settings.customAccentColor;
+  welcomeCustomAccentColorInput.classList.toggle(
+    "hidden",
+    settings.accentColor !== "custom",
+  );
+  syncEnhancedSelect(welcomeAccentColorSelect);
   welcomeAutostartToggle.checked = Boolean(settings.autostart);
   welcomeAutostartToggle.disabled = !platformApi.supportsAutostart;
   welcomeAutostartOpen.checked = !settings.startHidden;
@@ -9028,6 +9043,12 @@ welcomeNickname.addEventListener("keydown", (event) => {
   }
 });
 
+welcomeThemeSystem.addEventListener("change", () => {
+  if (welcomeThemeSystem.checked) {
+    saveAppSettings({ theme: "system" });
+  }
+});
+
 welcomeThemeLight.addEventListener("change", () => {
   if (welcomeThemeLight.checked) {
     saveAppSettings({ theme: "light" });
@@ -9038,6 +9059,17 @@ welcomeThemeDark.addEventListener("change", () => {
   if (welcomeThemeDark.checked) {
     saveAppSettings({ theme: "dark" });
   }
+});
+
+welcomeAccentColorSelect.addEventListener("change", () => {
+  saveAppSettings({ accentColor: welcomeAccentColorSelect.value });
+});
+
+welcomeCustomAccentColorInput.addEventListener("input", () => {
+  saveAppSettings({
+    accentColor: "custom",
+    customAccentColor: welcomeCustomAccentColorInput.value,
+  });
 });
 
 welcomeMicrophoneSelect.addEventListener("change", () => {

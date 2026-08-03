@@ -967,6 +967,13 @@
             </div>
             <div class="welcome-theme-options" role="radiogroup" aria-label="Choose a theme">
               <label>
+                <input id="welcome-theme-system" type="radio" name="welcome-theme" value="system" />
+                <span class="welcome-theme-card system-preview">
+                  <i class="fa-solid fa-desktop" aria-hidden="true"></i>
+                  <strong>System</strong>
+                </span>
+              </label>
+              <label>
                 <input id="welcome-theme-light" type="radio" name="welcome-theme" value="light" />
                 <span class="welcome-theme-card light-preview">
                   <strong>Light</strong>
@@ -979,6 +986,19 @@
                 </span>
               </label>
             </div>
+            <label class="welcome-accent-field">
+              <span>Accent color</span>
+              <select id="welcome-accent-color-select">
+                <option value="system">System accent</option>
+                <option value="aero">Aero blue</option>
+                <option value="violet">Violet</option>
+                <option value="green">Green</option>
+                <option value="rose">Rose</option>
+                <option value="amber">Amber</option>
+                <option value="custom">Custom color</option>
+              </select>
+              <input id="welcome-custom-accent-color" class="hidden" type="color" value="#147fa6" aria-label="Custom accent color" />
+            </label>
           </section>
 
           <section class="welcome-page hidden" data-welcome-step="1">

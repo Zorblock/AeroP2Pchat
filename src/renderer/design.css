@@ -288,6 +288,7 @@ body.app-boot-finish .window-frame {
   width: 30px;
   height: 30px;
   place-items: center;
+  isolation: isolate;
   -webkit-app-region: no-drag;
 }
 .titlebar-logo {
@@ -303,6 +304,17 @@ body.app-boot-finish .window-frame {
   cursor: pointer;
   transition: transform 140ms ease, border-color 140ms ease,
     box-shadow 140ms ease;
+}
+.titlebar-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  mix-blend-mode: color;
+  opacity: 0.82;
+  pointer-events: none;
 }
 .titlebar-logo.is-app-logo {
   padding: 0;
@@ -340,6 +352,7 @@ body.app-boot-finish .window-frame {
 }
 .titlebar-presence {
   position: absolute;
+  z-index: 2;
   right: -1px;
   bottom: 0;
   width: 10px;
@@ -2429,8 +2442,8 @@ body.reduce-motion *::after {
 }
 .welcome-theme-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(480px, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(520px, 100%);
   gap: 12px;
 }
 .welcome-theme-options input {
@@ -2442,10 +2455,11 @@ body.reduce-motion *::after {
 }
 .welcome-theme-card {
   display: grid;
-  min-height: 82px;
-  padding: 14px;
+  min-height: 74px;
+  padding: 12px;
   place-items: center;
   align-content: center;
+  gap: 6px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -2453,6 +2467,14 @@ body.reduce-motion *::after {
 }
 .welcome-theme-card strong {
   font-size: 13px;
+}
+.welcome-theme-card i {
+  font-size: 14px;
+}
+.welcome-theme-card.system-preview {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text-soft);
 }
 .welcome-theme-card.light-preview {
   border-color: #dce7eb;
@@ -2471,6 +2493,37 @@ body.reduce-motion *::after {
 .welcome-theme-options input:focus-visible + .welcome-theme-card {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+.welcome-accent-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  width: min(420px, 100%);
+  gap: 7px 9px;
+}
+.welcome-accent-field > span {
+  grid-column: 1 / -1;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 740;
+}
+.welcome-accent-field .aero-select {
+  min-width: 0;
+}
+#welcome-custom-accent-color {
+  width: 42px;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+#welcome-custom-accent-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+#welcome-custom-accent-color::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
 }
 .welcome-device-grid {
   display: grid;
