@@ -192,12 +192,12 @@ p {
 .window-frame {
   display: grid;
   grid-template-rows: var(--titlebar-height) minmax(0, 1fr);
-  width: 100%;
-  height: 100vh;
+  width: calc(100% - 8px);
+  height: calc(100vh - 8px);
+  margin: 4px;
   overflow: hidden;
-  border: 1px solid var(--line-strong);
+  border-radius: 12px;
   background: var(--frame);
-  box-shadow: var(--shadow-lg);
   opacity: 1;
   transition: opacity 180ms ease;
 }
@@ -640,7 +640,7 @@ select.native-select {
   justify-content: space-between;
   gap: 10px;
   padding: 4px 11px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line-strong));
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   color: var(--text);
@@ -965,23 +965,23 @@ select.native-select {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 36px;
+  height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  box-shadow: none;
 }
 .sidebar-feedback-button:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-hover);
+  border-color: var(--line);
+  background: var(--surface-subtle);
   color: var(--text);
 }
 .sidebar-feedback-button:active {
-  background: var(--surface-active);
+  background: var(--surface-hover);
 }
 .mobile-feedback-section {
   display: none;
@@ -1191,7 +1191,7 @@ select.native-select {
   border-radius: var(--radius-xl);
   background: var(--surface-raised);
   color: var(--text);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .profile-close {
   position: absolute;
@@ -2749,7 +2749,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   display: flex;
   gap: 20px;
   margin: -2px 0 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
 }
 .theme-tab {
   position: relative;
@@ -3684,8 +3684,11 @@ body.platform-android {
 }
 body.platform-android .window-frame {
   grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
   height: 100dvh;
+  margin: 0;
   border: 0;
+  border-radius: 0;
 }
 body.platform-android .titlebar {
   min-height: calc(54px + env(safe-area-inset-top));
