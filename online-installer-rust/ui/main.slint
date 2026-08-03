@@ -12,6 +12,7 @@ export component MainWindow inherits Window {
     in-out property <string> button-text: "Install";
     in-out property <bool> can-install: true;
     in-out property <bool> show-install: true;
+    in-out property <bool> show-switch-action: false;
     in-out property <color> window-color: #f5f5f5;
     in-out property <color> surface-color: #ffffff;
     in-out property <color> border-color: #dedede;
@@ -22,6 +23,7 @@ export component MainWindow inherits Window {
     in-out property <color> accent-text-color: #ffffff;
     in-out property <color> disabled-color: #c8c8c8;
     callback install();
+    callback switch-to-windows-setup();
 
     background: root.window-color;
 
@@ -90,12 +92,43 @@ export component MainWindow inherits Window {
         Text {
             x: 24px;
             y: 148px;
-            width: 330px;
+            width: root.show-switch-action ? 200px : 330px;
             height: 20px;
             text: root.security-note;
             color: root.muted-color;
             font-size: 11px;
             vertical-alignment: center;
+        }
+
+        Rectangle {
+            x: 240px;
+            y: 150px;
+            width: 132px;
+            height: 36px;
+            background: switch-area.has-hover ? root.border-color : transparent;
+            border-color: root.border-color;
+            border-width: 1px;
+            border-radius: 9px;
+            visible: root.show-switch-action;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Switch to setup";
+                color: root.text-color;
+                font-size: 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            switch-area := TouchArea {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.switch-to-windows-setup(); }
+            }
         }
 
         Rectangle {

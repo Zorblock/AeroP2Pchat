@@ -64,6 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .into());
     }
     let weak_ui = ui.as_weak();
+    let switch_ui = ui.as_weak();
     let wait_for_pid = options.wait_for_pid;
     let store_version_for_install = store_version.clone();
     ui.on_install(move || {
@@ -74,6 +75,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             start_installation(weak_ui.clone());
         }
+    });
+    ui.on_switch_to_windows_setup(move || {
+        open_windows_setup_switch(&switch_ui);
     });
 
     if store_version.is_none() && let Some(pid) = options.wait_for_pid {
@@ -275,9 +279,9 @@ fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_ope
     );
     ui.set_detail(
         if store_opened {
-        "Use the Store's Library to check for and install updates."
+        "Use Microsoft Store to check for and install updates."
     } else {
-        "This installer will not replace a Microsoft Store installation."
+        "This online installer is for the standard Windows setup. Your current app updates through Microsoft Store."
     }
         .into(),
     );
@@ -286,8 +290,9 @@ fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_ope
     ui.set_button_text("Open Store updates".into());
     ui.set_can_install(true);
     ui.set_show_install(true);
+    ui.set_show_switch_action(true);
     ui.set_security_note(
-        "Updates for this installation are verified and delivered by Microsoft Store."
+        "Uninstall the Store version first."
             .into(),
     );
 }
@@ -300,34 +305,7 @@ fn show_microsoft_store_update_ui(ui: &Weak<MainWindow>, version: &str, store_op
 }
 
 fn open_microsoft_store_updates(ui: &Weak<MainWindow>, version: &str) {
-    #[cfg(windows)]
-    let result = {
-        let operation: Vec<u16> = "open\0".encode_utf16().collect();
-        let uri: Vec<u16> = format!("{MICROSOFT_STORE_PRODUCT_URI}\0")
-            .encode_utf16()
-            .collect();
-        let handle = unsafe {
-            ShellExecuteW(
-                None,
-                PCWSTR(operation.as_ptr()),
-                PCWSTR(uri.as_ptr()),
-                PCWSTR::null(),
-                PCWSTR::null(),
-                SW_SHOWNORMAL,
-            )
-        };
-        if handle.0 as isize > 32 {
-            Ok(())
-        } else {
-            Err(std::io::Error::other("Microsoft Store did not accept the product link."))
-        }
-    };
-
-    #[cfg(not(windows))]
-    let result: Result<(), std::io::Error> =
-        Err(std::io::Error::other("Microsoft Store is only available on Windows."));
-
-    match result {
+    match open_windows_uri(MICROSOFT_STORE_PRODUCT_URI) {
         Ok(_) => show_microsoft_store_update_ui(ui, version, true),
         Err(error) => update_ui(
             ui,
@@ -340,6 +318,47 @@ fn open_microsoft_store_updates(ui: &Weak<MainWindow>, version: &str) {
             true,
         ),
     }
+}
+
+fn open_windows_setup_switch(ui: &Weak<MainWindow>) {
+    if let Err(error) = open_windows_uri("ms-settings:appsfeatures") {
+        update_ui(
+            ui,
+            "Installed apps could not be opened.",
+            &error.to_string(),
+            "Uninstall the Microsoft Store version, then reopen this installer.",
+            0.0,
+            "Open Store updates",
+            true,
+            true,
+        );
+    }
+}
+
+#[cfg(windows)]
+fn open_windows_uri(uri: &str) -> Result<(), std::io::Error> {
+    let operation: Vec<u16> = "open\0".encode_utf16().collect();
+    let uri: Vec<u16> = format!("{uri}\0").encode_utf16().collect();
+    let handle = unsafe {
+        ShellExecuteW(
+            None,
+            PCWSTR(operation.as_ptr()),
+            PCWSTR(uri.as_ptr()),
+            PCWSTR::null(),
+            PCWSTR::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    if handle.0 as isize > 32 {
+        Ok(())
+    } else {
+        Err(std::io::Error::other("Windows did not accept this system link."))
+    }
+}
+
+#[cfg(not(windows))]
+fn open_windows_uri(_uri: &str) -> Result<(), std::io::Error> {
+    Err(std::io::Error::other("This action is only available on Windows."))
 }
 
 fn wait_then_install(ui: Weak<MainWindow>, pid: u32, install_when_closed: bool) {
