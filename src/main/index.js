@@ -347,7 +347,7 @@ function getDefaultAppSettings() {
     startHidden: true,
     closeToTray: true,
     readReceipts: true,
-    hideOwnId: false,
+    hideOwnId: true,
     sidebarWidth: defaultSidebarWidth,
     theme: "system",
     customTheme: "",

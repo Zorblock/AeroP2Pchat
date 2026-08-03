@@ -1693,7 +1693,7 @@ function normalizeAppSettings() {
     customAccentColor: /^#[0-9a-f]{6}$/i.test(appConfig.appSettings.customAccentColor)
       ? appConfig.appSettings.customAccentColor
       : "#147fa6",
-    hideOwnId: Boolean(appConfig.appSettings.hideOwnId),
+    hideOwnId: appConfig.appSettings.hideOwnId !== false,
     compactLayout: Boolean(appConfig.appSettings.compactLayout),
     messageDensity: ["comfortable", "compact"].includes(
       appConfig.appSettings.messageDensity,
