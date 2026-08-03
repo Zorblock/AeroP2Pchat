@@ -44,6 +44,7 @@
   --radius-md: 13px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+  --message-font-size: 13px;
   background: var(--canvas);
   color: var(--text);
 }
@@ -2074,7 +2075,7 @@ select.native-select {
 }
 .bubble p {
   color: inherit;
-  font-size: 13px;
+  font-size: var(--message-font-size);
   line-height: 1.45;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -2090,6 +2091,45 @@ select.native-select {
   font-size: 8px;
   font-weight: 650;
   line-height: 1;
+}
+body[data-chat-font-size="small"] {
+  --message-font-size: 12px;
+}
+body[data-chat-font-size="large"] {
+  --message-font-size: 15px;
+}
+body[data-message-density="compact"] .messages {
+  gap: 4px;
+  padding-block: 12px 9px;
+}
+body[data-message-density="compact"] .bubble {
+  padding: 6px 9px 5px;
+  border-radius: 12px 12px 12px 4px;
+}
+body[data-message-density="compact"] .mine .bubble {
+  border-radius: 12px 12px 4px 12px;
+}
+body[data-message-density="compact"] .bubble-footer {
+  margin-top: 2px;
+}
+body[data-compact-layout="true"] .connection-panel {
+  gap: 8px;
+  padding: 10px 8px 9px 10px;
+}
+body[data-compact-layout="true"] .chat-header {
+  min-height: 54px;
+  padding-block: 7px;
+}
+body[data-compact-layout="true"] .message-form {
+  padding-block: 7px 8px;
+}
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 .message-state {
   display: inline-flex;
@@ -2724,6 +2764,9 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   .themes-manager-actions {
     grid-template-columns: minmax(0, 1fr);
   }
+  .appearance-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .settings-field,
 .device-settings {
@@ -2754,7 +2797,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .theme-switcher {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .theme-switcher label {
@@ -2791,6 +2834,26 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .theme-switcher input:focus-visible + span {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.appearance-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.appearance-options .settings-check {
+  min-height: 36px;
+}
+.appearance-reset-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-inline: 10px;
+  font-size: 11px;
 }
 .settings-options {
   display: grid;

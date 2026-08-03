@@ -13,6 +13,7 @@ const {
   safeStorage,
   shell,
   session,
+  systemPreferences,
   screen,
 } = require("electron");
 const { createWriteStream, readFileSync } = require("node:fs");
@@ -281,7 +282,7 @@ function getDefaultAppSettings() {
     closeToTray: true,
     readReceipts: true,
     sidebarWidth: defaultSidebarWidth,
-    theme: nativeTheme.shouldUseDarkColors ? "dark" : "light",
+    theme: "system",
     customTheme: "",
     presenceStatus: "online",
   };
@@ -1714,6 +1715,18 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("get-system-accent-color", () => {
+    try {
+      const accent = systemPreferences.getAccentColor();
+      return {
+        color: /^[0-9a-f]{6,8}$/i.test(accent)
+          ? `#${accent.slice(0, 6)}`
+          : "",
+      };
+    } catch {
+      return { color: "" };
+    }
+  });
   ipcMain.handle("list-themes", async () => ({
     path: getThemesPath(),
     themes: await listThemes(),

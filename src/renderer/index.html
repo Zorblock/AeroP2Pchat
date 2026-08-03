@@ -1108,6 +1108,13 @@
               <h3>Appearance</h3>
               <div class="theme-switcher" role="radiogroup" aria-label="Theme">
                 <label>
+                  <input id="theme-system" type="radio" name="theme" value="system" />
+                  <span>
+                    <i class="fa-solid fa-desktop" aria-hidden="true"></i>
+                    System
+                  </span>
+                </label>
+                <label>
                   <input
                     id="theme-light"
                     type="radio"
@@ -1126,6 +1133,46 @@
                     Dark
                   </span>
                 </label>
+              </div>
+              <div class="appearance-options">
+                <label class="settings-field">
+                  <span>Accent color</span>
+                  <select id="accent-color-select">
+                    <option value="system">System accent</option>
+                    <option value="aero">Aero blue</option>
+                    <option value="violet">Violet</option>
+                    <option value="green">Green</option>
+                    <option value="rose">Rose</option>
+                    <option value="amber">Amber</option>
+                  </select>
+                </label>
+                <label class="settings-field">
+                  <span>Message density</span>
+                  <select id="message-density-select">
+                    <option value="comfortable">Comfortable</option>
+                    <option value="compact">Compact</option>
+                  </select>
+                </label>
+                <label class="settings-field">
+                  <span>Chat text size</span>
+                  <select id="chat-font-size-select">
+                    <option value="small">Small</option>
+                    <option value="normal">Normal</option>
+                    <option value="large">Large</option>
+                  </select>
+                </label>
+                <label class="settings-check">
+                  <input id="compact-layout-toggle" type="checkbox" />
+                  <span>Use compact layout</span>
+                </label>
+                <label class="settings-check">
+                  <input id="reduce-motion-toggle" type="checkbox" />
+                  <span>Reduce animations</span>
+                </label>
+                <button id="reset-sidebar-width" class="ghost-button appearance-reset-button" type="button">
+                  <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
+                  Reset sidebar width
+                </button>
               </div>
             </section>
 

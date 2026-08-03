@@ -190,6 +190,13 @@ const profileReset = document.querySelector("#profile-reset");
 const profileSave = document.querySelector("#profile-save");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
+const themeSystem = document.querySelector("#theme-system");
+const accentColorSelect = document.querySelector("#accent-color-select");
+const messageDensitySelect = document.querySelector("#message-density-select");
+const chatFontSizeSelect = document.querySelector("#chat-font-size-select");
+const compactLayoutToggle = document.querySelector("#compact-layout-toggle");
+const reduceMotionToggle = document.querySelector("#reduce-motion-toggle");
+const resetSidebarWidthButton = document.querySelector("#reset-sidebar-width");
 const customThemeSelect = document.querySelector("#custom-theme-select");
 const customThemeDetails = document.querySelector("#custom-theme-details");
 const openThemesFolderButton = document.querySelector("#open-themes-folder");
@@ -362,14 +369,19 @@ const DEFAULT_MIC_EQ_LOW = 0;
 const DEFAULT_MIC_EQ_MID = 0;
 const DEFAULT_MIC_EQ_HIGH = 0;
 const DEFAULT_SIDEBAR_WIDTH = 360;
-const DEFAULT_THEME = window.matchMedia("(prefers-color-scheme: dark)").matches
+const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const DEFAULT_THEME = systemThemeQuery.matches
   ? "dark"
   : "light";
+const appearanceAccentStyle = document.createElement("style");
+appearanceAccentStyle.id = "appearance-accent-style";
+document.head.append(appearanceAccentStyle);
 const customThemeStyle = document.createElement("style");
 customThemeStyle.id = "custom-theme-style";
 document.head.append(customThemeStyle);
 let availableCustomThemes = [];
 let customThemesPath = "";
+let systemAccentColor = "#147fa6";
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
 const MIN_CHAT_WIDTH = 320;
@@ -1070,7 +1082,7 @@ if (stripRetiredIdentityData(appConfig)) {
   await saveAppConfig();
 }
 normalizeAppSettings();
-applyAppTheme(appConfig.appSettings.theme);
+applyAppearancePreferences();
 await refreshCustomThemes();
 setBootProgress(42, "Loading settings");
 migrateLocalStorageConfig();
@@ -1078,7 +1090,8 @@ if (stripRetiredIdentityData(appConfig)) {
   await saveAppConfig();
 }
 normalizeAppSettings();
-applyAppTheme(appConfig.appSettings.theme);
+applyAppearancePreferences();
+void refreshSystemAccentColor();
 const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
@@ -1659,9 +1672,26 @@ function normalizeAppSettings() {
     )
       ? appConfig.appSettings.presenceStatus
       : "online",
-    theme: ["light", "dark"].includes(appConfig.appSettings.theme)
+    theme: ["system", "light", "dark"].includes(appConfig.appSettings.theme)
       ? appConfig.appSettings.theme
-      : DEFAULT_THEME,
+      : "system",
+    accentColor: ["system", "aero", "violet", "green", "rose", "amber"].includes(
+      appConfig.appSettings.accentColor,
+    )
+      ? appConfig.appSettings.accentColor
+      : "system",
+    compactLayout: Boolean(appConfig.appSettings.compactLayout),
+    messageDensity: ["comfortable", "compact"].includes(
+      appConfig.appSettings.messageDensity,
+    )
+      ? appConfig.appSettings.messageDensity
+      : "comfortable",
+    chatFontSize: ["small", "normal", "large"].includes(
+      appConfig.appSettings.chatFontSize,
+    )
+      ? appConfig.appSettings.chatFontSize
+      : "normal",
+    reducedMotion: Boolean(appConfig.appSettings.reducedMotion),
     customTheme:
       typeof appConfig.appSettings.customTheme === "string"
         ? appConfig.appSettings.customTheme
@@ -1708,8 +1738,15 @@ function normalizeAppSettings() {
   }
 }
 
-function applyAppTheme(theme = DEFAULT_THEME) {
-  const nextTheme = theme === "dark" ? "dark" : "light";
+function resolveAppTheme(theme = "system") {
+  if (theme === "system") {
+    return systemThemeQuery.matches ? "dark" : "light";
+  }
+  return theme === "dark" ? "dark" : "light";
+}
+
+function applyAppTheme(theme = "system") {
+  const nextTheme = resolveAppTheme(theme);
   document.documentElement.dataset.theme = nextTheme;
   document.body.dataset.theme = nextTheme;
   try {
@@ -1718,6 +1755,56 @@ function applyAppTheme(theme = DEFAULT_THEME) {
     // The active platform config remains the source of truth if storage is blocked.
   }
   void platformApi.setSystemTheme(nextTheme);
+}
+
+const accentColors = {
+  aero: "#147fa6",
+  violet: "#7654d9",
+  green: "#21875a",
+  rose: "#c44d6d",
+  amber: "#ad721c",
+};
+
+function applyAccentColor(accentColor = "system") {
+  const color =
+    accentColor === "system"
+      ? systemAccentColor
+      : accentColors[accentColor] || accentColors.aero;
+  document.documentElement.dataset.accentColor = accentColor;
+  appearanceAccentStyle.textContent = `:root { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); }`;
+}
+
+function applyAppearancePreferences() {
+  const settings = appConfig.appSettings || {};
+  applyAppTheme(settings.theme);
+  applyAccentColor(settings.accentColor);
+  document.body.dataset.compactLayout = settings.compactLayout ? "true" : "false";
+  document.body.dataset.messageDensity = settings.messageDensity || "comfortable";
+  document.body.dataset.chatFontSize = settings.chatFontSize || "normal";
+  document.body.classList.toggle("reduce-motion", Boolean(settings.reducedMotion));
+}
+
+async function refreshSystemAccentColor() {
+  const result = await platformApi.getSystemAccentColor();
+  if (typeof result?.color === "string" && /^#[0-9a-f]{6}$/i.test(result.color)) {
+    systemAccentColor = result.color;
+  }
+  if (appConfig.appSettings?.accentColor === "system") {
+    applyAccentColor("system");
+  }
+}
+
+function handleSystemThemeChange() {
+  if (appConfig.appSettings?.theme === "system") {
+    applyAppTheme("system");
+  }
+  void refreshSystemAccentColor();
+}
+
+if (typeof systemThemeQuery.addEventListener === "function") {
+  systemThemeQuery.addEventListener("change", handleSystemThemeChange);
+} else {
+  systemThemeQuery.addListener(handleSystemThemeChange);
 }
 
 function renderCustomThemePicker() {
@@ -1895,12 +1982,21 @@ function renderAppSettings() {
   if (!platformApi.supportsCloseToTray) {
     appConfig.appSettings.closeToTray = false;
   }
-  applyAppTheme(appConfig.appSettings.theme);
+  applyAppearancePreferences();
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
   updateTitlebarPresenceIndicator();
+  themeSystem.checked = appConfig.appSettings.theme === "system";
   themeLight.checked = appConfig.appSettings.theme === "light";
   themeDark.checked = appConfig.appSettings.theme === "dark";
+  accentColorSelect.value = appConfig.appSettings.accentColor;
+  messageDensitySelect.value = appConfig.appSettings.messageDensity;
+  chatFontSizeSelect.value = appConfig.appSettings.chatFontSize;
+  compactLayoutToggle.checked = appConfig.appSettings.compactLayout;
+  reduceMotionToggle.checked = appConfig.appSettings.reducedMotion;
+  syncEnhancedSelect(accentColorSelect);
+  syncEnhancedSelect(messageDensitySelect);
+  syncEnhancedSelect(chatFontSizeSelect);
   renderCustomThemePicker();
   autostartToggle.checked = appConfig.appSettings.autostart;
   autostartOpen.checked = !appConfig.appSettings.startHidden;
@@ -8990,6 +9086,36 @@ themeDark.addEventListener("change", () => {
   if (themeDark.checked) {
     saveAppSettings({ theme: "dark" });
   }
+});
+
+themeSystem.addEventListener("change", () => {
+  if (themeSystem.checked) {
+    saveAppSettings({ theme: "system" });
+  }
+});
+
+accentColorSelect.addEventListener("change", () => {
+  saveAppSettings({ accentColor: accentColorSelect.value });
+});
+
+messageDensitySelect.addEventListener("change", () => {
+  saveAppSettings({ messageDensity: messageDensitySelect.value });
+});
+
+chatFontSizeSelect.addEventListener("change", () => {
+  saveAppSettings({ chatFontSize: chatFontSizeSelect.value });
+});
+
+compactLayoutToggle.addEventListener("change", () => {
+  saveAppSettings({ compactLayout: compactLayoutToggle.checked });
+});
+
+reduceMotionToggle.addEventListener("change", () => {
+  saveAppSettings({ reducedMotion: reduceMotionToggle.checked });
+});
+
+resetSidebarWidthButton.addEventListener("click", () => {
+  setSidebarWidth(DEFAULT_SIDEBAR_WIDTH, { persist: true });
 });
 
 customThemeSelect.addEventListener("change", async () => {

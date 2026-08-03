@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
   loadConfig: () => ipcRenderer.invoke("load-config"),
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
+  getSystemAccentColor: () => ipcRenderer.invoke("get-system-accent-color"),
   listThemes: () => ipcRenderer.invoke("list-themes"),
   openThemesFolder: () => ipcRenderer.invoke("open-themes-folder"),
   loadTheme: (fileName) => ipcRenderer.invoke("load-theme", fileName),

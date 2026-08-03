@@ -167,6 +167,13 @@ export function createPlatformApi() {
       return { ok: true };
     },
 
+    async getSystemAccentColor() {
+      if (electron?.getSystemAccentColor) {
+        return electron.getSystemAccentColor();
+      }
+      return { color: "" };
+    },
+
     async listThemes() {
       if (electron?.listThemes) {
         return electron.listThemes();
