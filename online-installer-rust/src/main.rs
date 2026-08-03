@@ -19,12 +19,25 @@ use winreg::{
     RegKey,
     enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
 };
+#[cfg(windows)]
+use windows::{
+    Win32::{
+        Foundation::HWND,
+        System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+        UI::{
+            Shell::{ITaskbarList3, TBPF_NOPROGRESS, TBPF_NORMAL, TaskbarList},
+            WindowsAndMessaging::FindWindowW,
+        },
+    },
+    core::PCWSTR,
+};
 
 slint::include_modules!();
 
 const REPOSITORY: &str = "Zorblock/AeroP2Pchat";
 const INSTALLER_ASSET: &str = "Aero-P2P-Chat-Windows-x64-Setup.exe";
 const TEMP_SETUP_DIRECTORY_PREFIX: &str = "aero-p2p-setup-";
+const WINDOW_TITLE: &str = "Aero P2P Chat Online Installer";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let instance = SingleInstance::new("Zorblock.AeroP2PChat.OnlineInstaller.8B09B5D9")?;
@@ -136,6 +149,68 @@ fn apply_system_theme(ui: &MainWindow) {
     ui.set_accent_pressed_color(theme.accent_pressed);
     ui.set_accent_text_color(theme.accent_text);
     ui.set_disabled_color(theme.disabled);
+}
+
+#[cfg(windows)]
+struct TaskbarProgress {
+    taskbar: ITaskbarList3,
+    window: HWND,
+    com_initialized: bool,
+}
+
+#[cfg(windows)]
+impl TaskbarProgress {
+    fn new() -> Option<Self> {
+        let com_initialized = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok() };
+        let title: Vec<u16> = WINDOW_TITLE.encode_utf16().chain(std::iter::once(0)).collect();
+        let window = unsafe { FindWindowW(None, PCWSTR(title.as_ptr())).ok()? };
+        let taskbar: ITaskbarList3 = unsafe {
+            CoCreateInstance(&TaskbarList, None, CLSCTX_INPROC_SERVER).ok()?
+        };
+        unsafe { taskbar.HrInit().ok()? };
+
+        Some(Self {
+            taskbar,
+            window,
+            com_initialized,
+        })
+    }
+
+    fn set_progress(&self, progress: f32) {
+        let completed = (progress.clamp(0.0, 1.0) * 10_000.0).round() as u64;
+        unsafe {
+            let _ = self.taskbar.SetProgressState(self.window, TBPF_NORMAL);
+            let _ = self.taskbar.SetProgressValue(self.window, completed, 10_000);
+        }
+    }
+
+    fn clear(&self) {
+        unsafe {
+            let _ = self.taskbar.SetProgressState(self.window, TBPF_NOPROGRESS);
+        }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for TaskbarProgress {
+    fn drop(&mut self) {
+        self.clear();
+        if self.com_initialized {
+            unsafe { CoUninitialize() };
+        }
+    }
+}
+
+#[cfg(not(windows))]
+struct TaskbarProgress;
+
+#[cfg(not(windows))]
+impl TaskbarProgress {
+    fn new() -> Option<Self> {
+        None
+    }
+
+    fn set_progress(&self, _progress: f32) {}
 }
 
 fn launch_options() -> LaunchOptions {
@@ -347,6 +422,7 @@ fn download_file(
     let mut buffer = [0_u8; 128 * 1024];
     let mut downloaded = 0_u64;
     let mut last_percent = u64::MAX;
+    let taskbar_progress = TaskbarProgress::new();
 
     loop {
         let read = response.read(&mut buffer)?;
@@ -360,6 +436,9 @@ fn download_file(
             .unwrap_or(0.0);
         let percent = (progress * 100.0).floor() as u64;
         if total.is_none() || percent != last_percent {
+            if let Some(taskbar) = &taskbar_progress {
+                taskbar.set_progress(progress);
+            }
             let detail = match total {
                 Some(size) => format!(
                     "{} of {} downloaded ({percent}%)",

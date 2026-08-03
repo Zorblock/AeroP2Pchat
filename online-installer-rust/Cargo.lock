@@ -141,6 +141,7 @@ dependencies = [
  "single-instance",
  "slint",
  "slint-build",
+ "windows",
  "winreg",
  "winres",
 ]

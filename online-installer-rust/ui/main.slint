@@ -118,6 +118,10 @@ export component MainWindow inherits Window {
             }
 
             install-area := TouchArea {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
                 enabled: root.can-install;
                 clicked => { root.install(); }
             }
