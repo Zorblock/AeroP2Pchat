@@ -617,6 +617,41 @@ async function waitForVisualReady() {
   ]);
 }
 
+const bootSimulationSteps = [
+  [4, "Loading logo"],
+  [18, "Preparing interface"],
+  [42, "Loading settings"],
+  [55, "Loading identity"],
+  [82, "Rendering chat"],
+  [90, "Starting peer"],
+  [100, "Ready"],
+];
+
+function setBootSimulation(enabled) {
+  debugBootSimulation = Boolean(enabled);
+  window.clearTimeout(bootSimulationTimer);
+  bootSimulationTimer = null;
+
+  if (!debugBootSimulation) {
+    setBootProgress(100, "Ready");
+    document.body.classList.remove("app-loading", "app-boot-finish");
+    return;
+  }
+
+  document.body.classList.remove("app-boot-finish");
+  document.body.classList.add("app-loading");
+
+  let stepIndex = 0;
+  const renderStep = () => {
+    if (!debugBootSimulation) return;
+    const [progress, label] = bootSimulationSteps[stepIndex];
+    setBootProgress(progress, label);
+    stepIndex = (stepIndex + 1) % bootSimulationSteps.length;
+    bootSimulationTimer = window.setTimeout(renderStep, 620);
+  };
+  renderStep();
+}
+
 setBootProgress(4, "Loading logo");
 
 titlebarLogo.src = appLogo;
@@ -656,6 +691,8 @@ let networkOffline = navigator.onLine === false;
 let debugOfflineMode = false;
 
 let debugSimulateUpdate = false;
+let debugBootSimulation = false;
+let bootSimulationTimer = null;
 function setDebugSimulateUpdate(enabled) {
   const nextEnabled = Boolean(enabled);
   if (debugSimulateUpdate === nextEnabled) {
@@ -10301,6 +10338,8 @@ platformApi.onTrayAction(({ action, value }) => {
     setDebugSimulateUpdate(value);
   } else if (action === "set-debug-offline-mode") {
     setDebugOfflineMode(value);
+  } else if (action === "set-debug-boot-simulation") {
+    setBootSimulation(value);
   } else if (action === "toggle-theme") {
     appConfig.appSettings.theme = appConfig.appSettings.theme === "light" ? "dark" : "light";
     renderAppSettings();
@@ -10319,12 +10358,15 @@ platformApi.onTrayAction(({ action, value }) => {
 
 async function finishBootScreen() {
   await waitForVisualReady();
+  if (debugBootSimulation) return;
   setBootProgress(100, "Ready");
 
   requestAnimationFrame(() => {
+    if (debugBootSimulation) return;
     document.body.classList.add("app-boot-finish");
 
     window.setTimeout(() => {
+      if (debugBootSimulation) return;
       document.body.classList.remove("app-loading", "app-boot-finish");
     }, 280);
   });

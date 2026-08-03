@@ -808,6 +808,7 @@ let trayState = {
   closeToTray: true,
   debugOfflineMode: false,
   debugSimulateUpdate: false,
+  debugBootSimulation: false,
 };
 
 function hasTrayStateChanged(nextState) {
@@ -821,6 +822,7 @@ function hasTrayStateChanged(nextState) {
     "closeToTray",
     "debugOfflineMode",
     "debugSimulateUpdate",
+    "debugBootSimulation",
   ].some((key) => trayState[key] !== nextState[key]);
 }
 
@@ -977,6 +979,20 @@ function updateTrayMenu() {
               sendTrayAction(
                 "set-debug-simulate-update",
                 trayState.debugSimulateUpdate,
+              );
+            },
+          },
+          {
+            label: "Simulate Boot (loop)",
+            type: "checkbox",
+            checked: trayState.debugBootSimulation,
+            click: () => {
+              trayState.debugBootSimulation = !trayState.debugBootSimulation;
+              updateTrayMenu();
+              showMainWindow();
+              sendTrayAction(
+                "set-debug-boot-simulation",
+                trayState.debugBootSimulation,
               );
             },
           },
