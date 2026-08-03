@@ -1109,31 +1109,33 @@ select.native-select {
   transition: width 200ms ease;
 }
 
-/* Shadcn Tooltip */
+/* App tooltips */
 .shadcn-tooltip {
   position: fixed;
   z-index: 9999;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 12px;
-  font-weight: 500;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-width: min(260px, calc(100vw - 16px));
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 78%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--surface-raised) 96%, var(--canvas));
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2), 0 2px 5px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   pointer-events: none;
-  animation: tooltipFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 130ms ease, transform 130ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 130ms ease;
 }
-
-@keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.shadcn-tooltip.hidden {
+  display: block !important;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(3px) scale(0.97);
 }
 
 /* Shadcn Card */

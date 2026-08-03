@@ -10373,56 +10373,149 @@ window.addEventListener("aero:open-chat", (e) => {
   }
 });
 
-// Shadcn-like Tooltip System
+// Theme-aware tooltips for controls that are represented only by an icon.
 const tooltipEl = document.createElement("div");
 tooltipEl.className = "shadcn-tooltip hidden";
+tooltipEl.setAttribute("role", "tooltip");
 document.body.appendChild(tooltipEl);
 
 let tooltipTimeout;
+let activeTooltipTarget = null;
+let lastTooltipPointer = null;
+const tooltipTargetSelector = [
+  ".titlebar-actions button[aria-label]",
+  ".window-controls button[aria-label]:not(.header-update-button)",
+  "button.icon-button[aria-label]",
+  "button.icon-only-button[aria-label]",
+  "button.status-retry[aria-label]",
+  "button.contact-menu-button[aria-label]",
+  "button.contact-remove[aria-label]",
+  "button.stream-close-button[aria-label]",
+  "button.stream-fullscreen-button[aria-label]",
+].join(",");
+
+function getTooltipTarget(element) {
+  return element instanceof Element
+    ? element.closest(tooltipTargetSelector)
+    : null;
+}
+
+function prepareTooltipTarget(target) {
+  if (!target) return "";
+  const label = target.getAttribute("aria-label") || target.title || "";
+  if (!label) return "";
+  target.dataset.tooltip = label;
+  target.removeAttribute("title");
+  return label;
+}
+
+function positionTooltipAtPointer(pointer) {
+  const tooltipRect = tooltipEl.getBoundingClientRect();
+  let top = pointer.y + 16;
+  let left = pointer.x + 12;
+
+  if (top + tooltipRect.height > window.innerHeight - 8) {
+    top = pointer.y - tooltipRect.height - 16;
+  }
+  if (left + tooltipRect.width > window.innerWidth - 8) {
+    left = pointer.x - tooltipRect.width - 12;
+  }
+
+  top = Math.min(
+    Math.max(8, top),
+    Math.max(8, window.innerHeight - tooltipRect.height - 8),
+  );
+  left = Math.min(
+    Math.max(8, left),
+    Math.max(8, window.innerWidth - tooltipRect.width - 8),
+  );
+
+  tooltipEl.style.top = `${top}px`;
+  tooltipEl.style.left = `${left}px`;
+}
+
+function positionTooltipNearTarget(target) {
+  const rect = target.getBoundingClientRect();
+  const tooltipRect = tooltipEl.getBoundingClientRect();
+  let top = rect.top - tooltipRect.height - 7;
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+
+  if (top < 8) top = rect.bottom + 7;
+  left = Math.min(
+    Math.max(8, left),
+    Math.max(8, window.innerWidth - tooltipRect.width - 8),
+  );
+
+  tooltipEl.style.top = `${top}px`;
+  tooltipEl.style.left = `${left}px`;
+}
+
+function showTooltip(target, pointer = null) {
+  const label = prepareTooltipTarget(target);
+  if (!label || target.disabled || target.classList.contains("hidden")) return;
+
+  activeTooltipTarget = target;
+  tooltipEl.textContent = label;
+  tooltipEl.classList.remove("hidden");
+
+  if (pointer) {
+    positionTooltipAtPointer(pointer);
+  } else {
+    positionTooltipNearTarget(target);
+  }
+}
+
+document.querySelectorAll(tooltipTargetSelector).forEach(prepareTooltipTarget);
 
 document.addEventListener("mouseover", (event) => {
-  const target = event.target.closest("[title]");
-  if (target && target.title) {
-    target.setAttribute("data-tooltip", target.title);
-    target.removeAttribute("title");
-  }
-  
-  const tooltipTarget = event.target.closest("[data-tooltip]");
+  const tooltipTarget = getTooltipTarget(event.target);
   if (!tooltipTarget) {
     hideTooltip();
     return;
   }
-  
+
+  lastTooltipPointer = { x: event.clientX, y: event.clientY };
   clearTimeout(tooltipTimeout);
-  tooltipTimeout = setTimeout(() => {
-    tooltipEl.textContent = tooltipTarget.getAttribute("data-tooltip");
-    tooltipEl.classList.remove("hidden");
-    
-    const rect = tooltipTarget.getBoundingClientRect();
-    const ttRect = tooltipEl.getBoundingClientRect();
-    
-    let top = rect.top - ttRect.height - 6;
-    let left = rect.left + (rect.width / 2) - (ttRect.width / 2);
-    
-    if (top < 8) top = rect.bottom + 6;
-    if (left < 8) left = 8;
-    if (left + ttRect.width > window.innerWidth - 8) left = window.innerWidth - ttRect.width - 8;
-    
-    tooltipEl.style.top = `${top}px`;
-    tooltipEl.style.left = `${left}px`;
-  }, 400);
+  tooltipTimeout = setTimeout(
+    () => showTooltip(tooltipTarget, lastTooltipPointer),
+    350,
+  );
+});
+
+document.addEventListener("mousemove", (event) => {
+  const tooltipTarget = getTooltipTarget(event.target);
+  if (!tooltipTarget) return;
+
+  lastTooltipPointer = { x: event.clientX, y: event.clientY };
+  if (activeTooltipTarget === tooltipTarget && !tooltipEl.classList.contains("hidden")) {
+    positionTooltipAtPointer(lastTooltipPointer);
+  }
 });
 
 document.addEventListener("mouseout", (event) => {
-  const target = event.target.closest("[data-tooltip]");
-  if (target) hideTooltip();
+  const target = getTooltipTarget(event.target);
+  if (target && !target.contains(event.relatedTarget)) hideTooltip();
+});
+
+document.addEventListener("focusin", (event) => {
+  const target = getTooltipTarget(event.target);
+  if (target) showTooltip(target);
+});
+
+document.addEventListener("focusout", (event) => {
+  const target = getTooltipTarget(event.target);
+  if (target && !target.contains(event.relatedTarget)) hideTooltip();
 });
 
 document.addEventListener("click", () => {
   hideTooltip();
 });
 
+window.addEventListener("resize", hideTooltip);
+window.addEventListener("scroll", hideTooltip, true);
+
 function hideTooltip() {
   clearTimeout(tooltipTimeout);
+  activeTooltipTarget = null;
   tooltipEl.classList.add("hidden");
 }
