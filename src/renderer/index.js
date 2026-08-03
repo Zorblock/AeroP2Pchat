@@ -160,6 +160,7 @@ const settingsPages = Array.from(
   document.querySelectorAll("[data-settings-page]"),
 );
 const settingsContent = document.querySelector(".settings-grid");
+let activeSettingsPage = "";
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
 const profileModal = document.querySelector("#profile-modal");
 const profileClose = document.querySelector("#profile-close");
@@ -191,6 +192,8 @@ const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const customThemeSelect = document.querySelector("#custom-theme-select");
 const customThemeDetails = document.querySelector("#custom-theme-details");
+const openThemesFolderButton = document.querySelector("#open-themes-folder");
+const reloadThemesButton = document.querySelector("#reload-themes");
 const microphoneSelect = document.querySelector("#microphone-select");
 const cameraSelect = document.querySelector("#camera-select");
 const speakerSelect = document.querySelector("#speaker-select");
@@ -687,6 +690,10 @@ function applyPlatformUi() {
     ?.closest(".settings-section")
     ?.classList.toggle("hidden", !platformApi.hasDesktopIntegration);
 
+  document
+    .querySelector('[data-settings-nav="themes"]')
+    ?.classList.toggle("hidden", !platformApi.isElectron);
+
   if (!platformApi.hasDesktopIntegration) {
     setTitlebarActionLabel(appMenuUpdate, "Open latest release");
   }
@@ -814,6 +821,11 @@ function enhanceNativeSelect(select) {
   const close = () => {
     options.classList.add("hidden");
     toggle.setAttribute("aria-expanded", "false");
+    // Menus are temporarily portalled to <body> while open so their fixed
+    // position is not offset by a modal's backdrop-filter containing block.
+    if (options.parentElement !== wrapper) {
+      wrapper.append(options);
+    }
   };
   const positionOptions = () => {
     const rect = toggle.getBoundingClientRect();
@@ -841,6 +853,7 @@ function enhanceNativeSelect(select) {
     for (const [otherSelect, entry] of enhancedSelects.entries()) {
       if (otherSelect !== select) entry.close();
     }
+    document.body.append(options);
     options.classList.remove("hidden");
     toggle.setAttribute("aria-expanded", "true");
     positionOptions();
@@ -905,7 +918,13 @@ function enhanceNativeSelect(select) {
     attributes: true,
     attributeFilter: ["disabled"],
   });
-  enhancedSelects.set(select, { wrapper, close, render, positionOptions });
+  enhancedSelects.set(select, {
+    wrapper,
+    options,
+    close,
+    render,
+    positionOptions,
+  });
   render();
 }
 
@@ -920,20 +939,23 @@ function syncEnhancedSelects() {
 }
 
 document.addEventListener("pointerdown", (event) => {
-  for (const { wrapper, close } of enhancedSelects.values()) {
-    if (!wrapper.contains(event.target)) {
+  for (const { wrapper, options, close } of enhancedSelects.values()) {
+    if (!wrapper.contains(event.target) && !options.contains(event.target)) {
       close();
     }
   }
 });
 
-window.addEventListener("resize", () => {
-  for (const { wrapper, positionOptions } of enhancedSelects.values()) {
-    if (!wrapper.querySelector(".aero-select-options")?.classList.contains("hidden")) {
+function positionOpenSelectMenus() {
+  for (const { options, positionOptions } of enhancedSelects.values()) {
+    if (!options.classList.contains("hidden")) {
       positionOptions();
     }
   }
-});
+}
+
+window.addEventListener("resize", positionOpenSelectMenus);
+document.addEventListener("scroll", positionOpenSelectMenus, true);
 
 function createIdentityId() {
   const bytes = new Uint8Array(8);
@@ -1700,6 +1722,8 @@ function applyAppTheme(theme = DEFAULT_THEME) {
 
 function renderCustomThemePicker() {
   if (!customThemeSelect || !customThemeDetails) return;
+  openThemesFolderButton?.classList.toggle("hidden", !platformApi.isElectron);
+  reloadThemesButton?.classList.toggle("hidden", !platformApi.isElectron);
   const selectedTheme = appConfig.appSettings?.customTheme || "";
   customThemeSelect.replaceChildren(
     new Option("Default Aero theme", ""),
@@ -8268,12 +8292,29 @@ function selectSettingsPage(page = "appearance") {
     item.classList.toggle("active", active);
     item.setAttribute("aria-current", active ? "page" : "false");
   }
+  const pageChanged = activeSettingsPage !== selectedPage;
+  let selectedSection = null;
   for (const section of settingsPages) {
+    const active = section.dataset.settingsPage === selectedPage;
     section.classList.toggle(
       "hidden",
-      section.dataset.settingsPage !== selectedPage,
+      !active,
     );
+    if (active) {
+      selectedSection = section;
+    }
   }
+  if (
+    pageChanged &&
+    selectedSection &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    // Restart the small entrance animation whenever a different category opens.
+    selectedSection.classList.remove("settings-page-enter");
+    void selectedSection.offsetWidth;
+    selectedSection.classList.add("settings-page-enter");
+  }
+  activeSettingsPage = selectedPage;
   settingsContent?.scrollTo({ top: 0, behavior: "auto" });
 }
 
@@ -8957,6 +8998,30 @@ customThemeSelect.addEventListener("change", async () => {
     saveAppSettings({ customTheme: themeId });
   } else {
     renderCustomThemePicker();
+  }
+});
+
+openThemesFolderButton?.addEventListener("click", async () => {
+  const result = await platformApi.openThemesFolder();
+  if (!result?.ok) {
+    await showAppDialog({
+      title: "Themes folder",
+      message: "The Themes folder could not be opened. Please try again.",
+      confirmText: "OK",
+      cancelText: "Close",
+    });
+  }
+});
+
+reloadThemesButton?.addEventListener("click", async () => {
+  if (reloadThemesButton.disabled) return;
+  reloadThemesButton.disabled = true;
+  reloadThemesButton.classList.add("is-loading");
+  try {
+    await refreshCustomThemes();
+  } finally {
+    reloadThemesButton.disabled = false;
+    reloadThemesButton.classList.remove("is-loading");
   }
 });
 

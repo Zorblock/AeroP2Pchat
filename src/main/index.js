@@ -198,6 +198,13 @@ async function listThemes() {
   return themes.sort((left, right) => left.name.localeCompare(right.name));
 }
 
+async function openThemesFolder() {
+  const themesPath = getThemesPath();
+  await mkdir(themesPath, { recursive: true });
+  const error = await shell.openPath(themesPath);
+  return error ? { ok: false, error } : { ok: true, path: themesPath };
+}
+
 async function loadTheme(fileName) {
   if (!isThemeFileName(fileName)) {
     return { ok: false, error: "Invalid theme file." };
@@ -1711,6 +1718,7 @@ app.whenReady().then(async () => {
     path: getThemesPath(),
     themes: await listThemes(),
   }));
+  ipcMain.handle("open-themes-folder", () => openThemesFolder());
   ipcMain.handle("load-theme", (_event, fileName) => loadTheme(fileName));
   ipcMain.on("update-tray-state", (_event, state) => {
     const nextTrayState = { ...trayState, ...state };

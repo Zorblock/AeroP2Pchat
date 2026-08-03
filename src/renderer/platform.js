@@ -174,6 +174,13 @@ export function createPlatformApi() {
       return { path: "", themes: [] };
     },
 
+    async openThemesFolder() {
+      if (electron?.openThemesFolder) {
+        return electron.openThemesFolder();
+      }
+      return { ok: false, unsupported: true };
+    },
+
     async loadTheme(fileName) {
       if (electron?.loadTheme) {
         return electron.loadTheme(fileName);

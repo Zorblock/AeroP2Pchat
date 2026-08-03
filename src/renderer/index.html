@@ -1131,15 +1131,25 @@
 
             <section class="settings-section" data-settings-page="themes">
               <h3>Themes</h3>
-              <label class="settings-field">
-                <span>Custom CSS theme</span>
-                <select id="custom-theme-select">
-                  <option value="">Default Aero theme</option>
-                </select>
-              </label>
-              <p id="custom-theme-details" class="settings-description">
-                Add .css theme files to your Themes folder, then reopen Settings.
-              </p>
+              <div class="themes-manager">
+                <div class="themes-manager-actions">
+                  <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">
+                    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+                    <span>Themes folder</span>
+                  </button>
+                  <button id="reload-themes" class="ghost-button theme-action-button" type="button">
+                    <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                    <span>Reload themes</span>
+                  </button>
+                </div>
+                <label class="settings-field">
+                  <span>Active theme</span>
+                  <select id="custom-theme-select">
+                    <option value="">Default Aero theme</option>
+                  </select>
+                </label>
+                <p id="custom-theme-details" class="hidden" aria-hidden="true"></p>
+              </div>
             </section>
 
             <section class="settings-section" data-settings-page="general">
