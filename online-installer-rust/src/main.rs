@@ -61,11 +61,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store_version = installed_microsoft_store_version();
     if let Some(store_version) = &store_version {
         configure_microsoft_store_update_ui(&ui, store_version, false);
-    } else if let Some(installed_version) = installed_aero_version() {
-        ui.set_version(format!(
-            "Installed version: {installed_version} · Latest version will be checked after you continue."
-        )
-        .into());
     }
     let weak_ui = ui.as_weak();
     let switch_ui = ui.as_weak();
@@ -93,8 +88,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     });
 
-    if store_version.is_none() && let Some(pid) = options.wait_for_pid {
-        wait_then_install(ui.as_weak(), pid, options.auto_install);
+    if store_version.is_none() {
+        if let Some(pid) = options.wait_for_pid {
+            wait_then_install(ui.as_weak(), pid, options.auto_install);
+        } else {
+            check_for_updates(ui.as_weak());
+        }
     }
 
     ui.run()?;
@@ -342,7 +341,7 @@ fn open_windows_setup_switch(
         if let Ok(mut state) = store_install_state.lock() {
             *state = None;
         }
-        show_ready_for_windows_setup_ui(ui);
+        check_for_updates(ui.clone());
         return;
     }
 
@@ -376,23 +375,9 @@ fn open_windows_setup_switch(
                 *state = None;
             }
             is_waiting_for_store_removal.store(false, AtomicOrdering::Release);
-            show_ready_for_windows_setup_ui(&ui);
+            check_for_updates(ui);
             break;
         }
-    });
-}
-
-fn show_ready_for_windows_setup_ui(ui: &Weak<MainWindow>) {
-    let _ = ui.upgrade_in_event_loop(|window| {
-        window.set_status("Ready to install Aero P2P Chat".into());
-        window.set_detail("Click Install to download the newest version from GitHub.".into());
-        window.set_version("The newest version will be checked after you continue.".into());
-        window.set_progress(0.0);
-        window.set_button_text("Install".into());
-        window.set_can_install(true);
-        window.set_show_install(true);
-        window.set_show_switch_action(false);
-        window.set_security_note("Each download is checked against its GitHub SHA-256 checksum.".into());
     });
 }
 
@@ -448,16 +433,7 @@ fn wait_then_install(ui: Weak<MainWindow>, pid: u32, install_when_closed: bool) 
         } else if install_when_closed {
             start_installation(ui);
         } else {
-            update_ui(
-                &ui,
-                "Ready to install Aero P2P Chat",
-                "Click Install to download the newest version from GitHub.",
-                "The newest version will be checked after you continue.",
-                0.0,
-                "Install",
-                true,
-                true,
-            );
+            check_for_updates(ui);
         }
     });
 }
@@ -479,6 +455,101 @@ fn process_is_running(pid: u32) -> bool {
         .output()
         .map(|output| String::from_utf8_lossy(&output.stdout).contains(&format!("\"{pid}\"")))
         .unwrap_or(false)
+}
+
+fn check_for_updates(ui: Weak<MainWindow>) {
+    let installed_version = installed_aero_version();
+    let installed_display = installed_version
+        .as_deref()
+        .map(|version| format!("Installed version: {version}"))
+        .unwrap_or_else(|| "No standard Windows setup is installed yet.".to_owned());
+    update_ui(
+        &ui,
+        "Checking for updates...",
+        "Comparing your installed version with the latest GitHub release.",
+        &installed_display,
+        0.0,
+        "Checking...",
+        false,
+        true,
+    );
+
+    thread::spawn(move || {
+        let result = (|| -> Result<String, Box<dyn std::error::Error>> {
+            let client = Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()?;
+            let manifest_url =
+                format!("https://github.com/{REPOSITORY}/releases/latest/download/latest.yml");
+            let manifest = client
+                .get(manifest_url)
+                .send()?
+                .error_for_status()?
+                .text()?;
+            manifest_value(&manifest, "version")
+                .ok_or_else(|| "The latest release metadata is incomplete.".into())
+        })();
+
+        match result {
+            Ok(latest_version) => show_update_check_result(&ui, installed_version, latest_version),
+            Err(error) => update_ui(
+                &ui,
+                "Could not check for updates.",
+                &error.to_string(),
+                &installed_display,
+                0.0,
+                "Check again",
+                true,
+                true,
+            ),
+        }
+    });
+}
+
+fn show_update_check_result(
+    ui: &Weak<MainWindow>,
+    installed_version: Option<String>,
+    latest_version: String,
+) {
+    match installed_version {
+        Some(installed_version) if compare_versions(&installed_version, &latest_version) != Ordering::Less => {
+            let detail = if installed_version == latest_version {
+                "The newest version is already installed. No download is needed."
+            } else {
+                "A newer version is already installed. Aero will not be downgraded."
+            };
+            update_ui(
+                ui,
+                "Aero P2P Chat is up to date.",
+                detail,
+                &format!("Installed: {installed_version} / Latest: {latest_version}"),
+                0.0,
+                "Check again",
+                true,
+                true,
+            );
+        }
+        Some(installed_version) => update_ui(
+            ui,
+            "An update is available.",
+            "Install the latest version from GitHub.",
+            &format!("Installed: {installed_version} / Latest: {latest_version}"),
+            0.0,
+            "Install update",
+            true,
+            true,
+        ),
+        None => update_ui(
+            ui,
+            "Ready to install Aero P2P Chat",
+            "The latest version is ready to download from GitHub.",
+            &format!("Latest version: {latest_version}"),
+            0.0,
+            "Install",
+            true,
+            true,
+        ),
+    }
 }
 
 fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error>> {
