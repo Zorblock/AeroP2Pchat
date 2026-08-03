@@ -532,7 +532,7 @@ function printArtifactLinks(releaseFiles) {
     printArtifact(
       "Chrome extension (.zip)",
       chromeExtension,
-      "Kept locally in dist/release; it is not uploaded to GitHub.",
+      "Published to the Chrome Web Store; kept locally and never uploaded to GitHub.",
       [color.yellow],
     );
   }
@@ -647,6 +647,8 @@ function main() {
   // 1. Run tests first (before any version bump)
   console.log("Running tests...");
   run("npm", ["run", "test"]);
+  console.log("Checking Chrome Web Store credentials...");
+  run("node", ["scripts/publish-chrome-extension.cjs", "--check"]);
 
   // Store original package files for rollback
   const originalPkg = fs.readFileSync(packagePath, "utf8");
@@ -690,7 +692,11 @@ function main() {
     ]);
     run("node", ["scripts/promote-release-artifacts.cjs"]);
 
-    // 5. Publish only after every local build has been promoted successfully.
+    // 5. The extension is published through the Chrome Web Store, never as a
+    // GitHub release download. Reuse the exact ZIP produced for this release.
+    run("node", ["scripts/publish-chrome-extension.cjs"]);
+
+    // 6. Publish only after every local build has been promoted successfully.
     run("git", ["add", "-A"]);
     if (hasStagedChanges()) {
       run("git", ["commit", "-m", `chore: release ${tag}`]);
@@ -704,7 +710,7 @@ function main() {
     // after the release commit is available on origin.
     run("npm", ["run", "pages"]);
 
-    // 6. Publish the finished desktop and mobile downloads before the Store submission.
+    // 7. Publish the finished desktop and mobile downloads before the Store submission.
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
 
@@ -728,7 +734,7 @@ function main() {
       `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
     );
     console.log(
-      "Windows, Android, Linux, and a local Chrome extension package were built.",
+      "Windows, Android, Linux, and the Chrome Web Store extension were published.",
     );
     console.log("Website deployment was triggered after the source push.");
     printArtifactLinks(releaseFiles);
