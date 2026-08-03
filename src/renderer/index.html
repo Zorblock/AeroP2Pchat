@@ -20,9 +20,9 @@
 
     <script>
       (() => {
-        const requestedTheme = new URLSearchParams(window.location.search).get(
-          "theme",
-        );
+        const parameters = new URLSearchParams(window.location.search);
+        const requestedTheme = parameters.get("theme");
+        const requestedAccent = parameters.get("accent");
         let theme = ["light", "dark"].includes(requestedTheme)
           ? requestedTheme
           : null;
@@ -42,6 +42,9 @@
           ? "dark"
           : "light";
         document.documentElement.dataset.theme = theme;
+        if (/^#[0-9a-f]{6}$/i.test(requestedAccent || "")) {
+          document.documentElement.style.setProperty("--boot-fill", requestedAccent);
+        }
       })();
     </script>
     <style>

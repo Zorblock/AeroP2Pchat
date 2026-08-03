@@ -158,7 +158,7 @@ p {
 .boot-screen {
   background: radial-gradient(
       circle at 50% 46%,
-      color-mix(in srgb, var(--accent) 7%, transparent) 0,
+      color-mix(in srgb, var(--boot-fill) 7%, transparent) 0,
       transparent 28%
     ),
     var(--canvas);
@@ -183,8 +183,8 @@ p {
   width: 24px;
   height: 2px;
   border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent-ring);
+  background: var(--boot-fill);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--boot-fill) 28%, transparent);
 }
 .boot-title {
   grid-column: 1 / -1;
@@ -213,7 +213,7 @@ p {
   background: var(--line);
 }
 .boot-progress-fill {
-  background: var(--accent);
+  background: var(--boot-fill);
 }
 .window-frame {
   display: grid;

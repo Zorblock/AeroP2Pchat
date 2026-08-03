@@ -8,6 +8,7 @@ const {
   clipboard,
   desktopCapturer,
   ipcMain,
+  nativeTheme,
   powerMonitor,
   safeStorage,
   shell,
@@ -87,6 +88,13 @@ const defaultMicEqHigh = 0;
 const allowMultipleInstances =
   process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
 const autostartDesktopFileName = projectConfig.linux.autostartDesktopFileName;
+const bootAccentPresets = {
+  aero: "#147fa6",
+  violet: "#7654d9",
+  green: "#21875a",
+  rose: "#c44d6d",
+  amber: "#ad721c",
+};
 let mainWindow = null;
 let toastWindow = null;
 let tray = null;
@@ -1668,8 +1676,32 @@ async function installWindowsUpdate(
 }
 
 function createWindow({ hidden = false } = {}) {
+  const savedTheme = appConfig?.appSettings?.theme || "system";
   const initialTheme =
-    appConfig?.appSettings?.theme === "dark" ? "dark" : "light";
+    savedTheme === "system"
+      ? nativeTheme.shouldUseDarkColors
+        ? "dark"
+        : "light"
+      : savedTheme === "dark"
+      ? "dark"
+      : "light";
+  const savedAccent = appConfig?.appSettings?.accentColor || "system";
+  let initialAccent = bootAccentPresets[savedAccent] || bootAccentPresets.aero;
+  if (
+    savedAccent === "custom" &&
+    /^#[0-9a-f]{6}$/i.test(appConfig?.appSettings?.customAccentColor || "")
+  ) {
+    initialAccent = appConfig.appSettings.customAccentColor;
+  } else if (savedAccent === "system") {
+    try {
+      const systemAccent = systemPreferences.getAccentColor();
+      if (/^[0-9a-f]{6,8}$/i.test(systemAccent)) {
+        initialAccent = `#${systemAccent.slice(0, 6)}`;
+      }
+    } catch {
+      // Some Linux desktop environments do not expose an accent color.
+    }
+  }
   const win = new BrowserWindow({
     width: 980,
     height: 680,
@@ -1713,10 +1745,11 @@ function createWindow({ hidden = false } = {}) {
   if (process.env.ELECTRON_RENDERER_URL) {
     const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
     rendererUrl.searchParams.set("theme", initialTheme);
+    rendererUrl.searchParams.set("accent", initialAccent);
     win.loadURL(rendererUrl.toString());
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"), {
-      query: { theme: initialTheme },
+      query: { theme: initialTheme, accent: initialAccent },
     });
   }
 
