@@ -157,36 +157,62 @@ p {
 /* Boot and app transition */
 .boot-screen {
   background: radial-gradient(
-      circle at 50% 34%,
-      var(--accent-soft) 0,
-      transparent 34%
+      circle at 50% 46%,
+      color-mix(in srgb, var(--accent) 7%, transparent) 0,
+      transparent 28%
     ),
     var(--canvas);
 }
 .boot-panel {
-  min-width: 250px;
-  padding: 28px 30px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: var(--shadow-md);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: stretch;
+  width: min(248px, calc(100vw - 48px));
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 8px 12px;
 }
-.boot-logo {
-  border-color: var(--line-strong);
-  background: var(--surface);
-  box-shadow: 0 10px 30px var(--accent-ring);
+.boot-panel::before {
+  content: "";
+  grid-column: 1 / -1;
+  width: 24px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-ring);
 }
 .boot-title {
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  grid-column: 1 / -1;
+  margin: 2px 0 5px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+.boot-status,
+.boot-percent {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.boot-percent {
+  justify-self: end;
 }
 .boot-progress {
-  height: 7px;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 3px;
   border: 0;
+  border-radius: 999px;
   background: var(--line);
 }
-.boot-progress-fill,
-.boot-dots span {
+.boot-progress-fill {
   background: var(--accent);
 }
 .window-frame {
