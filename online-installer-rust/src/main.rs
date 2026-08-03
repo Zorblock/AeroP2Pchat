@@ -6,6 +6,10 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     process::Command,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering as AtomicOrdering},
+    },
     thread,
     time::Duration,
 };
@@ -66,9 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let weak_ui = ui.as_weak();
     let switch_ui = ui.as_weak();
     let wait_for_pid = options.wait_for_pid;
-    let store_version_for_install = store_version.clone();
+    let store_install_state = Arc::new(Mutex::new(store_version.clone()));
+    let store_install_state_for_install = Arc::clone(&store_install_state);
     ui.on_install(move || {
-        if let Some(store_version) = &store_version_for_install {
+        let store_version = store_install_state_for_install.lock().ok().and_then(|state| state.clone());
+        if let Some(store_version) = &store_version {
             open_microsoft_store_updates(&weak_ui, store_version);
         } else if let Some(pid) = wait_for_pid {
             wait_then_install(weak_ui.clone(), pid, true);
@@ -76,8 +82,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             start_installation(weak_ui.clone());
         }
     });
+    let is_waiting_for_store_removal = Arc::new(AtomicBool::new(false));
+    let store_install_state_for_switch = Arc::clone(&store_install_state);
+    let is_waiting_for_store_removal_for_switch = Arc::clone(&is_waiting_for_store_removal);
     ui.on_switch_to_windows_setup(move || {
-        open_windows_setup_switch(&switch_ui);
+        open_windows_setup_switch(
+            &switch_ui,
+            Arc::clone(&store_install_state_for_switch),
+            Arc::clone(&is_waiting_for_store_removal_for_switch),
+        );
     });
 
     if store_version.is_none() && let Some(pid) = options.wait_for_pid {
@@ -320,7 +333,11 @@ fn open_microsoft_store_updates(ui: &Weak<MainWindow>, version: &str) {
     }
 }
 
-fn open_windows_setup_switch(ui: &Weak<MainWindow>) {
+fn open_windows_setup_switch(
+    ui: &Weak<MainWindow>,
+    store_install_state: Arc<Mutex<Option<String>>>,
+    is_waiting_for_store_removal: Arc<AtomicBool>,
+) {
     if let Err(error) = open_windows_uri("ms-settings:appsfeatures") {
         update_ui(
             ui,
@@ -332,7 +349,61 @@ fn open_windows_setup_switch(ui: &Weak<MainWindow>) {
             true,
             true,
         );
+        return;
     }
+
+    if is_waiting_for_store_removal.swap(true, AtomicOrdering::AcqRel) {
+        return;
+    }
+    show_waiting_for_store_removal_ui(ui);
+
+    let ui = ui.clone();
+    thread::spawn(move || {
+        loop {
+            thread::sleep(Duration::from_secs(2));
+            if installed_microsoft_store_version().is_some() {
+                continue;
+            }
+
+            if let Ok(mut state) = store_install_state.lock() {
+                *state = None;
+            }
+            is_waiting_for_store_removal.store(false, AtomicOrdering::Release);
+            show_ready_for_windows_setup_ui(&ui);
+            break;
+        }
+    });
+}
+
+fn show_waiting_for_store_removal_ui(ui: &Weak<MainWindow>) {
+    let _ = ui.upgrade_in_event_loop(|window| {
+        window.set_status("Switching to the Windows setup version".into());
+        window.set_detail(
+            "Uninstall the Microsoft Store version in Installed apps. This installer will continue automatically."
+                .into(),
+        );
+        window.set_version("Waiting for the Microsoft Store version to be removed...".into());
+        window.set_progress(0.0);
+        window.set_button_text("Waiting...".into());
+        window.set_can_install(false);
+        window.set_show_install(true);
+        window.set_show_switch_action(false);
+        window.set_security_note("Keep this window open. Install unlocks automatically.".into());
+    });
+}
+
+fn show_ready_for_windows_setup_ui(ui: &Weak<MainWindow>) {
+    let _ = ui.upgrade_in_event_loop(|window| {
+        window.set_status("Ready to install Aero P2P Chat".into());
+        window.set_detail("Click Install to download the newest version from GitHub.".into());
+        window.set_version("The newest version will be checked after you continue.".into());
+        window.set_progress(0.0);
+        window.set_button_text("Install".into());
+        window.set_can_install(true);
+        window.set_show_install(true);
+        window.set_show_switch_action(false);
+        window.set_security_note("Each download is checked against its GitHub SHA-256 checksum.".into());
+    });
 }
 
 #[cfg(windows)]
