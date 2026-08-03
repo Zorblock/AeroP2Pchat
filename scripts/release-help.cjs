@@ -649,6 +649,8 @@ function main() {
   run("npm", ["run", "test"]);
   console.log("Checking Chrome Web Store credentials...");
   run("node", ["scripts/publish-chrome-extension.cjs", "--check"]);
+  console.log("Checking VirusTotal API key...");
+  run("node", ["scripts/scan-virustotal.cjs", "--check-key"]);
 
   // Store original package files for rollback
   const originalPkg = fs.readFileSync(packagePath, "utf8");
@@ -739,6 +741,18 @@ function main() {
     console.log("Website deployment was triggered after the source push.");
     printArtifactLinks(releaseFiles);
     notifyReleaseComplete(tag);
+
+    // VirusTotal submissions are deliberately last: the public releases are
+    // already available, while the reports populate asynchronously afterwards.
+    console.log("Submitting public VirusTotal scans...");
+    try {
+      run("node", ["scripts/scan-virustotal.cjs", "--submit-only"]);
+    } catch (error) {
+      console.warn(
+        `VirusTotal upload could not be completed: ${error.message || error}`,
+      );
+      console.warn("The release is already published; retry with npm run scan:virustotal:submit.");
+    }
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     if (!commitCreated) {

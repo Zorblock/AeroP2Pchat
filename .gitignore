@@ -5,6 +5,7 @@
 /.env
 /.env.chrome
 /.env.store
+/.env.virustotal
 *.iss.bak
 *.setup.log
 .dev-data
