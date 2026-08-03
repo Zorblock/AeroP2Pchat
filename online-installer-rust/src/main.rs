@@ -4,7 +4,7 @@ use std::{
     cmp::Ordering,
     fs::{self, File},
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     sync::{
         Arc, Mutex,
@@ -21,21 +21,24 @@ use slint::{Color, ComponentHandle, SharedString, Weak};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 #[cfg(windows)]
-use winreg::{
-    RegKey,
-    enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
-};
-#[cfg(windows)]
 use windows::{
     Win32::{
         Foundation::HWND,
-        System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+        System::Com::{
+            CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
+            CoUninitialize,
+        },
         UI::{
             Shell::{ITaskbarList3, ShellExecuteW, TBPF_NOPROGRESS, TBPF_NORMAL, TaskbarList},
             WindowsAndMessaging::{FindWindowW, SW_SHOWNORMAL},
         },
     },
     core::PCWSTR,
+};
+#[cfg(windows)]
+use winreg::{
+    RegKey,
+    enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
 };
 
 slint::include_modules!();
@@ -68,7 +71,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store_install_state = Arc::new(Mutex::new(store_version.clone()));
     let store_install_state_for_install = Arc::clone(&store_install_state);
     ui.on_install(move || {
-        let store_version = store_install_state_for_install.lock().ok().and_then(|state| state.clone());
+        let store_version = store_install_state_for_install
+            .lock()
+            .ok()
+            .and_then(|state| state.clone());
         if let Some(store_version) = &store_version {
             open_microsoft_store_updates(&weak_ui, store_version);
         } else if let Some(pid) = wait_for_pid {
@@ -76,6 +82,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             start_installation(weak_ui.clone());
         }
+    });
+    let repair_ui = ui.as_weak();
+    ui.on_repair(move || start_repair(repair_ui.clone()));
+    let uninstall_ui = ui.as_weak();
+    let is_uninstalling = Arc::new(AtomicBool::new(false));
+    let is_uninstalling_for_action = Arc::clone(&is_uninstalling);
+    ui.on_uninstall(move || {
+        start_uninstall(
+            uninstall_ui.clone(),
+            Arc::clone(&is_uninstalling_for_action),
+        );
     });
     let is_waiting_for_store_removal = Arc::new(AtomicBool::new(false));
     let store_install_state_for_switch = Arc::clone(&store_install_state);
@@ -126,9 +143,9 @@ fn system_prefers_dark_mode() -> bool {
     #[cfg(windows)]
     {
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        if let Ok(personalize) = hkcu.open_subkey(
-            "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        ) {
+        if let Ok(personalize) =
+            hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+        {
             if let Ok(value) = personalize.get_value::<u32, _>("AppsUseLightTheme") {
                 return value == 0;
             }
@@ -190,11 +207,13 @@ struct TaskbarProgress {
 impl TaskbarProgress {
     fn new() -> Option<Self> {
         let com_initialized = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok() };
-        let title: Vec<u16> = WINDOW_TITLE.encode_utf16().chain(std::iter::once(0)).collect();
+        let title: Vec<u16> = WINDOW_TITLE
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
         let window = unsafe { FindWindowW(None, PCWSTR(title.as_ptr())).ok()? };
-        let taskbar: ITaskbarList3 = unsafe {
-            CoCreateInstance(&TaskbarList, None, CLSCTX_INPROC_SERVER).ok()?
-        };
+        let taskbar: ITaskbarList3 =
+            unsafe { CoCreateInstance(&TaskbarList, None, CLSCTX_INPROC_SERVER).ok()? };
         unsafe { taskbar.HrInit().ok()? };
 
         Some(Self {
@@ -208,7 +227,9 @@ impl TaskbarProgress {
         let completed = (progress.clamp(0.0, 1.0) * 10_000.0).round() as u64;
         unsafe {
             let _ = self.taskbar.SetProgressState(self.window, TBPF_NORMAL);
-            let _ = self.taskbar.SetProgressValue(self.window, completed, 10_000);
+            let _ = self
+                .taskbar
+                .SetProgressValue(self.window, completed, 10_000);
         }
     }
 
@@ -265,7 +286,7 @@ fn start_installation(ui: Weak<MainWindow>) {
         true,
     );
     thread::spawn(move || {
-        if let Err(error) = install_latest(&ui) {
+        if let Err(error) = install_latest(&ui, false) {
             update_ui(
                 &ui,
                 "The latest version could not be installed.",
@@ -280,13 +301,86 @@ fn start_installation(ui: Weak<MainWindow>) {
     });
 }
 
+fn start_repair(ui: Weak<MainWindow>) {
+    update_ui(
+        &ui,
+        "Preparing repair...",
+        "Downloading the current Aero P2P Chat setup from GitHub.",
+        "Checking the latest release.",
+        0.0,
+        "Repairing...",
+        false,
+        true,
+    );
+    thread::spawn(move || {
+        if let Err(error) = install_latest(&ui, true) {
+            update_ui(
+                &ui,
+                "Aero P2P Chat could not be repaired.",
+                &error.to_string(),
+                "The repair download was not completed.",
+                0.0,
+                "Try again",
+                true,
+                true,
+            );
+        }
+    });
+}
+
+fn start_uninstall(ui: Weak<MainWindow>, is_uninstalling: Arc<AtomicBool>) {
+    if is_uninstalling.swap(true, AtomicOrdering::AcqRel) {
+        return;
+    }
+
+    let Some(uninstaller) = installed_aero_uninstaller() else {
+        is_uninstalling.store(false, AtomicOrdering::Release);
+        update_ui(
+            &ui,
+            "Aero P2P Chat could not be uninstalled.",
+            "The Windows setup uninstaller could not be found.",
+            "Open Installed apps and remove Aero P2P Chat there.",
+            0.0,
+            "Check again",
+            true,
+            true,
+        );
+        return;
+    };
+
+    match Command::new(uninstaller).spawn() {
+        Ok(mut process) => {
+            thread::spawn(move || {
+                let _ = process.wait();
+                is_uninstalling.store(false, AtomicOrdering::Release);
+                if installed_aero_version().is_none() {
+                    check_for_updates(ui);
+                }
+            });
+        }
+        Err(error) => {
+            is_uninstalling.store(false, AtomicOrdering::Release);
+            update_ui(
+                &ui,
+                "Aero P2P Chat could not be uninstalled.",
+                &error.to_string(),
+                "Open Installed apps and remove Aero P2P Chat there.",
+                0.0,
+                "Check again",
+                true,
+                true,
+            );
+        }
+    }
+}
+
 fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_opened: bool) {
     ui.set_status(
         if store_opened {
-        "Microsoft Store opened"
-    } else {
-        "Aero P2P Chat is installed from Microsoft Store"
-    }
+            "Microsoft Store opened"
+        } else {
+            "Aero P2P Chat is installed from Microsoft Store"
+        }
         .into(),
     );
     ui.set_detail(
@@ -303,10 +397,10 @@ fn configure_microsoft_store_update_ui(ui: &MainWindow, version: &str, store_ope
     ui.set_can_install(true);
     ui.set_show_install(true);
     ui.set_show_switch_action(true);
-    ui.set_security_note(
-        "Uninstall the Store version first."
-            .into(),
-    );
+    ui.set_show_maintenance_actions(false);
+    ui.set_show_security_note(true);
+    ui.set_show_progress(false);
+    ui.set_security_note("Uninstall the Store version first.".into());
 }
 
 fn show_microsoft_store_update_ui(ui: &Weak<MainWindow>, version: &str, store_opened: bool) {
@@ -398,13 +492,17 @@ fn open_windows_uri(uri: &str) -> Result<(), std::io::Error> {
     if handle.0 as isize > 32 {
         Ok(())
     } else {
-        Err(std::io::Error::other("Windows did not accept this system link."))
+        Err(std::io::Error::other(
+            "Windows did not accept this system link.",
+        ))
     }
 }
 
 #[cfg(not(windows))]
 fn open_windows_uri(_uri: &str) -> Result<(), std::io::Error> {
-    Err(std::io::Error::other("This action is only available on Windows."))
+    Err(std::io::Error::other(
+        "This action is only available on Windows.",
+    ))
 }
 
 fn wait_then_install(ui: Weak<MainWindow>, pid: u32, install_when_closed: bool) {
@@ -476,9 +574,7 @@ fn check_for_updates(ui: Weak<MainWindow>) {
 
     thread::spawn(move || {
         let result = (|| -> Result<String, Box<dyn std::error::Error>> {
-            let client = Client::builder()
-                .timeout(Duration::from_secs(30))
-                .build()?;
+            let client = Client::builder().timeout(Duration::from_secs(30)).build()?;
             let manifest_url =
                 format!("https://github.com/{REPOSITORY}/releases/latest/download/latest.yml");
             let manifest = client
@@ -512,7 +608,9 @@ fn show_update_check_result(
     latest_version: String,
 ) {
     match installed_version {
-        Some(installed_version) if compare_versions(&installed_version, &latest_version) != Ordering::Less => {
+        Some(installed_version)
+            if compare_versions(&installed_version, &latest_version) != Ordering::Less =>
+        {
             let detail = if installed_version == latest_version {
                 "The newest version is already installed. No download is needed."
             } else {
@@ -528,17 +626,21 @@ fn show_update_check_result(
                 true,
                 true,
             );
+            show_setup_maintenance_actions(ui);
         }
-        Some(installed_version) => update_ui(
-            ui,
-            "An update is available.",
-            "Install the latest version from GitHub.",
-            &format!("Installed: {installed_version} / Latest: {latest_version}"),
-            0.0,
-            "Install update",
-            true,
-            true,
-        ),
+        Some(installed_version) => {
+            update_ui(
+                ui,
+                "An update is available.",
+                "Install the latest version from GitHub.",
+                &format!("Installed: {installed_version} / Latest: {latest_version}"),
+                0.0,
+                "Install update",
+                true,
+                true,
+            );
+            show_setup_maintenance_actions(ui);
+        }
         None => update_ui(
             ui,
             "Ready to install Aero P2P Chat",
@@ -552,7 +654,17 @@ fn show_update_check_result(
     }
 }
 
-fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error>> {
+fn show_setup_maintenance_actions(ui: &Weak<MainWindow>) {
+    let _ = ui.upgrade_in_event_loop(|window| {
+        window.set_show_maintenance_actions(true);
+        window.set_show_security_note(false);
+    });
+}
+
+fn install_latest(
+    ui: &Weak<MainWindow>,
+    force_install: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::builder()
         .timeout(Duration::from_secs(600))
         .build()?;
@@ -576,7 +688,8 @@ fn install_latest(ui: &Weak<MainWindow>) -> Result<(), Box<dyn std::error::Error
         return Err("The release did not provide a trusted GitHub download URL.".into());
     }
 
-    if let Some(installed_version) = installed_aero_version()
+    if !force_install
+        && let Some(installed_version) = installed_aero_version()
         && compare_versions(&installed_version, &latest_version) != Ordering::Less
     {
         let detail = if installed_version == latest_version {
@@ -726,6 +839,9 @@ fn update_ui(
         window.set_button_text(button_text);
         window.set_can_install(can_install);
         window.set_show_install(show_button);
+        window.set_show_maintenance_actions(false);
+        window.set_show_security_note(true);
+        window.set_show_progress(progress > 0.0);
     });
 }
 
@@ -795,6 +911,55 @@ fn installed_aero_version() -> Option<String> {
 }
 
 #[cfg(windows)]
+fn installed_aero_uninstaller() -> Option<PathBuf> {
+    const UNINSTALL_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+    for hive in [
+        RegKey::predef(HKEY_CURRENT_USER),
+        RegKey::predef(HKEY_LOCAL_MACHINE),
+    ] {
+        let Ok(uninstall) = hive.open_subkey(UNINSTALL_PATH) else {
+            continue;
+        };
+        for key_name in uninstall.enum_keys().filter_map(Result::ok) {
+            let Ok(app_key) = uninstall.open_subkey(&key_name) else {
+                continue;
+            };
+            let Ok(display_name) = app_key.get_value::<String, _>("DisplayName") else {
+                continue;
+            };
+            if display_name.trim() != "Aero P2P Chat" {
+                continue;
+            }
+
+            if let Ok(install_location) = app_key.get_value::<String, _>("InstallLocation") {
+                let candidate = Path::new(install_location.trim()).join("unins000.exe");
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
+            }
+            if let Ok(uninstall_command) = app_key.get_value::<String, _>("UninstallString") {
+                if let Some(path) = uninstaller_executable_from_command(&uninstall_command) {
+                    return Some(path);
+                }
+            }
+        }
+    }
+    None
+}
+
+#[cfg(windows)]
+fn uninstaller_executable_from_command(command: &str) -> Option<PathBuf> {
+    let command = command.trim();
+    let executable = if let Some(quoted) = command.strip_prefix('"') {
+        quoted.split_once('"')?.0
+    } else {
+        command.split_whitespace().next()?
+    };
+    let path = PathBuf::from(executable);
+    path.is_file().then_some(path)
+}
+
+#[cfg(windows)]
 fn installed_microsoft_store_version() -> Option<String> {
     installed_microsoft_store_version_from_powershell()
         .or_else(installed_microsoft_store_version_from_registry)
@@ -829,17 +994,25 @@ fn installed_microsoft_store_version_from_registry() -> Option<String> {
     let packages = RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey(ACTIVATABLE_PACKAGES_PATH)
         .ok()?;
-    packages.enum_keys().filter_map(Result::ok).find_map(|full_name| {
-        let suffix = full_name.strip_prefix(&format!("{STORE_IDENTITY_NAME}_"))?;
-        if !full_name.ends_with("_cgb7tdbkexs70") {
-            return None;
-        }
-        suffix.split('_').next().map(str::to_owned)
-    })
+    packages
+        .enum_keys()
+        .filter_map(Result::ok)
+        .find_map(|full_name| {
+            let suffix = full_name.strip_prefix(&format!("{STORE_IDENTITY_NAME}_"))?;
+            if !full_name.ends_with("_cgb7tdbkexs70") {
+                return None;
+            }
+            suffix.split('_').next().map(str::to_owned)
+        })
 }
 
 #[cfg(not(windows))]
 fn installed_aero_version() -> Option<String> {
+    None
+}
+
+#[cfg(not(windows))]
+fn installed_aero_uninstaller() -> Option<PathBuf> {
     None
 }
 

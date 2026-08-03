@@ -13,6 +13,9 @@ export component MainWindow inherits Window {
     in-out property <bool> can-install: true;
     in-out property <bool> show-install: true;
     in-out property <bool> show-switch-action: false;
+    in-out property <bool> show-maintenance-actions: false;
+    in-out property <bool> show-security-note: true;
+    in-out property <bool> show-progress: false;
     in-out property <color> window-color: #f5f5f5;
     in-out property <color> surface-color: #ffffff;
     in-out property <color> border-color: #dedede;
@@ -24,6 +27,8 @@ export component MainWindow inherits Window {
     in-out property <color> disabled-color: #c8c8c8;
     callback install();
     callback switch-to-windows-setup();
+    callback repair();
+    callback uninstall();
 
     background: root.window-color;
 
@@ -68,6 +73,7 @@ export component MainWindow inherits Window {
             height: 4px;
             background: root.border-color;
             clip: true;
+            visible: root.show-progress;
 
             Rectangle {
                 x: 0px;
@@ -98,6 +104,65 @@ export component MainWindow inherits Window {
             color: root.muted-color;
             font-size: 11px;
             vertical-alignment: center;
+            visible: root.show-security-note;
+        }
+
+        Rectangle {
+            x: 168px;
+            y: 150px;
+            width: 104px;
+            height: 36px;
+            background: repair-area.has-hover ? root.border-color : transparent;
+            border-color: root.border-color;
+            border-width: 1px;
+            border-radius: 9px;
+            visible: root.show-maintenance-actions;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Repair";
+                color: root.text-color;
+                font-size: 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            repair-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.repair(); }
+            }
+        }
+
+        Rectangle {
+            x: 280px;
+            y: 150px;
+            width: 112px;
+            height: 36px;
+            background: uninstall-area.has-hover ? root.border-color : transparent;
+            border-color: root.border-color;
+            border-width: 1px;
+            border-radius: 9px;
+            visible: root.show-maintenance-actions;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: "Uninstall";
+                color: root.text-color;
+                font-size: 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            uninstall-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => { root.uninstall(); }
+            }
         }
 
         Rectangle {
@@ -132,9 +197,9 @@ export component MainWindow inherits Window {
         }
 
         Rectangle {
-            x: 388px;
+            x: root.show-maintenance-actions ? 400px : 388px;
             y: 150px;
-            width: 132px;
+            width: root.show-maintenance-actions ? 120px : 132px;
             height: 36px;
             background: !root.can-install ? root.disabled-color : install-area.pressed ? root.accent-pressed-color : root.accent-color;
             border-radius: 9px;
