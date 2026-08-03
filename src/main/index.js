@@ -400,6 +400,9 @@ function normalizeConfig(config = {}) {
       ? settings.customTheme
       : "",
     onlineThemeUrls: normalizeOnlineThemeUrls(settings.onlineThemeUrls),
+    customAccentColor: /^#[0-9a-f]{6}$/i.test(settings.customAccentColor)
+      ? settings.customAccentColor
+      : "#147fa6",
     sidebarWidth: Number.isFinite(settings.sidebarWidth)
       ? Math.round(
           Math.max(

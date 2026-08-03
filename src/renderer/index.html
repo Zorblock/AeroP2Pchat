@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.userjot.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://aero.zorblock.de; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de https://*.userjot.com stun:* turn:*; media-src * blob: mediastream: data:; frame-src 'self' https://*.userjot.com; object-src 'none'; base-uri 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.userjot.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://aero.zorblock.de https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de https://*.userjot.com https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net https://fonts.googleapis.com https://fonts.gstatic.com stun:* turn:*; media-src 'self' blob: mediastream: data: https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; frame-src 'self' https://*.userjot.com; object-src 'none'; base-uri 'none';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App</title>
     <link rel="preload" href="boot-logo.png" as="image" />
@@ -1144,7 +1144,9 @@
                     <option value="green">Green</option>
                     <option value="rose">Rose</option>
                     <option value="amber">Amber</option>
+                    <option value="custom">Custom color</option>
                   </select>
+                  <input id="custom-accent-color" type="color" value="#147fa6" aria-label="Custom accent color" />
                 </label>
                 <label class="settings-field">
                   <span>Message density</span>
@@ -1186,6 +1188,10 @@
                 <div class="theme-notice">
                   <strong>Theme performance</strong>
                   <span>Custom CSS can affect performance. If something feels slow or looks wrong, disable the theme to check whether it is the cause.</span>
+                </div>
+                <div class="theme-info-card">
+                  <strong>External resources</strong>
+                  <span>For security reasons, resources such as fonts and images are blocked unless they are hosted on GitHub, GitLab, Codeberg, Imgur, Discord or Google Fonts.</span>
                 </div>
                 <div class="themes-manager-actions">
                   <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">

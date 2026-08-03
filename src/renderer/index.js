@@ -192,6 +192,7 @@ const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const themeSystem = document.querySelector("#theme-system");
 const accentColorSelect = document.querySelector("#accent-color-select");
+const customAccentColorInput = document.querySelector("#custom-accent-color");
 const messageDensitySelect = document.querySelector("#message-density-select");
 const chatFontSizeSelect = document.querySelector("#chat-font-size-select");
 const compactLayoutToggle = document.querySelector("#compact-layout-toggle");
@@ -1675,11 +1676,14 @@ function normalizeAppSettings() {
     theme: ["system", "light", "dark"].includes(appConfig.appSettings.theme)
       ? appConfig.appSettings.theme
       : "system",
-    accentColor: ["system", "aero", "violet", "green", "rose", "amber"].includes(
+    accentColor: ["system", "aero", "violet", "green", "rose", "amber", "custom"].includes(
       appConfig.appSettings.accentColor,
     )
       ? appConfig.appSettings.accentColor
       : "system",
+    customAccentColor: /^#[0-9a-f]{6}$/i.test(appConfig.appSettings.customAccentColor)
+      ? appConfig.appSettings.customAccentColor
+      : "#147fa6",
     compactLayout: Boolean(appConfig.appSettings.compactLayout),
     messageDensity: ["comfortable", "compact"].includes(
       appConfig.appSettings.messageDensity,
@@ -1779,13 +1783,36 @@ const accentColors = {
   amber: "#ad721c",
 };
 
+function getAccentForeground(color) {
+  const channels = String(color || "")
+    .replace(/^#/, "")
+    .match(/.{2}/g)
+    ?.map((channel) => Number.parseInt(channel, 16) / 255);
+  if (!channels || channels.length !== 3 || channels.some(Number.isNaN)) {
+    return "#ffffff";
+  }
+  const [red, green, blue] = channels.map((channel) =>
+    channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  const luminance = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+  const blackContrast = (luminance + 0.05) / 0.05;
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  return blackContrast >= whiteContrast ? "#050505" : "#ffffff";
+}
+
 function applyAccentColor(accentColor = "system") {
   const color =
     accentColor === "system"
       ? systemAccentColor
+      : accentColor === "custom"
+      ? appConfig.appSettings?.customAccentColor || accentColors.aero
       : accentColors[accentColor] || accentColors.aero;
+  const foreground = getAccentForeground(color);
   document.documentElement.dataset.accentColor = accentColor;
-  appearanceAccentStyle.textContent = `:root[data-accent-color] { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); }`;
+  document.body.dataset.accentColor = accentColor;
+  appearanceAccentStyle.textContent = `:root[data-accent-color], body[data-accent-color] { --accent: ${color}; --accent-hover: color-mix(in srgb, ${color} 84%, black); --accent-pressed: color-mix(in srgb, ${color} 70%, black); --accent-soft: color-mix(in srgb, ${color} 13%, transparent); --accent-soft-hover: color-mix(in srgb, ${color} 20%, transparent); --accent-ring: color-mix(in srgb, ${color} 26%, transparent); --on-accent: ${foreground}; }`;
 }
 
 function applyAppearancePreferences() {
@@ -1904,12 +1931,49 @@ function normalizeOnlineThemeUrls(value) {
   }).filter(Boolean))].slice(0, 8);
 }
 
+const allowedThemeAssetHosts = [
+  "github.com",
+  "githubusercontent.com",
+  "gitlab.com",
+  "codeberg.org",
+  "imgur.com",
+  "discord.com",
+  "discordapp.com",
+  "discordapp.net",
+  "googleapis.com",
+  "gstatic.com",
+];
+
+function isAllowedThemeAssetUrl(value) {
+  const raw = String(value || "").trim();
+  if (/^(data:|blob:|#)/i.test(raw)) return true;
+  try {
+    const url = new URL(raw);
+    return (
+      url.protocol === "https:" &&
+      allowedThemeAssetHosts.some(
+        (host) => url.hostname === host || url.hostname.endsWith(`.${host}`),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeThemeCss(css) {
+  return String(css || "")
+    .replace(/@import\s+[^;]+;/gi, "")
+    .replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi, (match, _quote, url) =>
+      isAllowedThemeAssetUrl(url) ? match : "url(\"\")",
+    );
+}
+
 async function applyAllThemes(localThemeId = appConfig.appSettings?.customTheme || "") {
   let localCss = "";
   if (localThemeId && platformApi.isElectron) {
     const result = await platformApi.loadTheme(localThemeId);
     if (!result?.ok) return false;
-    localCss = result.css;
+    localCss = sanitizeThemeCss(result.css);
   }
 
   const onlineUrls = appConfig.appSettings?.onlineThemeUrls || [];
@@ -1918,7 +1982,7 @@ async function applyAllThemes(localThemeId = appConfig.appSettings?.customTheme 
   );
   const onlineCss = onlineResults
     .filter((result) => result.status === "fulfilled")
-    .map((result) => result.value.replace(/@import\s+[^;]+;/gi, ""));
+    .map((result) => sanitizeThemeCss(result.value));
   customThemeStyle.textContent = [localCss, ...onlineCss].filter(Boolean).join("\n\n");
   if (onlineThemeStatus) {
     const failed = onlineResults.filter((result) => result.status === "rejected").length;
@@ -2086,6 +2150,11 @@ function renderAppSettings() {
   themeLight.checked = appConfig.appSettings.theme === "light";
   themeDark.checked = appConfig.appSettings.theme === "dark";
   accentColorSelect.value = appConfig.appSettings.accentColor;
+  customAccentColorInput.value = appConfig.appSettings.customAccentColor;
+  customAccentColorInput.classList.toggle(
+    "hidden",
+    appConfig.appSettings.accentColor !== "custom",
+  );
   messageDensitySelect.value = appConfig.appSettings.messageDensity;
   chatFontSizeSelect.value = appConfig.appSettings.chatFontSize;
   compactLayoutToggle.checked = appConfig.appSettings.compactLayout;
@@ -9195,6 +9264,19 @@ themeSystem.addEventListener("change", () => {
 
 accentColorSelect.addEventListener("change", () => {
   saveAppSettings({ accentColor: accentColorSelect.value });
+});
+
+customAccentColorInput.addEventListener("input", () => {
+  appConfig.appSettings.accentColor = "custom";
+  appConfig.appSettings.customAccentColor = customAccentColorInput.value;
+  applyAppearancePreferences();
+});
+
+customAccentColorInput.addEventListener("change", () => {
+  saveAppSettings({
+    accentColor: "custom",
+    customAccentColor: customAccentColorInput.value,
+  });
 });
 
 messageDensitySelect.addEventListener("change", () => {
