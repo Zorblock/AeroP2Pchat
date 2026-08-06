@@ -218,11 +218,11 @@ p {
 .window-frame {
   display: grid;
   grid-template-rows: var(--titlebar-height) minmax(0, 1fr);
-  width: calc(100% - 8px);
-  height: calc(100vh - 8px);
-  margin: 4px;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--frame);
   opacity: 1;
   transition: opacity 180ms ease;
@@ -2932,7 +2932,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   box-shadow: 0 0 0 1px var(--accent-ring);
 }
 .local-theme-card:active {
-  transform: translateY(1px);
+  background: var(--surface-active);
 }
 .local-theme-card strong {
   font-size: 12px;
