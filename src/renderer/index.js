@@ -31,7 +31,6 @@ const contactSearchInput = document.querySelector("#contact-search");
 const peerList = document.querySelector("#peer-list");
 const feedbackButton = document.querySelector("#feedback-button");
 const mobileFeedbackButton = document.querySelector("#feedback-button-mobile");
-const chatMeta = document.querySelector("#chat-meta");
 const chatTitle = document.querySelector("#chat-title");
 const chatActions = document.querySelector(".chat-actions");
 const callChat = document.querySelector("#call-chat");
@@ -45,7 +44,6 @@ const screenCallDecline = document.querySelector("#screen-call-decline");
 const screenCallIgnore = document.querySelector("#screen-call-ignore");
 const callText = document.querySelector("#call-text");
 const callPeerName = document.querySelector("#call-peer-name");
-const callPeerStatus = document.querySelector("#call-peer-status");
 const callHealth = document.querySelector("#call-health");
 const callAccept = document.querySelector("#call-accept");
 const callDecline = document.querySelector("#call-decline");
@@ -4949,12 +4947,6 @@ function refreshCallUi() {
   callDeafen.setAttribute("aria-label", callDeafen.title);
   callCamera.setAttribute("aria-label", callCamera.title);
   callStream.setAttribute("aria-label", callStream.title);
-  const remoteStates = [
-    remoteCallStatus.muted ? "muted" : "",
-    remoteCallStatus.deafened ? "deafened" : "",
-  ].filter(Boolean);
-  callPeerStatus.textContent = remoteStates.join(" · ");
-  callPeerStatus.classList.toggle("hidden", remoteStates.length === 0);
   setCallHealthUi({ visible: false });
 
   incomingCallScreen?.classList.toggle("hidden", callState.status !== "incoming");
@@ -7966,9 +7958,6 @@ function refreshPeers() {
   const connectionEntries = [...connections].filter(([peerId, conn]) =>
     contactMatchesSearch(peerId, conn),
   );
-  if (connectionEntries.length > 0) {
-    appendPeerSectionLabel("Connected");
-  }
 
   for (const [peerId, conn] of connectionEntries) {
     const peerLabel = getPeerLabel(peerId, conn);
@@ -8043,8 +8032,7 @@ function refreshPeers() {
       ? getPeerNameStyle(activePeerId, getPeerIdentityId(activePeerId, activeConn))
       : null,
   );
-    
-  chatMeta.textContent = activePeerId ? "Connected" : "Idle";
+
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
   disconnectChat.disabled = !canChat;
