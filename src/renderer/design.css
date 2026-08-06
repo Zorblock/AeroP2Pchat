@@ -1845,9 +1845,15 @@ select.native-select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  min-height: 76px;
-  max-height: min(34vh, 286px);
+  min-height: 84px;
+  max-height: min(32vh, 264px);
   margin: 8px 18px 0;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-subtle) 68%, transparent);
+  transition: max-height 200ms ease, min-height 200ms ease;
 }
 .participant-card {
   position: relative;
@@ -2029,10 +2035,11 @@ select.native-select {
   transform: translateX(-50%);
 }
 .call-stage.stream-fullscreen {
-  grid-row: 4 / 8;
+  grid-row: 4;
   grid-template-columns: minmax(0, 1fr);
-  max-height: none;
-  margin-bottom: 14px;
+  min-height: 220px;
+  max-height: min(52vh, 540px);
+  margin-bottom: 0;
 }
 .call-stage.stream-fullscreen .participant-card {
   width: 100%;
@@ -2041,11 +2048,6 @@ select.native-select {
 }
 .call-stage.stream-fullscreen.fullscreen-local .participant-card.remote,
 .call-stage.stream-fullscreen.fullscreen-remote .participant-card.local {
-  display: none;
-}
-.call-stage.stream-fullscreen ~ .messages,
-.call-stage.stream-fullscreen ~ .typing-indicator,
-.call-stage.stream-fullscreen ~ .message-form {
   display: none;
 }
 
@@ -3716,6 +3718,10 @@ input[type="range"]:active::-webkit-slider-thumb {
     min-height: 72px;
     margin: 7px 10px 0;
   }
+  .call-stage.stream-fullscreen {
+    min-height: 150px;
+    max-height: min(46vh, 420px);
+  }
   .participant-card:not(.camera-on):not(.streaming) {
     min-height: 72px;
   }
@@ -3997,6 +4003,11 @@ body.platform-android .call-action {
 body.platform-android .call-stage {
   gap: 6px;
   max-height: 28dvh;
+  margin-inline: 10px;
+}
+body.platform-android .call-stage.stream-fullscreen {
+  min-height: 0;
+  max-height: 34dvh;
   margin-inline: 10px;
 }
 body.platform-android input,
