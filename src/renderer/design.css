@@ -493,7 +493,7 @@ body.app-boot-finish .window-frame {
   --sidebar-control-gap: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 14px 10px 12px 14px;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -598,7 +598,8 @@ body.is-resizing-sidebar * {
   background: var(--surface-subtle);
   color: var(--text-soft);
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 650;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -962,7 +963,8 @@ select.native-select {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 .peers-card > .label {
   margin-bottom: 8px;
@@ -1651,7 +1653,7 @@ select.native-select {
   align-items: center;
   gap: 12px;
   min-height: 62px;
-  padding: 10px 14px 10px 18px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -1720,7 +1722,7 @@ select.native-select {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin: 10px 14px 0;
+  margin: 10px 18px 0;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--line));
   border-radius: var(--radius-sm);
@@ -1748,7 +1750,7 @@ select.native-select {
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  margin: 8px 14px 0;
+  margin: 8px 18px 0;
   padding: 6px 7px 6px 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -1845,7 +1847,7 @@ select.native-select {
   gap: 8px;
   min-height: 76px;
   max-height: min(34vh, 286px);
-  margin: 8px 14px 0;
+  margin: 8px 18px 0;
 }
 .participant-card {
   position: relative;
@@ -2054,13 +2056,13 @@ select.native-select {
   flex-direction: column;
   gap: 7px;
   min-height: 0;
-  padding: 20px 18px 14px;
+  padding: 22px 20px 16px;
   overflow-x: hidden;
   overflow-y: auto;
   background: radial-gradient(
       circle at 50% 0,
-      var(--accent-soft) 0,
-      transparent 42%
+      color-mix(in srgb, var(--accent) 6%, transparent) 0,
+      transparent 46%
     ),
     var(--surface);
   scroll-behavior: smooth;
@@ -2069,7 +2071,7 @@ select.native-select {
 .messages.empty {
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--muted);
   text-align: center;
 }
@@ -2082,11 +2084,11 @@ select.native-select {
 }
 .messages.empty::after {
   content: attr(data-empty);
-  max-width: 300px;
+  max-width: 320px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 550;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 .message-row {
   display: flex;
@@ -2114,7 +2116,7 @@ select.native-select {
 }
 .bubble {
   max-width: min(72%, 560px);
-  padding: 9px 11px 7px;
+  padding: 10px 12px 8px;
   border: 1px solid var(--line);
   border-radius: 15px 15px 15px 5px;
   background: var(--surface-subtle);
@@ -2139,12 +2141,13 @@ select.native-select {
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
-  min-height: 11px;
-  margin-top: 3px;
+  min-height: 13px;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 650;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 body[data-chat-font-size="small"] {
   --message-font-size: 12px;
@@ -2164,7 +2167,7 @@ body[data-message-density="compact"] .mine .bubble {
   border-radius: 12px 12px 4px 12px;
 }
 body[data-message-density="compact"] .bubble-footer {
-  margin-top: 2px;
+  margin-top: 3px;
 }
 body[data-compact-layout="true"] .connection-panel {
   gap: 8px;
@@ -2229,7 +2232,7 @@ body.reduce-motion *::after {
   grid-template-columns: minmax(0, 1fr) 42px;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px 12px;
+  padding: 10px 18px 12px;
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
@@ -2292,6 +2295,8 @@ body.reduce-motion *::after {
   gap: 14px;
   min-height: 38px;
   margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
 .modal-header h2,
 .stream-dialog h3 {
@@ -2687,12 +2692,13 @@ body.reduce-motion *::after {
   color: currentColor;
   text-align: center;
 }
-.settings-nav-item:hover,
+.settings-nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
 .settings-nav-item.active {
   background: var(--accent-soft);
   color: var(--accent);
-}
-.settings-nav-item.active {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 .settings-nav-item:active {
@@ -2707,10 +2713,14 @@ body.reduce-motion *::after {
   margin: 8px 8px 5px;
   background: var(--line);
 }
-.settings-nav-item.danger:hover,
-.settings-nav-item.danger.active {
+.settings-nav-item.danger:hover {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
+}
+.settings-nav-item.danger.active {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  box-shadow: inset 2px 0 0 var(--danger);
 }
 body:not(.platform-android) [data-settings-nav="feedback"] {
   display: none;
@@ -2725,6 +2735,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .settings-column {
   display: contents;
