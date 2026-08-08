@@ -1174,75 +1174,41 @@
           <div class="settings-column">
             <section class="settings-section" data-settings-page="appearance">
               <h3>Appearance</h3>
-              <div class="theme-switcher" role="radiogroup" aria-label="Theme">
-                <label>
-                  <input id="theme-system" type="radio" name="theme" value="system" />
-                  <span>
-                    <i class="fa-solid fa-desktop" aria-hidden="true"></i>
-                    System
-                  </span>
-                </label>
-                <label>
-                  <input
-                    id="theme-light"
-                    type="radio"
-                    name="theme"
-                    value="light"
-                  />
-                  <span>
-                    <i class="fa-solid fa-sun" aria-hidden="true"></i>
-                    Light
-                  </span>
-                </label>
-                <label>
-                  <input id="theme-dark" type="radio" name="theme" value="dark" />
-                  <span>
-                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
-                    Dark
-                  </span>
-                </label>
-              </div>
-              <div class="appearance-options">
-                <label class="settings-field">
-                  <span>Accent color</span>
-                  <select id="accent-color-select">
-                    <option value="system">System accent</option>
-                    <option value="aero">Aero blue</option>
-                    <option value="violet">Violet</option>
-                    <option value="green">Green</option>
-                    <option value="rose">Rose</option>
-                    <option value="amber">Amber</option>
-                    <option value="custom">Custom color</option>
-                  </select>
-                  <input id="custom-accent-color" type="color" value="#147fa6" aria-label="Custom accent color" />
-                </label>
-                <label class="settings-field">
-                  <span>Message density</span>
-                  <select id="message-density-select">
-                    <option value="comfortable">Comfortable</option>
-                    <option value="compact">Compact</option>
-                  </select>
-                </label>
-                <label class="settings-field">
-                  <span>Chat text size</span>
-                  <select id="chat-font-size-select">
-                    <option value="small">Small</option>
-                    <option value="normal">Normal</option>
-                    <option value="large">Large</option>
-                  </select>
-                </label>
-                <label class="settings-check">
-                  <input id="compact-layout-toggle" type="checkbox" />
-                  <span>Use compact layout</span>
-                </label>
-                <label class="settings-check">
-                  <input id="reduce-motion-toggle" type="checkbox" />
-                  <span>Reduce animations</span>
-                </label>
-                <button id="reset-sidebar-width" class="ghost-button appearance-reset-button" type="button">
-                  <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>
-                  Reset sidebar width
-                </button>
+              <div class="appearance-settings-stack">
+                <div class="appearance-settings-group">
+                  <div class="appearance-settings-heading"><h4>Theme</h4></div>
+                  <div class="theme-switcher" role="radiogroup" aria-label="Theme">
+                    <label><input id="theme-system" type="radio" name="theme" value="system" /><span><i class="fa-solid fa-desktop" aria-hidden="true"></i>System</span></label>
+                    <label><input id="theme-light" type="radio" name="theme" value="light" /><span><i class="fa-solid fa-sun" aria-hidden="true"></i>Light</span></label>
+                    <label><input id="theme-dark" type="radio" name="theme" value="dark" /><span><i class="fa-solid fa-moon" aria-hidden="true"></i>Dark</span></label>
+                  </div>
+                  <label class="settings-field">
+                    <span>Accent color</span>
+                    <select id="accent-color-select">
+                      <option value="system">System accent</option><option value="aero">Aero blue</option><option value="violet">Violet</option><option value="green">Green</option><option value="rose">Rose</option><option value="amber">Amber</option><option value="custom">Custom color</option>
+                    </select>
+                    <input id="custom-accent-color" type="color" value="#147fa6" aria-label="Custom accent color" />
+                  </label>
+                </div>
+                <div class="appearance-settings-group">
+                  <div class="appearance-settings-heading"><h4>Chat layout</h4></div>
+                  <div class="appearance-layout-options">
+                    <label class="settings-field">
+                      <span>Message density</span>
+                      <select id="message-density-select"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
+                    </label>
+                    <label class="settings-field">
+                      <span>Chat text size</span>
+                      <select id="chat-font-size-select"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select>
+                    </label>
+                    <label class="settings-check"><input id="compact-layout-toggle" type="checkbox" /><span>Use compact layout</span></label>
+                    <button id="reset-sidebar-width" class="ghost-button appearance-reset-button" type="button"><i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>Reset sidebar width</button>
+                  </div>
+                </div>
+                <div class="appearance-settings-group">
+                  <div class="appearance-settings-heading"><h4>Accessibility</h4></div>
+                  <label class="settings-check"><input id="reduce-motion-toggle" type="checkbox" /><span>Reduce animations</span></label>
+                </div>
               </div>
             </section>
 
@@ -1289,38 +1255,32 @@
             </section>
 
             <section class="settings-section" data-settings-page="general">
-              <h3>Startup & tray</h3>
-              <div class="settings-options">
-                <label class="settings-check">
-                  <input id="autostart-toggle" type="checkbox" />
-                  <span data-app-template="Start {name} when I sign in"
-                    >Start app when I sign in</span
-                  >
-                </label>
-                <div class="settings-choice" id="autostart-mode-group">
-                  <label>
-                    <input
-                      id="autostart-open"
-                      type="radio"
-                      name="autostart-mode"
-                      value="open"
-                    />
-                    <span>Start opened</span>
+              <h3>General</h3>
+              <div class="general-settings-stack">
+                <div class="general-settings-group">
+                  <div class="general-settings-heading"><h4>Startup</h4></div>
+                  <label class="settings-check general-autostart-toggle">
+                    <input id="autostart-toggle" type="checkbox" />
+                    <span data-app-template="Start {name} when I sign in">Start Aero when I sign in</span>
                   </label>
-                  <label>
-                    <input
-                      id="autostart-hidden"
-                      type="radio"
-                      name="autostart-mode"
-                      value="hidden"
-                    />
-                    <span>Start minimized to tray</span>
+                  <div class="settings-choice general-startup-options" id="autostart-mode-group">
+                    <label>
+                      <input id="autostart-open" type="radio" name="autostart-mode" value="open" />
+                      <span>Start opened</span>
+                    </label>
+                    <label>
+                      <input id="autostart-hidden" type="radio" name="autostart-mode" value="hidden" />
+                      <span>Start minimized to tray</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="general-settings-group">
+                  <div class="general-settings-heading"><h4>System tray</h4></div>
+                  <label class="settings-check">
+                    <input id="close-to-tray-toggle" type="checkbox" />
+                    <span>Close button sends Aero to tray</span>
                   </label>
                 </div>
-                <label class="settings-check">
-                  <input id="close-to-tray-toggle" type="checkbox" />
-                  <span>Close button sends Aero to tray</span>
-                </label>
               </div>
             </section>
 

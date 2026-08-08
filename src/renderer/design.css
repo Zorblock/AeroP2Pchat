@@ -3609,6 +3609,37 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .appearance-options .settings-check {
   min-height: 36px;
 }
+.appearance-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+.appearance-settings-group {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.appearance-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.appearance-layout-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  align-items: end;
+}
+.appearance-layout-options .settings-check {
+  min-height: 34px;
+}
+@media (max-width: 460px) {
+  .appearance-layout-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 #custom-accent-color {
   width: 100%;
   height: 34px;
@@ -3761,6 +3792,41 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .notification-suboption {
   margin: -2px 0 0 38px;
+}
+.general-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+.general-settings-group {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.general-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.general-autostart-toggle {
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-choice.general-startup-options {
+  gap: 6px;
+  margin-left: 38px;
+}
+.general-startup-options label {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.general-startup-options label:has(input:checked) {
+  border-color: var(--line-accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .custom-sound-list {
   display: grid;
