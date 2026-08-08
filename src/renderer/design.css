@@ -3669,6 +3669,46 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   display: grid;
   gap: 10px;
 }
+.profile-settings-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.profile-settings-entry > div {
+  display: grid;
+  gap: 3px;
+}
+.profile-settings-entry strong {
+  color: var(--text);
+  font-size: 11px;
+}
+.profile-settings-entry span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.profile-settings-entry button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+@media (max-width: 460px) {
+  .profile-settings-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .profile-settings-entry button {
+    justify-content: center;
+  }
+}
 .appearance-settings-group {
   display: grid;
   gap: 10px;

@@ -210,6 +210,7 @@ const profileNamePreviewLight = document.querySelector("#profile-name-preview-li
 const profileNamePreviewDark = document.querySelector("#profile-name-preview-dark");
 const profileReset = document.querySelector("#profile-reset");
 const profileSave = document.querySelector("#profile-save");
+const openProfileEditorButton = document.querySelector("#open-profile-editor");
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const themeSystem = document.querySelector("#theme-system");
@@ -11896,6 +11897,10 @@ appMenuProfile.addEventListener("click", () => {
   profileModal.classList.remove("hidden");
   closeAppMenu();
   profileNickname.focus();
+});
+
+openProfileEditorButton?.addEventListener("click", () => {
+  appMenuProfile.click();
 });
 
 profileClose.addEventListener("click", () => {

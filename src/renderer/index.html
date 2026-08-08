@@ -1103,6 +1103,10 @@
         <div class="settings-layout">
           <nav class="settings-nav" aria-label="Settings categories">
             <span class="settings-nav-label">Settings</span>
+            <button type="button" class="settings-nav-item" data-settings-nav="profile">
+              <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+              Profile
+            </button>
             <button type="button" class="settings-nav-item active" data-settings-nav="appearance">
               <i class="fa-solid fa-palette" aria-hidden="true"></i>
               Appearance
@@ -1148,6 +1152,19 @@
           </nav>
         <div class="settings-grid">
           <div class="settings-column">
+            <section class="settings-section" data-settings-page="profile">
+              <h3>Profile</h3>
+              <div class="profile-settings-entry">
+                <div>
+                  <strong>Your identity</strong>
+                  <span>Display name, avatar and name style.</span>
+                </div>
+                <button id="open-profile-editor" class="ghost-button" type="button">
+                  <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                  Edit profile
+                </button>
+              </div>
+            </section>
             <section class="settings-section" data-settings-page="appearance">
               <h3>Appearance</h3>
               <div class="appearance-settings-stack">
