@@ -2507,34 +2507,71 @@ body.reduce-motion *::after {
 }
 .voice-message {
   display: grid;
-  min-width: 210px;
-  gap: 8px;
+  min-width: 188px;
+  gap: 5px;
 }
 .voice-message > span {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 700;
 }
 .voice-message small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
 }
-.voice-message audio {
-  width: min(240px, 100%);
-  height: 32px;
+.voice-audio {
+  display: none;
+}
+.voice-player {
+  display: grid;
+  grid-template-columns: 26px minmax(72px, 1fr) auto;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 7px 2px 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.voice-play-button {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font-size: 10px;
+}
+.voice-play-button:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.voice-player.playing .voice-play-button {
+  color: var(--accent);
+}
+.voice-play-time {
+  min-width: 52px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 .voice-waveform {
   --voice-progress: 0%;
   position: relative;
   display: flex;
-  height: 24px;
+  min-width: 0;
+  height: 20px;
   align-items: center;
-  gap: 2px;
+  gap: 1.5px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 5px;
 }
 .voice-waveform::after {
   position: absolute;
@@ -2547,8 +2584,9 @@ body.reduce-motion *::after {
 }
 .voice-waveform span {
   z-index: 1;
-  width: 3px;
-  height: calc(4px + var(--voice-level) * 18px);
+  flex: 0 0 2px;
+  width: 2px;
+  height: calc(3px + var(--voice-level) * 14px);
   border-radius: 999px;
   background: color-mix(in srgb, var(--text-soft) 60%, transparent);
   transition: height 180ms ease, background-color 180ms ease;

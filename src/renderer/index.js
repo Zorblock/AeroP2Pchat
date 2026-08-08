@@ -3548,7 +3548,7 @@ async function analyzeVoiceWaveform(voice, waveform) {
       await voice.blob.arrayBuffer(),
     );
     const samples = audioBuffer.getChannelData(0);
-    const barCount = 36;
+    const barCount = 24;
     const values = Array.from({ length: barCount }, (_, index) => {
       const start = Math.floor((index * samples.length) / barCount);
       const end = Math.floor(((index + 1) * samples.length) / barCount);
@@ -3570,7 +3570,7 @@ function createVoiceWaveform(voice, audio) {
   const waveform = document.createElement("div");
   waveform.className = "voice-waveform";
   waveform.setAttribute("aria-hidden", "true");
-  applyVoiceWaveform(waveform, voice.waveform || Array(36).fill(0.2));
+  applyVoiceWaveform(waveform, voice.waveform || Array(24).fill(0.2));
   audio.addEventListener("play", () => {
     waveform.classList.add("playing");
     void analyzeVoiceWaveform(voice, waveform);
@@ -3592,18 +3592,58 @@ function createVoiceMessageBody(item) {
   const body = document.createElement("div");
   body.className = "voice-message";
   const label = document.createElement("span");
-  label.innerHTML = `<i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> Voice message <small>${formatVoiceDuration(voice.duration)} · ${formatVoiceSize(voice.size)}</small>`;
+  const microphone = document.createElement("i");
+  microphone.className = "fa-solid fa-microphone-lines";
+  microphone.setAttribute("aria-hidden", "true");
+  const meta = document.createElement("small");
+  meta.textContent = `${formatVoiceDuration(voice.duration)} · ${formatVoiceSize(voice.size)}`;
+  label.append(microphone, "Voice message", meta);
   body.append(label);
   if (voice.downloadState === "ready" && voice.objectUrl) {
     const audio = document.createElement("audio");
-    audio.controls = true;
+    audio.className = "voice-audio";
     audio.preload = "none";
     audio.src = voice.objectUrl;
     audio.setAttribute("aria-label", "Verified voice message");
-    body.append(audio);
+    const player = document.createElement("div");
+    player.className = "voice-player";
+    const playButton = document.createElement("button");
+    playButton.type = "button";
+    playButton.className = "voice-play-button";
+    playButton.setAttribute("aria-label", "Play voice message");
+    const playIcon = document.createElement("i");
+    playIcon.className = "fa-solid fa-play";
+    playIcon.setAttribute("aria-hidden", "true");
+    playButton.append(playIcon);
+    const time = document.createElement("span");
+    time.className = "voice-play-time";
+    const updatePlayer = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : voice.duration;
+      time.textContent = `${formatVoiceDuration(audio.currentTime)} / ${formatVoiceDuration(duration)}`;
+      const playing = !audio.paused && !audio.ended;
+      player.classList.toggle("playing", playing);
+      playIcon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+      playButton.setAttribute("aria-label", playing ? "Pause voice message" : "Play voice message");
+    };
+    playButton.addEventListener("click", () => {
+      if (audio.paused || audio.ended) {
+        void audio.play().catch(() => updatePlayer());
+      } else {
+        audio.pause();
+      }
+    });
+    audio.addEventListener("play", updatePlayer);
+    audio.addEventListener("pause", updatePlayer);
+    audio.addEventListener("ended", updatePlayer);
+    audio.addEventListener("timeupdate", updatePlayer);
+    audio.addEventListener("loadedmetadata", updatePlayer);
+    player.append(playButton);
     if (appConfig.appSettings?.voiceWaveform) {
-      body.append(createVoiceWaveform(voice, audio));
+      player.append(createVoiceWaveform(voice, audio));
     }
+    player.append(time);
+    updatePlayer();
+    body.append(audio, player);
   } else {
     const transfer = document.createElement("div");
     transfer.className = "voice-transfer";
