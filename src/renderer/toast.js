@@ -99,6 +99,7 @@ function showToast(details) {
     peerId,
     callId,
     theme,
+    accent,
     avatar,
   } = details;
 
@@ -122,6 +123,9 @@ function showToast(details) {
     const toastEl = document.createElement("div");
     toastEl.className = `toast toast-${variant || kind}`;
     toastEl.id = `toast-${id}`;
+    if (/^#[0-9a-f]{6}$/i.test(String(accent || ""))) {
+      toastEl.style.setProperty("--accent", accent);
+    }
 
     let html = `<div class="toast-header">
       <div class="toast-content">

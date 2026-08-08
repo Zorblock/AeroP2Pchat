@@ -4382,7 +4382,8 @@ function showAppNotification(details) {
   const promise = platformApi
     .showNotification({
       ...details,
-      theme: appConfig.appSettings.theme,
+      theme: document.documentElement.dataset.theme || appConfig.appSettings.theme,
+      accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
       showWhenFocused: appConfig.notificationSettings.showWhenFocused,
     })
     .catch(() => {});

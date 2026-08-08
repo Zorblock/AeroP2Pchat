@@ -1275,6 +1275,9 @@ function showAppNotification(details = {}) {
   const variant = ["chat", "voice", "call"].includes(details.variant)
     ? details.variant
     : kind === "call" ? "call" : "chat";
+  const accent = /^#[0-9a-f]{6}$/i.test(String(details.accent || ""))
+    ? String(details.accent)
+    : "";
 
   const toastPayload = {
     id: notificationId,
@@ -1286,6 +1289,7 @@ function showAppNotification(details = {}) {
     avatar: details.avatar,
     callId,
     theme: details.theme,
+    accent,
     silent: Boolean(details.silent),
   };
 
