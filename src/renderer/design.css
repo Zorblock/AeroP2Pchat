@@ -3705,6 +3705,35 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   padding-inline: 9px;
   font-size: 11px;
 }
+.sound-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+.sound-settings-group {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.sound-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.sound-master-toggle {
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.sound-event-options,
+.sound-ringtone-options {
+  display: grid;
+  gap: 9px;
+}
+.sound-suboption {
+  margin: -2px 0 0 38px;
+}
 .custom-sound-list {
   display: grid;
   gap: 7px;

@@ -1352,7 +1352,53 @@
 
             <section class="settings-section" data-settings-page="sounds">
               <h3>Sounds</h3>
-              <div class="settings-options">
+              <div class="sound-settings-stack">
+                <div class="sound-settings-group">
+                  <div class="sound-settings-heading"><h4>Playback</h4></div>
+                  <label class="settings-check sound-master-toggle">
+                    <input id="sounds-toggle" type="checkbox" />
+                    <span>Enable sounds</span>
+                  </label>
+                  <div class="sound-event-options">
+                    <label class="settings-check">
+                      <input id="message-sound-toggle" type="checkbox" />
+                      <span>Message sound</span>
+                    </label>
+                    <div class="sound-ringtone-options">
+                      <label class="settings-check">
+                        <input id="ringtone-sound-toggle" type="checkbox" />
+                        <span>Incoming call ringtone</span>
+                      </label>
+                      <label class="settings-check sound-suboption">
+                        <input id="ringtone-loop-toggle" type="checkbox" />
+                        <span>Loop ringtone</span>
+                      </label>
+                    </div>
+                    <label class="settings-check">
+                      <input id="call-event-sound-toggle" type="checkbox" />
+                      <span>Call join/leave sounds</span>
+                    </label>
+                    <label class="settings-check">
+                      <input id="connected-sound-toggle" type="checkbox" />
+                      <span>Peer connected sound</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="sound-settings-group">
+                  <div class="custom-sounds-heading">
+                    <div>
+                      <strong>Custom sounds</strong>
+                      <span>OGG/Opus · 160 kbps</span>
+                    </div>
+                    <button id="open-custom-sounds-folder" class="custom-sound-action-button" type="button">
+                      <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+                      Folder
+                    </button>
+                  </div>
+                  <div id="custom-sound-list" class="custom-sound-list"></div>
+                </div>
+              </div>
+              <template>
                 <label class="settings-check">
                   <input id="sounds-toggle" type="checkbox" />
                   <span>Enable sounds</span>
@@ -1388,7 +1434,7 @@
                   </button>
                 </div>
                 <div id="custom-sound-list" class="custom-sound-list"></div>
-              </div>
+              </template>
             </section>
 
             <section class="settings-section" data-settings-page="chat">
