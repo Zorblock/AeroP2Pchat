@@ -168,6 +168,10 @@ body {
 
 .toast-button {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--border);
   color: var(--foreground);
   border: none;
@@ -189,6 +193,16 @@ body {
 
 .toast-button.primary:hover {
   background: var(--accent-hover);
+}
+.toast-button-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 @keyframes slideIn {

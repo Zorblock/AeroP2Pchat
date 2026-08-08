@@ -146,8 +146,8 @@ function showToast(details) {
     // Actions for calls
     if (kind === "call") {
       html += `<div class="toast-actions">
-        <button class="toast-button primary" id="btn-accept-${id}">Accept</button>
-        <button class="toast-button" id="btn-decline-${id}">Decline</button>
+        <button class="toast-button primary" id="btn-accept-${id}"><svg class="toast-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.64a2 2 0 0 1-.45 2.11L8 9.75a16 16 0 0 0 6 6l1.28-1.28a2 2 0 0 1 2.11-.45c.86.29 1.74.5 2.64.62A2 2 0 0 1 22 16.92Z" /></svg>Accept</button>
+        <button class="toast-button" id="btn-decline-${id}"><svg class="toast-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 16 16M8.6 3.1A2 2 0 0 1 9.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.64a2 2 0 0 1-.45 2.11l-1.1 1.1M14 15.75l1.28-1.28a2 2 0 0 1 2.11-.45c.86.29 1.74.5 2.64.62A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.7 19.7 0 0 1-2.27-5.95 2 2 0 0 1 .66-1.98l1.15-1.15" /></svg>Decline</button>
       </div>`;
     }
 
