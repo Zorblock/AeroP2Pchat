@@ -5493,12 +5493,17 @@ body.platform-android .incoming-call-screen {
   justify-content: center;
   gap: 6px;
   padding: 0 8px;
-  border: 1px solid var(--line-accent);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+  background: var(--surface-raised);
+  color: var(--text-soft);
   font-size: 10px;
   font-weight: 700;
+}
+.sidebar-quick-actions button:hover {
+  border-color: var(--line-accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
 }
 .sidebar-action-modal {
   width: min(390px, calc(100vw - 32px));
