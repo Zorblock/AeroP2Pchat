@@ -263,6 +263,7 @@ const notificationsToggle = document.querySelector("#notifications-toggle");
 const messageNotificationsToggle = document.querySelector(
   "#message-notifications-toggle",
 );
+const messagePreviewToggle = document.querySelector("#message-preview-toggle");
 const callNotificationsToggle = document.querySelector(
   "#call-notifications-toggle",
 );
@@ -1933,6 +1934,7 @@ function normalizeAppSettings() {
     ...appConfig.notificationSettings,
     enabled: appConfig.notificationSettings.enabled !== false,
     messages: appConfig.notificationSettings.messages !== false,
+    messagePreview: appConfig.notificationSettings.messagePreview !== false,
     calls: appConfig.notificationSettings.calls !== false,
     showWhenFocused: Boolean(appConfig.notificationSettings.showWhenFocused),
   };
@@ -2418,6 +2420,7 @@ function renderAppSettings() {
 
   notificationsToggle.checked = appConfig.notificationSettings.enabled;
   messageNotificationsToggle.checked = appConfig.notificationSettings.messages;
+  messagePreviewToggle.checked = appConfig.notificationSettings.messagePreview;
   callNotificationsToggle.checked = appConfig.notificationSettings.calls;
   focusedNotificationsToggle.checked =
     appConfig.notificationSettings.showWhenFocused;
@@ -2431,6 +2434,12 @@ function renderAppSettings() {
       .closest(".settings-check")
       ?.classList.toggle("disabled", !appConfig.notificationSettings.enabled);
   }
+  messagePreviewToggle.disabled =
+    !appConfig.notificationSettings.enabled ||
+    !appConfig.notificationSettings.messages;
+  messagePreviewToggle
+    .closest(".settings-check")
+    ?.classList.toggle("disabled", messagePreviewToggle.disabled);
 
   soundsToggle.checked = appConfig.soundSettings.enabled;
   messageSoundToggle.checked = appConfig.soundSettings.messages;
@@ -5258,7 +5267,12 @@ function notifyIncomingMessage(peerId, text, { variant = "chat" } = {}) {
     peerId,
     avatar: getPeerAvatar(peerId, identityId),
     title: getPeerLabel(peerId, conn),
-    body: variant === "voice" ? text : formatIncomingMessagePreview(text),
+    body:
+      variant === "voice"
+        ? text
+        : appConfig.notificationSettings.messagePreview
+          ? formatIncomingMessagePreview(text)
+          : "New message",
     variant,
     silent: !isSoundEnabled("messages"),
   });
@@ -11358,6 +11372,10 @@ notificationsToggle.addEventListener("change", () => {
 
 messageNotificationsToggle.addEventListener("change", () => {
   saveNotificationSettings({ messages: messageNotificationsToggle.checked });
+});
+
+messagePreviewToggle.addEventListener("change", () => {
+  saveNotificationSettings({ messagePreview: messagePreviewToggle.checked });
 });
 
 callNotificationsToggle.addEventListener("change", () => {
