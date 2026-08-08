@@ -10706,6 +10706,7 @@ connectForm.addEventListener("submit", (event) => {
   connectToPeer(remoteId);
   remoteIdInput.value = "";
   refreshPeers();
+  connectModal?.classList.add("hidden");
 });
 
 retryConnectButton?.addEventListener("click", () => {
