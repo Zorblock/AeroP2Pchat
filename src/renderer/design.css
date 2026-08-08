@@ -5073,6 +5073,14 @@ body.platform-android .incoming-call-screen {
   transform: none !important;
 }
 
+/* Tabs are navigation, not action buttons. */
+#settings-modal .settings-section .theme-tab,
+#settings-modal .settings-section .theme-tab:hover:not(:disabled),
+#settings-modal .settings-section .theme-tab:active:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+}
+
 /* Flat UI: surfaces stay crisp without glass blur, glow, or elevation. */
 *,
 *::before,
