@@ -412,7 +412,10 @@ const CONNECTION_HEARTBEAT_INTERVAL_MS = 5000;
 const CONNECTION_HEARTBEAT_TIMEOUT_MS = 16000;
 const CONNECT_ACTION_COOLDOWN_MS = 1200;
 const CALL_ACTION_COOLDOWN_MS = 900;
-const OUTGOING_CALL_TIMEOUT_MS = 45000;
+// Keep the unanswered-call window aligned with the complete 1:16 ringtone.
+// The caller ends the session for both peers, so the recipient's ringtone ends
+// at the same point without maintaining a second competing timer.
+const OUTGOING_CALL_TIMEOUT_MS = 76_000;
 const TYPING_IDLE_MS = 1800;
 const TYPING_SEND_INTERVAL_MS = 1200;
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
