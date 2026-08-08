@@ -457,24 +457,18 @@ function colored(value, ...styles) {
   return `${styles.join("")}${value}${color.reset}`;
 }
 
-function printArtifact(label, filePath, note, styles) {
-  console.log(`  ${colored(label, color.bold, ...styles)}`);
-  console.log(`  ${terminalFolderLink(filePath)}`);
+function printArtifact(label, filePath, status, styles) {
   console.log(
-    `  ${colored(`Artifact: ${path.basename(filePath)}`, color.dim)}`,
+    `  ${colored(`[${status}]`, color.bold, ...styles)} ${label}: ${path.basename(filePath)}`,
   );
-  console.log(`  ${colored(note, color.dim)}`);
-  if (process.platform === "win32") {
-    console.log(
-      `  ${colored(
-        "Ctrl+click opens the folder. Fallback:",
-        color.dim,
-      )} explorer.exe /select,"${path.resolve(filePath)}"`,
-    );
-  }
+  console.log(`    ${colored(terminalFolderLink(filePath), color.dim)}`);
 }
 
-function printArtifactLinks(releaseFiles) {
+function printReleaseSummary(
+  releaseFiles,
+  chromeExtensionPublished,
+  virusTotalSubmitted,
+) {
   const findReleaseFile = (extension) =>
     releaseFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
 
@@ -485,17 +479,21 @@ function printArtifactLinks(releaseFiles) {
       color.cyan,
     )}`,
   );
+  console.log("Status: [OK] GitHub release published");
   console.log(
-    colored("Open containing folder to reveal a release artifact.", color.dim),
+    `Chrome: ${chromeExtensionPublished ? "[OK] uploaded automatically" : "[MANUAL] ZIP must be uploaded manually"}`,
   );
+  console.log(
+    `VirusTotal: ${virusTotalSubmitted ? "[OK] submitted" : "[SKIPPED] submit manually if needed"}`,
+  );
+  console.log("Files:");
 
   const windows = findReleaseFile(".exe");
   if (windows) {
-    console.log(`\n${colored("WINDOWS DOWNLOAD", color.bold, color.green)}`);
     printArtifact(
-      "Windows installer (.exe)",
+      "Windows installer",
       windows,
-      "Already included in the GitHub release. This is the normal direct download.",
+      "GITHUB",
       [color.green],
     );
   }
@@ -504,22 +502,20 @@ function printArtifactLinks(releaseFiles) {
     (filePath) => path.basename(filePath) === config.release.windowsStoreAppxAsset,
   );
   if (storePackage) {
-    console.log(`\n${colored("MICROSOFT STORE", color.bold, color.green)}`);
     printArtifact(
-      "Store submission package (.appx)",
+      "Microsoft Store package",
       storePackage,
-      "Upload this file in Microsoft Partner Center; it is intentionally not uploaded to GitHub.",
+      "MANUAL",
       [color.green],
     );
   }
 
   const appImage = findReleaseFile(".appimage");
   if (appImage) {
-    console.log(`\n${colored("LINUX DOWNLOADS", color.bold, color.magenta)}`);
     printArtifact(
       "AppImage",
       appImage,
-      "Already included in the GitHub release. Supports the app's automatic updates.",
+      "GITHUB",
       [color.magenta],
     );
   }
@@ -528,22 +524,20 @@ function printArtifactLinks(releaseFiles) {
     (filePath) => path.basename(filePath) === config.release.chromeExtensionAsset,
   );
   if (chromeExtension) {
-    console.log(`\n${colored("CHROME EXTENSION", color.bold, color.yellow)}`);
     printArtifact(
-      "Chrome extension (.zip)",
+      "Chrome extension",
       chromeExtension,
-      "Published to the Chrome Web Store; kept locally and never uploaded to GitHub.",
+      chromeExtensionPublished ? "UPLOADED" : "MANUAL",
       [color.yellow],
     );
   }
 
   const apk = findReleaseFile(".apk");
   if (apk) {
-    console.log(`\n${colored("ANDROID DOWNLOAD", color.bold, color.cyan)}`);
     printArtifact(
-      "Android package (.apk)",
+      "Android package",
       apk,
-      "Already included in the GitHub release. Use this for direct Android downloads.",
+      "GITHUB",
       [color.cyan],
     );
   }
@@ -559,14 +553,9 @@ function printArtifactLinks(releaseFiles) {
         color.dim,
       )}`,
     );
-    for (const filePath of metadataFiles) {
-      console.log(
-        `  ${path.basename(filePath)} ${colored(
-          "(used by the automatic updater)",
-          color.dim,
-        )}`,
-      );
-    }
+    console.log(
+      `  ${colored("[AUTO-UPDATE]", color.bold, color.dim)} ${metadataFiles.map((filePath) => path.basename(filePath)).join(", ")}`,
+    );
   }
 }
 
@@ -662,6 +651,7 @@ function main() {
     : null;
   let commitCreated = false;
   let githubReleaseCreated = false;
+  let chromeExtensionPublished = false;
 
   try {
     // 2. Bump version
@@ -695,8 +685,19 @@ function main() {
     run("node", ["scripts/promote-release-artifacts.cjs"]);
 
     // 5. The extension is published through the Chrome Web Store, never as a
-    // GitHub release download. Reuse the exact ZIP produced for this release.
-    run("node", ["scripts/publish-chrome-extension.cjs"]);
+    // GitHub release download. Its upload must not block the desktop and
+    // mobile release: the same ZIP can be uploaded manually if necessary.
+    try {
+      run("node", ["scripts/publish-chrome-extension.cjs"]);
+      chromeExtensionPublished = true;
+    } catch (error) {
+      console.warn(
+        `Chrome Web Store upload failed: ${error.message || error}`,
+      );
+      console.warn(
+        "The release will continue. Upload dist/release/Aero-P2P-Chat-Chrome-Extension.zip manually in the Chrome Web Store Developer Dashboard.",
+      );
+    }
 
     // 6. Publish only after every local build has been promoted successfully.
     run("git", ["add", "-A"]);
@@ -731,28 +732,26 @@ function main() {
     githubReleaseCreated = true;
     uploadReleaseFiles(tag, githubReleaseFiles);
 
-    console.log("");
-    console.log(
-      `Release ${tag} created on GitHub with Windows, Android, and Linux artifacts.`,
-    );
-    console.log(
-      "Windows, Android, Linux, and the Chrome Web Store extension were published.",
-    );
-    console.log("Website deployment was triggered after the source push.");
-    printArtifactLinks(releaseFiles);
-    notifyReleaseComplete(tag);
-
     // VirusTotal submissions are deliberately last: the public releases are
     // already available, while the reports populate asynchronously afterwards.
     console.log("Submitting public VirusTotal scans...");
+    let virusTotalSubmitted = false;
     try {
       run("node", ["scripts/scan-virustotal.cjs", "--submit-only"]);
+      virusTotalSubmitted = true;
     } catch (error) {
       console.warn(
         `VirusTotal upload could not be completed: ${error.message || error}`,
       );
       console.warn("The release is already published; retry with npm run scan:virustotal:submit.");
     }
+
+    printReleaseSummary(
+      releaseFiles,
+      chromeExtensionPublished,
+      virusTotalSubmitted,
+    );
+    notifyReleaseComplete(tag);
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
     if (!commitCreated) {
