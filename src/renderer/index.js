@@ -1,8 +1,8 @@
 // deno-lint-ignore-file no-window no-window-prefix no-unused-vars require-await
 import Peer, { util } from "peerjs";
-import { Picker as EmojiPicker } from "emoji-picker-element";
-import emojiPickerGerman from "emoji-picker-element/i18n/de";
 import emojiDataUrl from "../../node_modules/emoji-picker-element-data/de/cldr/data.json?url";
+import emojiShortcodeDataUrl from "../../node_modules/emoji-picker-element-data/en/github/data.json?url";
+import countryFlagEmojiFontUrl from "../../node_modules/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url";
 import { getDomain } from "tldts";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
@@ -95,6 +95,7 @@ const sendButton = document.querySelector("#send-button");
 const voiceRecordButton = document.querySelector("#voice-record-button");
 const emojiPickerButton = document.querySelector("#emoji-picker-button");
 const emojiPickerPopover = document.querySelector("#emoji-picker-popover");
+const emojiShortcodePopover = document.querySelector("#emoji-shortcode-popover");
 const voiceRecordStatus = document.querySelector("#voice-record-status");
 const headerUpdateButton = document.querySelector("#header-update-button");
 const updateCard = document.querySelector("#update-card");
@@ -4657,38 +4658,224 @@ function syncComposerAction() {
   sendButton.classList.toggle("hidden", !hasText || recording);
   voiceRecordButton.classList.toggle("hidden", hasText && !recording);
   emojiPickerButton.disabled = messageInput.disabled || recording;
-  if (recording || messageInput.disabled) setEmojiPickerOpen(false);
+  if (recording || messageInput.disabled) {
+    void setEmojiPickerOpen(false);
+    closeEmojiShortcodeSuggestions();
+  }
 }
 
 let emojiPicker = null;
+let emojiPickerLoading = null;
+let emojiPickerClickModifiers = [];
+let countryFlagEmojiSupportPromise = null;
 
-function ensureEmojiPicker() {
-  if (emojiPicker) return emojiPicker;
-
-  emojiPicker = new EmojiPicker({
-    dataSource: emojiDataUrl,
-    locale: "de",
-    i18n: emojiPickerGerman,
-  });
-  emojiPicker.addEventListener("emoji-click", (event) => {
-    const emoji = event.detail?.unicode;
-    if (!emoji || messageInput.disabled) return;
-    const start = messageInput.selectionStart ?? messageInput.value.length;
-    const end = messageInput.selectionEnd ?? start;
-    messageInput.setRangeText(emoji, start, end, "end");
-    messageInput.dispatchEvent(new Event("input", { bubbles: true }));
-    messageInput.focus();
-    setEmojiPickerOpen(false);
-  });
-  emojiPickerPopover.append(emojiPicker);
-  return emojiPicker;
+function enableCountryFlagEmojiSupport() {
+  if (countryFlagEmojiSupportPromise) return countryFlagEmojiSupportPromise;
+  countryFlagEmojiSupportPromise = import("country-flag-emoji-polyfill")
+    .then(({ polyfillCountryFlagEmojis }) =>
+      polyfillCountryFlagEmojis("Twemoji Country Flags", countryFlagEmojiFontUrl),
+    )
+    .catch((error) => {
+      console.warn("[Aero] Country flag emoji fallback could not load.", error);
+      return false;
+    });
+  return countryFlagEmojiSupportPromise;
 }
 
-function setEmojiPickerOpen(open) {
+void enableCountryFlagEmojiSupport();
+
+async function ensureEmojiPicker() {
+  if (emojiPicker) return emojiPicker;
+  if (emojiPickerLoading) return emojiPickerLoading;
+
+  emojiPickerLoading = (async () => {
+    const [pickerModule, translationModule] = await Promise.all([
+      import("emoji-picker-element/picker"),
+      import("emoji-picker-element/i18n/de"),
+    ]);
+    const picker = new pickerModule.default({
+      dataSource: emojiDataUrl,
+      locale: "de",
+      i18n: translationModule.default,
+    });
+    picker.addEventListener("click", (event) => {
+      const emojiTarget = event.composedPath().find(
+        (node) => node instanceof Element && node.classList.contains("emoji"),
+      );
+      if (emojiTarget) emojiPickerClickModifiers.push({ keepOpen: event.shiftKey });
+    }, true);
+    picker.addEventListener("emoji-click-sync", (event) => {
+      const { keepOpen = false } = emojiPickerClickModifiers.shift() || {};
+      Promise.resolve(event.detail).then((detail) => {
+        const emoji = detail?.unicode;
+        if (!emoji || messageInput.disabled) return;
+        const start = messageInput.selectionStart ?? messageInput.value.length;
+        const end = messageInput.selectionEnd ?? start;
+        messageInput.setRangeText(emoji, start, end, "end");
+        messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+        if (!keepOpen) {
+          messageInput.focus();
+          void setEmojiPickerOpen(false);
+        }
+      });
+    });
+    emojiPicker = picker;
+    emojiPickerPopover.replaceChildren(picker);
+    return picker;
+  })();
+
+  try {
+    return await emojiPickerLoading;
+  } finally {
+    emojiPickerLoading = null;
+  }
+}
+
+async function setEmojiPickerOpen(open) {
   const shouldOpen = Boolean(open && !messageInput.disabled && !emojiPickerButton.disabled);
-  if (shouldOpen) ensureEmojiPicker();
+  if (!shouldOpen) {
+    emojiPickerPopover.classList.add("hidden");
+    emojiPickerButton.setAttribute("aria-expanded", "false");
+    return;
+  }
+
+  closeEmojiShortcodeSuggestions();
   emojiPickerPopover.classList.toggle("hidden", !shouldOpen);
-  emojiPickerButton.setAttribute("aria-expanded", String(shouldOpen));
+  emojiPickerButton.setAttribute("aria-expanded", "true");
+  if (emojiPicker) return;
+
+  emojiPickerPopover.replaceChildren(Object.assign(document.createElement("div"), {
+    className: "emoji-picker-loading",
+    textContent: "Loading emoji…",
+  }));
+  emojiPickerButton.setAttribute("aria-busy", "true");
+  try {
+    await ensureEmojiPicker();
+  } catch (error) {
+    console.warn("[Aero] Emoji picker could not load.", error);
+    emojiPickerPopover.classList.add("hidden");
+    emojiPickerButton.setAttribute("aria-expanded", "false");
+    showToast("Emoji picker could not load. Please try again.", "error");
+  } finally {
+    emojiPickerButton.removeAttribute("aria-busy");
+  }
+}
+
+let emojiShortcodeIndex = null;
+let emojiShortcodeIndexLoading = null;
+let emojiShortcodeSuggestions = [];
+let emojiShortcodeSelection = 0;
+let emojiShortcodeSearchVersion = 0;
+
+function getEmojiShortcodeTrigger() {
+  const cursor = messageInput.selectionStart ?? messageInput.value.length;
+  const prefix = messageInput.value.slice(0, cursor);
+  const match = prefix.match(/(?:^|[\s([{:]):([a-z0-9_+-]{1,48})$/i);
+  if (!match) return null;
+  return {
+    query: match[1].toLowerCase(),
+    start: cursor - match[1].length - 1,
+    end: cursor,
+  };
+}
+
+function closeEmojiShortcodeSuggestions() {
+  emojiShortcodeSearchVersion += 1;
+  emojiShortcodeSuggestions = [];
+  emojiShortcodeSelection = 0;
+  emojiShortcodePopover.classList.add("hidden");
+  emojiShortcodePopover.replaceChildren();
+  messageInput.setAttribute("aria-expanded", "false");
+  messageInput.removeAttribute("aria-activedescendant");
+}
+
+async function loadEmojiShortcodeIndex() {
+  if (emojiShortcodeIndex) return emojiShortcodeIndex;
+  if (emojiShortcodeIndexLoading) return emojiShortcodeIndexLoading;
+  emojiShortcodeIndexLoading = fetch(emojiShortcodeDataUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error(`Emoji data request failed (${response.status})`);
+      return response.json();
+    })
+    .then((emojiData) => emojiData.flatMap((emoji) =>
+      (emoji.shortcodes || []).map((shortcode) => ({
+        emoji: emoji.emoji,
+        shortcode: String(shortcode).toLowerCase(),
+      })),
+    ));
+  try {
+    emojiShortcodeIndex = await emojiShortcodeIndexLoading;
+    return emojiShortcodeIndex;
+  } finally {
+    emojiShortcodeIndexLoading = null;
+  }
+}
+
+function renderEmojiShortcodeSuggestions(suggestions) {
+  emojiShortcodeSuggestions = suggestions;
+  emojiShortcodeSelection = Math.min(emojiShortcodeSelection, Math.max(0, suggestions.length - 1));
+  emojiShortcodePopover.replaceChildren(...suggestions.map((suggestion, index) => {
+    const option = document.createElement("button");
+    option.id = `emoji-shortcode-option-${index}`;
+    option.type = "button";
+    option.className = "emoji-shortcode-option";
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(index === emojiShortcodeSelection));
+    option.append(
+      Object.assign(document.createElement("span"), { className: "emoji-shortcode-symbol", textContent: suggestion.emoji }),
+      Object.assign(document.createElement("span"), { className: "emoji-shortcode-name", textContent: `:${suggestion.shortcode}:` }),
+    );
+    option.addEventListener("click", () => insertEmojiShortcodeSuggestion(suggestion));
+    return option;
+  }));
+  emojiShortcodePopover.classList.remove("hidden");
+  messageInput.setAttribute("aria-expanded", "true");
+  messageInput.setAttribute("aria-activedescendant", `emoji-shortcode-option-${emojiShortcodeSelection}`);
+}
+
+function insertEmojiShortcodeSuggestion(suggestion) {
+  const trigger = getEmojiShortcodeTrigger();
+  if (!trigger) return;
+  messageInput.setRangeText(suggestion.emoji, trigger.start, trigger.end, "end");
+  messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+  closeEmojiShortcodeSuggestions();
+  messageInput.focus();
+}
+
+async function refreshEmojiShortcodeSuggestions() {
+  const trigger = getEmojiShortcodeTrigger();
+  if (!trigger || messageInput.disabled) {
+    closeEmojiShortcodeSuggestions();
+    return;
+  }
+
+  const searchVersion = ++emojiShortcodeSearchVersion;
+  emojiShortcodePopover.replaceChildren(Object.assign(document.createElement("div"), {
+    className: "emoji-shortcode-loading",
+    textContent: "Searching emoji…",
+  }));
+  emojiShortcodePopover.classList.remove("hidden");
+  messageInput.setAttribute("aria-expanded", "true");
+  try {
+    const index = await loadEmojiShortcodeIndex();
+    if (searchVersion !== emojiShortcodeSearchVersion) return;
+    const currentTrigger = getEmojiShortcodeTrigger();
+    if (!currentTrigger || currentTrigger.query !== trigger.query) return closeEmojiShortcodeSuggestions();
+    const suggestions = index
+      .map((item) => ({
+        ...item,
+        score: item.shortcode === trigger.query ? 0 : item.shortcode.startsWith(trigger.query) ? 1 : 2,
+      }))
+      .filter((item) => item.score < 2 || item.shortcode.includes(trigger.query))
+      .sort((first, second) => first.score - second.score || first.shortcode.localeCompare(second.shortcode))
+      .slice(0, 6);
+    if (!suggestions.length) return closeEmojiShortcodeSuggestions();
+    emojiShortcodeSelection = 0;
+    renderEmojiShortcodeSuggestions(suggestions);
+  } catch (error) {
+    console.warn("[Aero] Emoji shortcode data could not load.", error);
+    closeEmojiShortcodeSuggestions();
+  }
 }
 
 function updateVoiceRecordUi() {
@@ -9704,7 +9891,7 @@ voiceRecordButton.addEventListener("click", () => {
 
 emojiPickerButton.addEventListener("click", () => {
   const opening = emojiPickerPopover.classList.contains("hidden");
-  setEmojiPickerOpen(opening);
+  void setEmojiPickerOpen(opening);
 });
 
 document.addEventListener("pointerdown", (event) => {
@@ -9713,13 +9900,20 @@ document.addEventListener("pointerdown", (event) => {
     !emojiPickerPopover.contains(event.target) &&
     !emojiPickerButton.contains(event.target)
   ) {
-    setEmojiPickerOpen(false);
+    void setEmojiPickerOpen(false);
+  }
+  if (
+    !emojiShortcodePopover.classList.contains("hidden") &&
+    !emojiShortcodePopover.contains(event.target) &&
+    !messageInput.contains(event.target)
+  ) {
+    closeEmojiShortcodeSuggestions();
   }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !emojiPickerPopover.classList.contains("hidden")) {
-    setEmojiPickerOpen(false);
+    void setEmojiPickerOpen(false);
     emojiPickerButton.focus();
   }
 });
@@ -9745,6 +9939,7 @@ clearChat.addEventListener("click", async () => {
 
 messageInput.addEventListener("input", () => {
   syncComposerAction();
+  void refreshEmojiShortcodeSuggestions();
   if (!activePeerId || messageInput.disabled) {
     return;
   }
@@ -9755,6 +9950,28 @@ messageInput.addEventListener("input", () => {
     scheduleLocalTypingStop(activePeerId);
   } else {
     sendTypingState(activePeerId, false, { force: true });
+  }
+});
+
+messageInput.addEventListener("keydown", (event) => {
+  if (emojiShortcodePopover.classList.contains("hidden") || !emojiShortcodeSuggestions.length) {
+    return;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const offset = event.key === "ArrowDown" ? 1 : -1;
+    emojiShortcodeSelection = (emojiShortcodeSelection + offset + emojiShortcodeSuggestions.length) % emojiShortcodeSuggestions.length;
+    renderEmojiShortcodeSuggestions(emojiShortcodeSuggestions);
+    return;
+  }
+  if (event.key === "Tab" || event.key === "Enter") {
+    event.preventDefault();
+    insertEmojiShortcodeSuggestion(emojiShortcodeSuggestions[emojiShortcodeSelection]);
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeEmojiShortcodeSuggestions();
   }
 });
 

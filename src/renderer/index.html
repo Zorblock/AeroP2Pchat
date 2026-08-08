@@ -747,6 +747,9 @@
                 name="message"
                 autocomplete="off"
                 placeholder="Write a message..."
+                aria-autocomplete="list"
+                aria-controls="emoji-shortcode-popover"
+                aria-expanded="false"
                 disabled
               />
               <span id="voice-record-status" class="voice-record-status hidden" aria-live="polite"></span>
@@ -755,7 +758,7 @@
                 class="icon-only-button"
                 type="button"
                 disabled
-                title="Add emoji"
+                title="Add emoji (Shift+click an emoji to keep the picker open)"
                 aria-label="Add emoji"
                 aria-expanded="false"
                 aria-controls="emoji-picker-popover"
@@ -786,6 +789,7 @@
                 <span>Send</span>
               </button>
               <div id="emoji-picker-popover" class="emoji-picker-popover hidden" role="dialog" aria-label="Emoji picker"></div>
+              <div id="emoji-shortcode-popover" class="emoji-shortcode-popover hidden" role="listbox" aria-label="Emoji suggestions"></div>
             </div>
           </form>
         </section>
