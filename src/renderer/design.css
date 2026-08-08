@@ -5480,6 +5480,68 @@ body.platform-android .incoming-call-screen {
 }
 
 /* Settings actions share one quiet accent-outline treatment. */
+.sidebar-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.sidebar-quick-actions button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--line-accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+.sidebar-action-modal {
+  width: min(390px, calc(100vw - 32px));
+  padding: 16px;
+}
+.sidebar-action-modal .id-card,
+.sidebar-action-modal .connect-form {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.sidebar-action-modal .id-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px 34px;
+  gap: 7px;
+  align-items: center;
+}
+.sidebar-action-modal .id-row code {
+  min-width: 0;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-action-modal .id-row .icon-button {
+  width: 34px;
+  height: 34px;
+}
+.sidebar-action-modal .connect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+.sidebar-action-modal .connect-row input {
+  min-width: 0;
+  height: 38px;
+}
+.sidebar-action-modal #connect-button {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+}
 #settings-modal .settings-section button:not(.danger) {
   border-color: var(--line-accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);

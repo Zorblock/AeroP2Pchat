@@ -24,6 +24,16 @@ const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
 const remoteIdInput = document.querySelector("#remote-id");
 const connectButton = document.querySelector("#connect-button");
+const ownIdModal = document.querySelector("#own-id-modal");
+const connectModal = document.querySelector("#connect-modal");
+const ownIdModalMount = document.querySelector("#own-id-modal-mount");
+const connectModalMount = document.querySelector("#connect-modal-mount");
+const openOwnIdModalButton = document.querySelector("#open-own-id-modal");
+const openConnectModalButton = document.querySelector("#open-connect-modal");
+const sidebarIdCard = document.querySelector(".connection-panel .id-card");
+const sidebarConnectForm = document.querySelector(".connection-panel .connect-form");
+if (ownIdModalMount && sidebarIdCard) ownIdModalMount.append(sidebarIdCard);
+if (connectModalMount && sidebarConnectForm) connectModalMount.append(sidebarConnectForm);
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
 const titlebarStatus = document.querySelector(".titlebar-status");
@@ -11877,6 +11887,15 @@ copyUpdateCommands.forEach((button) => {
 });
 
 titlebarLogo.addEventListener("contextmenu", openAppMenu);
+
+openOwnIdModalButton?.addEventListener("click", () => ownIdModal?.classList.remove("hidden"));
+openConnectModalButton?.addEventListener("click", () => {
+  connectModal?.classList.remove("hidden");
+  document.querySelector("#remote-id")?.focus();
+});
+document.querySelectorAll("[data-close-sidebar-modal]").forEach((button) => {
+  button.addEventListener("click", () => button.closest(".modal-layer")?.classList.add("hidden"));
+});
 
 titlebarLogo.addEventListener("click", openAppMenu);
 
