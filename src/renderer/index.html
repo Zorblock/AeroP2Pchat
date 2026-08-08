@@ -802,22 +802,24 @@
       aria-labelledby="incoming-call-name"
     >
       <div class="incoming-call-content">
+        <div class="incoming-call-avatar-wrap" aria-hidden="true">
+          <div id="incoming-call-avatar" class="contact-avatar incoming-call-avatar"></div>
+          <span class="incoming-call-avatar-badge"><i class="fa-solid fa-phone" aria-hidden="true"></i></span>
+        </div>
+        <p class="incoming-call-eyebrow"><i class="fa-solid fa-phone-volume" aria-hidden="true"></i> Incoming voice call</p>
         <h2 id="incoming-call-name" class="incoming-call-name">Caller Name</h2>
-        <p class="incoming-call-subtitle">Incoming Voice Call...</p>
+        <p class="incoming-call-subtitle">Choose how you want to respond.</p>
         <div class="incoming-call-actions">
           <button id="screen-call-accept" class="screen-call-action accept" type="button">
             <div class="icon-circle"><i class="fa-solid fa-phone" aria-hidden="true"></i></div>
             <span>Accept</span>
-          </button>
-          <button id="screen-call-ignore" class="screen-call-action ignore" type="button">
-            <div class="icon-circle"><i class="fa-solid fa-bell-slash" aria-hidden="true"></i></div>
-            <span>Ignore</span>
           </button>
           <button id="screen-call-decline" class="screen-call-action decline" type="button">
             <div class="icon-circle"><i class="fa-solid fa-phone-slash" aria-hidden="true"></i></div>
             <span>Decline</span>
           </button>
         </div>
+        <button id="screen-call-ignore" class="incoming-call-ignore" type="button"><i class="fa-solid fa-bell-slash" aria-hidden="true"></i> Silence ringing</button>
       </div>
     </div>
   </main>

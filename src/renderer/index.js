@@ -42,6 +42,7 @@ const disconnectChat = document.querySelector("#disconnect-chat");
 const callBanner = document.querySelector("#call-banner");
 const incomingCallScreen = document.querySelector("#incoming-call-screen");
 const incomingCallName = document.querySelector("#incoming-call-name");
+const incomingCallAvatar = document.querySelector("#incoming-call-avatar");
 const screenCallAccept = document.querySelector("#screen-call-accept");
 const screenCallDecline = document.querySelector("#screen-call-decline");
 const screenCallIgnore = document.querySelector("#screen-call-ignore");
@@ -6013,11 +6014,19 @@ function refreshCallUi() {
 
   incomingCallScreen?.classList.toggle("hidden", callState.status !== "incoming");
   if (callState.status === "incoming" && incomingCallName) {
-    incomingCallName.textContent = getActiveCallLabel() || "Peer";
+    const identityId = getPeerIdentityId(callState.peerId);
+    const label = getActiveCallLabel() || "Peer";
+    incomingCallName.textContent = label;
     applyNameAppearance(
       incomingCallName,
-      getPeerNameStyle(callState.peerId, getPeerIdentityId(callState.peerId)),
+      getPeerNameStyle(callState.peerId, identityId),
     );
+    if (incomingCallAvatar) {
+      applyAvatarAppearance(incomingCallAvatar, identityId, getPeerAvatar(callState.peerId, identityId));
+      incomingCallAvatar.textContent = normalizeAvatarConfig(getPeerAvatar(callState.peerId, identityId)).showInitial
+        ? label.charAt(0).toUpperCase()
+        : "";
+    }
   }
 
   if (callState.status === "idle") {
