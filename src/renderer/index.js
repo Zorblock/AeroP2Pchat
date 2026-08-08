@@ -210,7 +210,12 @@ const profileNamePreviewLight = document.querySelector("#profile-name-preview-li
 const profileNamePreviewDark = document.querySelector("#profile-name-preview-dark");
 const profileReset = document.querySelector("#profile-reset");
 const profileSave = document.querySelector("#profile-save");
-const openProfileEditorButton = document.querySelector("#open-profile-editor");
+const profileSettingsMount = document.querySelector("#profile-settings-mount");
+const profilePanel = profileModal?.querySelector(".profile-panel");
+if (profileSettingsMount && profilePanel) {
+  profileSettingsMount.append(profilePanel);
+  profileModal.remove();
+}
 const themeLight = document.querySelector("#theme-light");
 const themeDark = document.querySelector("#theme-dark");
 const themeSystem = document.querySelector("#theme-system");
@@ -11894,13 +11899,10 @@ appMenuProfile.addEventListener("click", () => {
   syncEnhancedSelect(profileNameFont);
   profileId.textContent = identity.id;
   renderProfileAvatarPreview();
-  profileModal.classList.remove("hidden");
+  settingsModal.classList.remove("hidden");
+  selectSettingsPage("profile");
   closeAppMenu();
   profileNickname.focus();
-});
-
-openProfileEditorButton?.addEventListener("click", () => {
-  appMenuProfile.click();
 });
 
 profileClose.addEventListener("click", () => {
