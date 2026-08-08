@@ -3750,10 +3750,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   padding: 8px;
 }
 .settings-section[data-settings-page="profile"] .profile-actions {
-  position: sticky;
-  bottom: 0;
-  padding-top: 8px;
-  background: var(--surface-raised);
+  padding-top: 2px;
 }
 .settings-section[data-settings-page="profile"] .profile-reset,
 .settings-section[data-settings-page="profile"] .profile-save {
