@@ -4667,6 +4667,8 @@ function syncComposerAction() {
 let emojiPicker = null;
 let emojiPickerLoading = null;
 let emojiPickerClickModifiers = [];
+let emojiPickerHoverTarget = null;
+let emojiPickerHoverPointer = null;
 let countryFlagEmojiSupportPromise = null;
 
 function enableCountryFlagEmojiSupport() {
@@ -4719,6 +4721,61 @@ async function ensureEmojiPicker() {
         }
       });
     });
+    const removeNativeEmojiTitles = () => {
+      picker.shadowRoot.querySelectorAll(".emoji[id^='emo-'][title], .emoji[id^='fav-'][title]")
+        .forEach((emojiElement) => emojiElement.removeAttribute("title"));
+    };
+    removeNativeEmojiTitles();
+    new MutationObserver(removeNativeEmojiTitles).observe(picker.shadowRoot, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["title"],
+    });
+    picker.shadowRoot.addEventListener("pointerover", async (event) => {
+      const target = event.target instanceof Element ? event.target.closest(".emoji") : null;
+      if (!target?.id?.match(/^(?:emo|fav)-/)) return;
+      const pointer = { x: event.clientX, y: event.clientY };
+      emojiPickerHoverTarget = target;
+      emojiPickerHoverPointer = pointer;
+      target.removeAttribute("title");
+      if (target.dataset.shortcodeTooltip) {
+        scheduleEmojiPickerTooltip(target, pointer);
+        return;
+      }
+      try {
+        const detail = await picker.database.getEmojiByUnicodeOrName(
+          target.id.replace(/^(?:emo|fav)-/, ""),
+        );
+        const shortcode = await getEmojiShortcodeTooltip(detail?.unicode);
+        if (!shortcode || !target.isConnected) return;
+        target.dataset.tooltip = `:${shortcode}:`;
+        target.dataset.shortcodeTooltip = "true";
+        scheduleEmojiPickerTooltip(target, pointer);
+      } catch {
+        // Emojis without a shortcode intentionally receive no tooltip.
+      }
+    });
+    picker.shadowRoot.addEventListener("pointermove", (event) => {
+      const target = event.target instanceof Element ? event.target.closest(".emoji") : null;
+      if (target?.id?.match(/^(?:emo|fav)-/)) {
+        emojiPickerHoverTarget = target;
+        emojiPickerHoverPointer = { x: event.clientX, y: event.clientY };
+      }
+      if (activeTooltipTarget !== target || tooltipEl.classList.contains("hidden")) return;
+      lastTooltipPointer = emojiPickerHoverPointer;
+      positionTooltipAtPointer(lastTooltipPointer);
+    });
+    picker.shadowRoot.addEventListener("pointerout", (event) => {
+      const target = event.target instanceof Element ? event.target.closest(".emoji") : null;
+      if (target && !target.contains(event.relatedTarget)) {
+        if (emojiPickerHoverTarget === target) {
+          emojiPickerHoverTarget = null;
+          emojiPickerHoverPointer = null;
+        }
+        hideTooltip();
+      }
+    });
     emojiPicker = picker;
     emojiPickerPopover.replaceChildren(picker);
     return picker;
@@ -4763,6 +4820,7 @@ async function setEmojiPickerOpen(open) {
 
 let emojiShortcodeIndex = null;
 let emojiShortcodeIndexLoading = null;
+let emojiShortcodeTooltipMap = null;
 let emojiShortcodeSuggestions = [];
 let emojiShortcodeSelection = 0;
 let emojiShortcodeSearchVersion = 0;
@@ -4805,10 +4863,31 @@ async function loadEmojiShortcodeIndex() {
     ));
   try {
     emojiShortcodeIndex = await emojiShortcodeIndexLoading;
+    emojiShortcodeTooltipMap = new Map();
+    for (const { emoji, shortcode } of emojiShortcodeIndex) {
+      if (!emojiShortcodeTooltipMap.has(emoji)) emojiShortcodeTooltipMap.set(emoji, shortcode);
+    }
     return emojiShortcodeIndex;
   } finally {
     emojiShortcodeIndexLoading = null;
   }
+}
+
+async function getEmojiShortcodeTooltip(unicode) {
+  if (!unicode) return "";
+  await loadEmojiShortcodeIndex();
+  const normalizedUnicode = String(unicode).replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
+  return emojiShortcodeTooltipMap.get(unicode) || emojiShortcodeTooltipMap.get(normalizedUnicode) || "";
+}
+
+function scheduleEmojiPickerTooltip(target, pointer) {
+  emojiPickerHoverTarget = target;
+  emojiPickerHoverPointer = pointer;
+  clearTimeout(tooltipTimeout);
+  tooltipTimeout = setTimeout(() => {
+    if (emojiPickerHoverTarget !== target || !emojiPickerHoverPointer) return;
+    showTooltip(target, emojiPickerHoverPointer);
+  }, 350);
 }
 
 function renderEmojiShortcodeSuggestions(suggestions) {
@@ -11600,7 +11679,7 @@ function getTooltipTarget(element) {
 
 function prepareTooltipTarget(target) {
   if (!target) return "";
-  const label = target.getAttribute("aria-label") || target.title || "";
+  const label = target.dataset.tooltip || target.getAttribute("aria-label") || target.title || "";
   if (!label) return "";
   target.dataset.tooltip = label;
   target.removeAttribute("title");
