@@ -1,4 +1,6 @@
 /out
+/.logs/*
+!/.logs/.gitkeep
 /build_locked/
 /node_modules
 /dist
