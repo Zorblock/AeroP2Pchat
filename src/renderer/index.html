@@ -751,6 +751,19 @@
               />
               <span id="voice-record-status" class="voice-record-status hidden" aria-live="polite"></span>
               <button
+                id="emoji-picker-button"
+                class="icon-only-button"
+                type="button"
+                disabled
+                title="Add emoji"
+                aria-label="Add emoji"
+                aria-expanded="false"
+                aria-controls="emoji-picker-popover"
+              >
+                <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
+                <span>Add emoji</span>
+              </button>
+              <button
                 id="voice-record-button"
                 class="icon-only-button"
                 type="button"
@@ -772,6 +785,7 @@
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
                 <span>Send</span>
               </button>
+              <div id="emoji-picker-popover" class="emoji-picker-popover hidden" role="dialog" aria-label="Emoji picker"></div>
             </div>
           </form>
         </section>
@@ -928,6 +942,19 @@
           </button>
         </header>
         <p id="app-dialog-message"></p>
+        <div id="app-dialog-link-details" class="app-dialog-link-details hidden">
+          <span>Destination</span>
+          <code id="app-dialog-link-url"></code>
+          <span class="app-dialog-link-domain">
+            <i class="fa-solid fa-globe" aria-hidden="true"></i>
+            <strong>Domain</strong>
+            <b id="app-dialog-link-domain-value"></b>
+          </span>
+        </div>
+        <label id="app-dialog-checkbox" class="app-dialog-checkbox hidden">
+          <input id="app-dialog-checkbox-input" type="checkbox" />
+          <span id="app-dialog-checkbox-label"></span>
+        </label>
         <div class="app-dialog-actions">
           <button id="app-dialog-cancel" class="ghost-button" type="button">
             Cancel
@@ -1361,6 +1388,10 @@
                   <input id="voice-waveform-toggle" type="checkbox" />
                   <span>Show waveform for voice messages</span>
                 </label>
+                <div class="trusted-domains-control">
+                  <span id="trusted-domains-status">No trusted link domains</span>
+                  <button id="clear-trusted-domains" class="ghost-button" type="button">Clear trusted domains</button>
+                </div>
               </div>
             </section>
           </div>

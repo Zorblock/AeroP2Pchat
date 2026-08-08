@@ -2123,6 +2123,18 @@ select.native-select {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+.message-link {
+  color: var(--accent);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-underline-offset: 2px;
+}
+.message-link:hover {
+  color: var(--accent-hover);
+  text-decoration-color: currentColor;
+}
 .bubble-footer {
   display: flex;
   align-items: center;
@@ -2232,19 +2244,35 @@ body.reduce-motion *::after {
   display: block;
   width: 100%;
   height: 42px;
-  padding: 0 48px 0 14px;
+  padding: 0 90px 0 14px;
   border-radius: 14px;
   background: var(--surface-subtle);
   font-size: 13px;
 }
 #send-button,
-#voice-record-button {
+#voice-record-button,
+#emoji-picker-button {
   position: absolute;
   top: 0;
-  right: 0;
   width: 42px;
   height: 42px;
   border-radius: 13px;
+}
+#send-button,
+#voice-record-button {
+  right: 0;
+}
+#emoji-picker-button {
+  right: 42px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+#emoji-picker-button:hover:not(:disabled),
+#emoji-picker-button[aria-expanded="true"] {
+  background: transparent;
+  color: var(--accent);
 }
 #voice-record-button {
   border: 0;
@@ -2259,9 +2287,39 @@ body.reduce-motion *::after {
 .voice-record-status {
   position: absolute;
   top: 50%;
-  right: 54px;
+  right: 96px;
   z-index: 2;
   transform: translateY(-50%);
+}
+.emoji-picker-popover {
+  position: absolute;
+  right: 0;
+  bottom: 50px;
+  z-index: 40;
+  width: min(352px, calc(100vw - 36px));
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+.emoji-picker-popover emoji-picker {
+  display: block;
+  width: 100%;
+  height: 374px;
+  --background: var(--surface-raised);
+  --border-color: transparent;
+  --border-radius: 15px;
+  --button-active-background: color-mix(in srgb, var(--accent) 18%, var(--surface-subtle));
+  --button-hover-background: color-mix(in srgb, var(--accent) 10%, var(--surface-subtle));
+  --category-font-color: var(--text);
+  --emoji-padding: 0.38rem;
+  --emoji-size: 1.3rem;
+  --indicator-color: var(--accent);
+  --input-border-color: var(--line-strong);
+  --input-font-color: var(--text);
+  --input-placeholder-color: var(--muted);
+  --outline-color: var(--accent);
 }
 
 /* Shared modal surfaces */
@@ -2333,6 +2391,26 @@ body.reduce-motion *::after {
 .app-dialog-panel {
   width: min(420px, calc(100vw - 36px));
 }
+#app-dialog.link-confirmation .app-dialog-panel {
+  width: min(390px, calc(100vw - 36px));
+  padding: 16px;
+}
+#app-dialog.link-confirmation .modal-header {
+  min-height: 32px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+#app-dialog.link-confirmation .modal-header h2 {
+  font-size: 16px;
+}
+#app-dialog.link-confirmation .modal-header .ghost-button {
+  min-width: 32px;
+  height: 32px;
+}
+#app-dialog.link-confirmation #app-dialog-message {
+  margin-bottom: 10px;
+  font-size: 11px;
+}
 .app-dialog-actions,
 .stream-dialog-actions {
   display: flex;
@@ -2343,6 +2421,50 @@ body.reduce-motion *::after {
 .app-dialog-actions button {
   min-width: 88px;
   height: 36px !important;
+}
+.app-dialog-link-details {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+.app-dialog-link-details > span:first-child {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.app-dialog-link-details code {
+  color: var(--text);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.app-dialog-link-domain {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+.app-dialog-link-domain i {
+  color: var(--accent);
+}
+.app-dialog-link-domain strong {
+  font-weight: 700;
+}
+.app-dialog-link-domain b {
+  min-width: 0;
+  color: var(--text-soft);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 .update-command-list {
   display: grid;
@@ -2492,6 +2614,39 @@ body.reduce-motion *::after {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: min(520px, 100%);
   gap: 12px;
+}
+.app-dialog-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.app-dialog-checkbox input {
+  box-sizing: border-box;
+  width: 15px;
+  min-width: 15px;
+  max-width: 15px;
+  height: 15px;
+  min-height: 15px;
+  max-height: 15px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  accent-color: var(--accent);
+  box-shadow: none;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+}
+#app-dialog-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .voice-record-status {
   min-width: 66px;
@@ -2652,6 +2807,21 @@ body.reduce-motion *::after {
   background: var(--accent);
   content: "";
   transition: width 100ms linear;
+}
+.trusted-domains-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+.trusted-domains-control button {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 10px;
 }
 @keyframes voice-record-pulse {
   50% { opacity: 0.72; }

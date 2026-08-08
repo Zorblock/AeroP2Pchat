@@ -208,6 +208,23 @@ function normalizeOnlineThemeUrl(value) {
   }
 }
 
+function normalizeExternalLinkUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      !url.hostname ||
+      url.username ||
+      url.password
+    ) {
+      return "";
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 function normalizeOnlineThemeUrls(value) {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.map(normalizeOnlineThemeUrl).filter(Boolean))].slice(
@@ -1956,6 +1973,12 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle("write-clipboard", (_event, text) => {
     clipboard.writeText(String(text || ""));
+    return { ok: true };
+  });
+  ipcMain.handle("open-external-link", async (_event, rawUrl) => {
+    const url = normalizeExternalLinkUrl(rawUrl);
+    if (!url) return { ok: false, error: "Invalid external link." };
+    await shell.openExternal(url);
     return { ok: true };
   });
   ipcMain.handle("get-notification-state", () => getAppNotificationState());

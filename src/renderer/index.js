@@ -1,5 +1,8 @@
 // deno-lint-ignore-file no-window no-window-prefix no-unused-vars require-await
 import Peer, { util } from "peerjs";
+import { Picker as EmojiPicker } from "emoji-picker-element";
+import emojiPickerGerman from "emoji-picker-element/i18n/de";
+import emojiDataUrl from "../../node_modules/emoji-picker-element-data/de/cldr/data.json?url";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json" with { type: "json" };
@@ -89,6 +92,8 @@ const messageForm = document.querySelector("#message-form");
 const messageInput = document.querySelector("#message-input");
 const sendButton = document.querySelector("#send-button");
 const voiceRecordButton = document.querySelector("#voice-record-button");
+const emojiPickerButton = document.querySelector("#emoji-picker-button");
+const emojiPickerPopover = document.querySelector("#emoji-picker-popover");
 const voiceRecordStatus = document.querySelector("#voice-record-status");
 const headerUpdateButton = document.querySelector("#header-update-button");
 const updateCard = document.querySelector("#update-card");
@@ -117,6 +122,12 @@ const appDialogMessage = document.querySelector("#app-dialog-message");
 const appDialogClose = document.querySelector("#app-dialog-close");
 const appDialogCancel = document.querySelector("#app-dialog-cancel");
 const appDialogConfirm = document.querySelector("#app-dialog-confirm");
+const appDialogCheckbox = document.querySelector("#app-dialog-checkbox");
+const appDialogCheckboxInput = document.querySelector("#app-dialog-checkbox-input");
+const appDialogCheckboxLabel = document.querySelector("#app-dialog-checkbox-label");
+const appDialogLinkDetails = document.querySelector("#app-dialog-link-details");
+const appDialogLinkUrl = document.querySelector("#app-dialog-link-url");
+const appDialogLinkDomainValue = document.querySelector("#app-dialog-link-domain-value");
 const welcomeScreen = document.querySelector("#welcome-screen");
 const welcomeStepLabel = document.querySelector("#welcome-step-label");
 const welcomePages = Array.from(
@@ -259,6 +270,8 @@ const focusedNotificationsToggle = document.querySelector(
 const readReceiptsToggle = document.querySelector("#read-receipts-toggle");
 const voiceAutoDownloadToggle = document.querySelector("#voice-auto-download-toggle");
 const voiceWaveformToggle = document.querySelector("#voice-waveform-toggle");
+const trustedDomainsStatus = document.querySelector("#trusted-domains-status");
+const clearTrustedDomainsButton = document.querySelector("#clear-trusted-domains");
 const soundsToggle = document.querySelector("#sounds-toggle");
 const messageSoundToggle = document.querySelector("#message-sound-toggle");
 const ringtoneSoundToggle = document.querySelector("#ringtone-sound-toggle");
@@ -1209,6 +1222,8 @@ function showAppDialog({
   confirmText = "OK",
   cancelText = "Cancel",
   danger = false,
+  checkboxLabel = "",
+  linkDetails = null,
 } = {}) {
   const previousFocus =
     document.activeElement instanceof HTMLElement
@@ -1219,6 +1234,13 @@ function showAppDialog({
   appDialogConfirm.textContent = confirmText;
   appDialogCancel.textContent = cancelText;
   appDialogConfirm.classList.toggle("danger", Boolean(danger));
+  appDialogCheckboxInput.checked = false;
+  appDialogCheckboxLabel.textContent = checkboxLabel;
+  appDialogCheckbox.classList.toggle("hidden", !checkboxLabel);
+  appDialog.classList.toggle("link-confirmation", Boolean(linkDetails));
+  appDialogLinkDetails.classList.toggle("hidden", !linkDetails);
+  appDialogLinkUrl.textContent = linkDetails?.url || "";
+  appDialogLinkDomainValue.textContent = linkDetails?.domain || "";
   appDialog.classList.remove("hidden");
 
   return new Promise((resolve) => {
@@ -1231,14 +1253,18 @@ function showAppDialog({
 
       settled = true;
       appDialog.classList.add("hidden");
+      const checkboxChecked = appDialogCheckboxInput.checked;
       appDialogConfirm.classList.remove("danger");
+      appDialog.classList.remove("link-confirmation");
+      appDialogCheckbox.classList.add("hidden");
+      appDialogCheckboxInput.checked = false;
       appDialog.removeEventListener("click", handleBackdrop);
       document.removeEventListener("keydown", handleKeydown, true);
       appDialogClose.removeEventListener("click", cancel);
       appDialogCancel.removeEventListener("click", cancel);
       appDialogConfirm.removeEventListener("click", confirm);
       previousFocus?.focus?.();
-      resolve(result);
+      resolve(checkboxLabel ? { confirmed: result, checkboxChecked } : result);
     };
 
     const confirm = () => cleanup(true);
@@ -1741,6 +1767,11 @@ function normalizeAppSettings() {
     readReceipts: appConfig.appSettings.readReceipts !== false,
     voiceAutoDownload: Boolean(appConfig.appSettings.voiceAutoDownload),
     voiceWaveform: appConfig.appSettings.voiceWaveform !== false,
+    trustedLinkDomains: Array.isArray(appConfig.appSettings.trustedLinkDomains)
+      ? [...new Set(appConfig.appSettings.trustedLinkDomains
+          .map(normalizeTrustedLinkDomain)
+          .filter(Boolean))].slice(0, 100)
+      : [],
     presenceStatus: ["online", "dnd", "offline"].includes(
       appConfig.appSettings.presenceStatus,
     )
@@ -2273,6 +2304,11 @@ function renderAppSettings() {
   readReceiptsToggle.checked = appConfig.appSettings.readReceipts;
   voiceAutoDownloadToggle.checked = appConfig.appSettings.voiceAutoDownload;
   voiceWaveformToggle.checked = appConfig.appSettings.voiceWaveform;
+  const trustedDomainCount = appConfig.appSettings.trustedLinkDomains.length;
+  trustedDomainsStatus.textContent = trustedDomainCount
+    ? `${trustedDomainCount} trusted link domain${trustedDomainCount === 1 ? "" : "s"}`
+    : "No trusted link domains";
+  clearTrustedDomainsButton.disabled = trustedDomainCount === 0;
 
   notificationsToggle.checked = appConfig.notificationSettings.enabled;
   messageNotificationsToggle.checked = appConfig.notificationSettings.messages;
@@ -3459,6 +3495,110 @@ function setRemoteVoiceRecording(peerId, recording) {
   updateTypingIndicator();
 }
 
+const EXTERNAL_LINK_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+let pendingExternalLinkOpen = false;
+
+function normalizeTrustedLinkDomain(value) {
+  try {
+    const source = String(value || "").trim().toLowerCase();
+    const url = new URL(source.includes("://") ? source : `https://${source}`);
+    if (!url.hostname || url.username || url.password) return "";
+    return url.hostname;
+  } catch {
+    return "";
+  }
+}
+
+function trimExternalLinkMatch(value) {
+  let rawUrl = String(value || "").replace(/[.,!?;:]+$/g, "");
+  while (
+    rawUrl.endsWith(")") &&
+    (rawUrl.match(/\(/g)?.length || 0) < (rawUrl.match(/\)/g)?.length || 0)
+  ) {
+    rawUrl = rawUrl.slice(0, -1);
+  }
+  return rawUrl;
+}
+
+function getSafeExternalLink(value) {
+  const rawUrl = trimExternalLinkMatch(value);
+  try {
+    const url = new URL(rawUrl);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      !url.hostname ||
+      url.username ||
+      url.password
+    ) {
+      return null;
+    }
+    return {
+      url: url.toString(),
+      domain: url.hostname.toLowerCase(),
+      matchedLength: rawUrl.length,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function openExternalLinkWithConfirmation(url) {
+  if (pendingExternalLinkOpen) return;
+  const link = getSafeExternalLink(url);
+  if (!link) return;
+  const trustedDomains = appConfig.appSettings?.trustedLinkDomains || [];
+  if (trustedDomains.includes(link.domain)) {
+    await platformApi.openExternalLink(link.url);
+    return;
+  }
+
+  pendingExternalLinkOpen = true;
+  try {
+    const result = await showAppDialog({
+      title: "Open link?",
+      message: "This link opens in your browser.",
+      confirmText: "Open",
+      cancelText: "Cancel",
+      checkboxLabel: `Always trust ${link.domain}`,
+      linkDetails: link,
+    });
+    if (!result.confirmed) return;
+    if (result.checkboxChecked) {
+      await saveAppSettings({
+        trustedLinkDomains: [...trustedDomains, link.domain],
+      });
+    }
+    await platformApi.openExternalLink(link.url);
+  } finally {
+    pendingExternalLinkOpen = false;
+  }
+}
+
+function appendMessageTextWithLinks(container, text) {
+  const source = String(text || "");
+  let offset = 0;
+  for (const match of source.matchAll(EXTERNAL_LINK_PATTERN)) {
+    const index = match.index ?? 0;
+    const rawUrl = match[0];
+    const link = getSafeExternalLink(rawUrl);
+    if (!link) continue;
+    container.append(document.createTextNode(source.slice(offset, index)));
+    const anchor = document.createElement("a");
+    anchor.className = "message-link";
+    anchor.href = link.url;
+    anchor.textContent = link.url;
+    anchor.title = `Open ${link.url}`;
+    anchor.rel = "noreferrer noopener";
+    anchor.addEventListener("click", (event) => {
+      event.preventDefault();
+      void openExternalLinkWithConfirmation(link.url);
+    });
+    container.append(anchor);
+    offset = index + link.matchedLength;
+  }
+  container.append(document.createTextNode(source.slice(offset)));
+}
+
 function sendVoiceRecordingState(peerId, recording) {
   return sendProtocolMessage(connections.get(peerId), "voice-recording", {
     recording: Boolean(recording),
@@ -3716,7 +3856,7 @@ function createChatMessage(item) {
   }
 
   const body = item.voice ? createVoiceMessageBody(item) : document.createElement("p");
-  if (!item.voice) body.textContent = text;
+  if (!item.voice) appendMessageTextWithLinks(body, text);
 
   bubble.append(body, footer);
   row.append(bubble);
@@ -4478,6 +4618,39 @@ function syncComposerAction() {
   sendButton.disabled = !canSend;
   sendButton.classList.toggle("hidden", !hasText || recording);
   voiceRecordButton.classList.toggle("hidden", hasText && !recording);
+  emojiPickerButton.disabled = messageInput.disabled || recording;
+  if (recording || messageInput.disabled) setEmojiPickerOpen(false);
+}
+
+let emojiPicker = null;
+
+function ensureEmojiPicker() {
+  if (emojiPicker) return emojiPicker;
+
+  emojiPicker = new EmojiPicker({
+    dataSource: emojiDataUrl,
+    locale: "de",
+    i18n: emojiPickerGerman,
+  });
+  emojiPicker.addEventListener("emoji-click", (event) => {
+    const emoji = event.detail?.unicode;
+    if (!emoji || messageInput.disabled) return;
+    const start = messageInput.selectionStart ?? messageInput.value.length;
+    const end = messageInput.selectionEnd ?? start;
+    messageInput.setRangeText(emoji, start, end, "end");
+    messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+    messageInput.focus();
+    setEmojiPickerOpen(false);
+  });
+  emojiPickerPopover.append(emojiPicker);
+  return emojiPicker;
+}
+
+function setEmojiPickerOpen(open) {
+  const shouldOpen = Boolean(open && !messageInput.disabled && !emojiPickerButton.disabled);
+  if (shouldOpen) ensureEmojiPicker();
+  emojiPickerPopover.classList.toggle("hidden", !shouldOpen);
+  emojiPickerButton.setAttribute("aria-expanded", String(shouldOpen));
 }
 
 function updateVoiceRecordUi() {
@@ -9491,6 +9664,28 @@ voiceRecordButton.addEventListener("click", () => {
   startVoiceRecording();
 });
 
+emojiPickerButton.addEventListener("click", () => {
+  const opening = emojiPickerPopover.classList.contains("hidden");
+  setEmojiPickerOpen(opening);
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (
+    !emojiPickerPopover.classList.contains("hidden") &&
+    !emojiPickerPopover.contains(event.target) &&
+    !emojiPickerButton.contains(event.target)
+  ) {
+    setEmojiPickerOpen(false);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !emojiPickerPopover.classList.contains("hidden")) {
+    setEmojiPickerOpen(false);
+    emojiPickerButton.focus();
+  }
+});
+
 clearChat.addEventListener("click", async () => {
   if (activePeerId) {
     const peerId = activePeerId;
@@ -10103,6 +10298,18 @@ voiceAutoDownloadToggle.addEventListener("change", () => {
 voiceWaveformToggle.addEventListener("change", () => {
   saveAppSettings({ voiceWaveform: voiceWaveformToggle.checked });
   renderChatHistory();
+});
+
+clearTrustedDomainsButton.addEventListener("click", async () => {
+  if (!appConfig.appSettings.trustedLinkDomains.length) return;
+  const confirmed = await showAppDialog({
+    title: "Clear trusted domains?",
+    message: "Links from these domains will ask for confirmation again.",
+    confirmText: "Clear",
+    cancelText: "Cancel",
+    danger: true,
+  });
+  if (confirmed) await saveAppSettings({ trustedLinkDomains: [] });
 });
 
 soundsToggle.addEventListener("change", () => {

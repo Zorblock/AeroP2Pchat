@@ -257,6 +257,14 @@ export function createPlatformApi() {
       return { ok: true };
     },
 
+    async openExternalLink(url) {
+      if (electron?.openExternalLink) {
+        return electron.openExternalLink(url);
+      }
+      const opened = window.open(String(url || ""), "_blank", "noopener");
+      return { ok: Boolean(opened) };
+    },
+
     async fetchUpdateManifest(url) {
       if (electron?.fetchUpdateManifest) {
         return electron.fetchUpdateManifest(url);

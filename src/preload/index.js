@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld("aeroChat", {
   fetchOnlineTheme: (url) => ipcRenderer.invoke("fetch-online-theme", url),
   getScreenSources: () => ipcRenderer.invoke("get-screen-sources"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
+  openExternalLink: (url) => ipcRenderer.invoke("open-external-link", url),
   getNotificationState: () => ipcRenderer.invoke("get-notification-state"),
   showNotification: (details) =>
     ipcRenderer.invoke("show-app-notification", details),
