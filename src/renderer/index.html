@@ -1613,8 +1613,18 @@
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </header>
-        <p class="custom-sound-help">Choose the section to keep. The original sound stays available as a fallback.</p>
-        <audio id="custom-sound-preview" class="custom-sound-preview" controls preload="metadata"></audio>
+        <audio id="custom-sound-preview" class="custom-sound-preview" preload="metadata"></audio>
+        <div class="custom-sound-player">
+          <button id="custom-sound-play" class="custom-sound-player-button" type="button" aria-label="Play preview">
+            <i class="fa-solid fa-play" aria-hidden="true"></i>
+          </button>
+          <span id="custom-sound-current-time" class="custom-sound-player-time">0:00</span>
+          <button id="custom-sound-progress" class="custom-sound-player-progress" type="button" aria-label="Seek preview">
+            <span id="custom-sound-progress-selection"></span>
+            <span id="custom-sound-progress-fill"></span>
+          </button>
+          <span id="custom-sound-duration" class="custom-sound-player-time">0:00</span>
+        </div>
         <div class="custom-sound-trim">
           <div id="custom-sound-waveform" class="custom-sound-waveform" role="slider" tabindex="0" aria-label="Trim audio selection">
             <canvas id="custom-sound-waveform-canvas"></canvas>
@@ -1625,12 +1635,10 @@
             <span>Start <strong id="custom-sound-start-value">0:00</strong></span>
             <span>End <strong id="custom-sound-end-value">0:00</strong></span>
           </div>
-          <input id="custom-sound-start" type="range" min="0" value="0" step="0.01" aria-label="Trim start" />
-          <input id="custom-sound-end" type="range" min="0" value="0" step="0.01" aria-label="Trim end" />
         </div>
         <label class="settings-check custom-sound-normalize">
           <input id="custom-sound-normalize" type="checkbox" checked />
-          <span><strong>Normalize</strong><small>Balances peak volume safely</small></span>
+          <span>Normalize</span>
         </label>
         <p id="custom-sound-status" class="custom-sound-status" aria-live="polite"></p>
         <div class="app-dialog-actions">

@@ -291,8 +291,14 @@ const customSoundCancel = document.querySelector("#custom-sound-cancel");
 const customSoundSave = document.querySelector("#custom-sound-save");
 const customSoundFileName = document.querySelector("#custom-sound-file-name");
 const customSoundPreview = document.querySelector("#custom-sound-preview");
-const customSoundStart = document.querySelector("#custom-sound-start");
-const customSoundEnd = document.querySelector("#custom-sound-end");
+const customSoundPlay = document.querySelector("#custom-sound-play");
+const customSoundCurrentTime = document.querySelector("#custom-sound-current-time");
+const customSoundDuration = document.querySelector("#custom-sound-duration");
+const customSoundProgress = document.querySelector("#custom-sound-progress");
+const customSoundProgressSelection = document.querySelector(
+  "#custom-sound-progress-selection",
+);
+const customSoundProgressFill = document.querySelector("#custom-sound-progress-fill");
 const customSoundStartValue = document.querySelector("#custom-sound-start-value");
 const customSoundEndValue = document.querySelector("#custom-sound-end-value");
 const customSoundWaveform = document.querySelector("#custom-sound-waveform");
@@ -516,6 +522,7 @@ const customSoundDefinitions = {
   connected: { label: "Peer connected", audio: connectedAudio, source: "sound/connected.ogg" },
 };
 const customSoundObjectUrls = new Map();
+const customSoundAvailability = new Map();
 let customSoundEditor = null;
 let customSoundWaveformDrag = "";
 let customSoundWaveformFrame = 0;
@@ -1828,6 +1835,9 @@ function normalizeCustomSounds(customSounds) {
             : 0,
           normalized: value.normalized !== false,
           active: value.active !== false,
+          sha256: /^[a-f0-9]{64}$/i.test(value.sha256 || "")
+            ? String(value.sha256).toLowerCase()
+            : "",
           updatedAt: typeof value.updatedAt === "string" ? value.updatedAt.slice(0, 40) : "",
         },
       ]),
@@ -2864,6 +2874,14 @@ function resetCustomSoundAudio(soundId) {
   definition.audio.load();
 }
 
+async function getCustomSoundSha256(data) {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function setCustomSoundAudio(soundId, data) {
   const definition = customSoundDefinitions[soundId];
   if (!definition || !data) return false;
@@ -2883,13 +2901,25 @@ function setCustomSoundAudio(soundId, data) {
 
 async function applyCustomSound(soundId) {
   const metadata = getCustomSoundMetadata(soundId);
-  if (!platformApi.supportsCustomSounds || !metadata?.active) {
+  if (!platformApi.supportsCustomSounds || !metadata) {
+    customSoundAvailability.delete(soundId);
     resetCustomSoundAudio(soundId);
     return false;
   }
 
   const result = await platformApi.loadCustomSound(soundId);
-  if (!result?.ok || !setCustomSoundAudio(soundId, result.data)) {
+  if (!result?.ok) {
+    customSoundAvailability.set(soundId, result?.missing ? "missing" : "invalid");
+    resetCustomSoundAudio(soundId);
+    return false;
+  }
+  if (!metadata.sha256 || metadata.sha256 !== await getCustomSoundSha256(result.data)) {
+    customSoundAvailability.set(soundId, "invalid");
+    resetCustomSoundAudio(soundId);
+    return false;
+  }
+  customSoundAvailability.set(soundId, "valid");
+  if (!metadata.active || !setCustomSoundAudio(soundId, result.data)) {
     resetCustomSoundAudio(soundId);
     return false;
   }
@@ -2926,7 +2956,8 @@ function renderCustomSoundList() {
     const metadata = getCustomSoundMetadata(soundId);
     const row = document.createElement("div");
     row.className = "custom-sound-row";
-    const customLoaded = Boolean(metadata && customSoundObjectUrls.has(soundId));
+    const availability = metadata ? customSoundAvailability.get(soundId) || "checking" : "";
+    const customLoaded = availability === "valid" && Boolean(metadata?.active);
     row.classList.toggle("is-custom", customLoaded);
     row.classList.toggle("is-disabled", Boolean(metadata && !metadata.active));
 
@@ -2936,49 +2967,68 @@ function renderCustomSoundList() {
     title.textContent = definition.label;
     const detail = document.createElement("span");
     detail.textContent = metadata
-      ? `${metadata.active ? (customLoaded ? "Custom" : "Built-in fallback") : "Built-in active"} · ${metadata.name} · ${formatCustomSoundDuration(metadata.duration)}`
+      ? availability === "valid"
+        ? `Custom: ${metadata.name} · ${formatCustomSoundDuration(metadata.duration)}`
+        : availability === "missing"
+          ? "Custom file is missing · built-in sound is active"
+          : availability === "invalid"
+            ? "Custom file failed its integrity check · built-in sound is active"
+            : "Checking custom sound…"
       : "Built-in sound";
     info.append(title, detail);
 
     const actions = document.createElement("div");
     actions.className = "custom-sound-row-actions";
-    if (metadata) {
-      const toggle = document.createElement("button");
-      toggle.className = "custom-sound-action-button";
-      toggle.type = "button";
-      toggle.title = metadata.active ? "Use built-in sound" : "Use custom sound";
-      toggle.setAttribute("aria-label", toggle.title);
-      toggle.innerHTML = `<i class="fa-solid ${metadata.active ? "fa-toggle-on" : "fa-toggle-off"}" aria-hidden="true"></i>`;
-      toggle.addEventListener("click", async () => {
-        metadata.active = !metadata.active;
+    if (metadata && availability === "valid") {
+      const replace = document.createElement("button");
+      replace.className = "custom-sound-action-button";
+      replace.type = "button";
+      replace.textContent = "Replace";
+      replace.addEventListener("click", () => {
+        customSoundFileInput.dataset.soundId = soundId;
+        customSoundFileInput.click();
+      });
+      actions.append(replace);
+      const remove = document.createElement("button");
+      remove.className = "custom-sound-action-button";
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => removeCustomSound(soundId));
+      actions.append(remove);
+      const toggle = document.createElement("label");
+      toggle.className = "custom-sound-use-toggle";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = metadata.active;
+      input.addEventListener("change", async () => {
+        metadata.active = input.checked;
         await applyCustomSound(soundId);
         await saveAppConfig();
         renderCustomSoundList();
       });
+      const label = document.createElement("span");
+      label.textContent = "Use custom";
+      toggle.append(input, label);
       actions.append(toggle);
-
-      const remove = document.createElement("button");
-      remove.className = "custom-sound-action-button";
-      remove.type = "button";
-      remove.title = "Remove custom sound";
-      remove.setAttribute("aria-label", remove.title);
-      remove.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
-      remove.addEventListener("click", () => removeCustomSound(soundId));
-      actions.append(remove);
+    } else {
+      const add = document.createElement("button");
+      add.className = "custom-sound-action-button";
+      add.type = "button";
+      add.textContent = metadata ? "Add sound" : "Add custom";
+      add.addEventListener("click", () => {
+        customSoundFileInput.dataset.soundId = soundId;
+        customSoundFileInput.click();
+      });
+      actions.append(add);
+      if (metadata) {
+        const remove = document.createElement("button");
+        remove.className = "custom-sound-action-button";
+        remove.type = "button";
+        remove.textContent = "Remove";
+        remove.addEventListener("click", () => removeCustomSound(soundId));
+        actions.append(remove);
+      }
     }
-    const replace = document.createElement("button");
-    replace.className = "custom-sound-action-button";
-    replace.type = "button";
-    replace.title = metadata ? "Replace custom sound" : "Choose custom sound";
-    replace.setAttribute("aria-label", replace.title);
-    replace.innerHTML = metadata
-      ? '<i class="fa-solid fa-pen" aria-hidden="true"></i>'
-      : '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Custom</span>';
-    replace.addEventListener("click", () => {
-      customSoundFileInput.dataset.soundId = soundId;
-      customSoundFileInput.click();
-    });
-    actions.append(replace);
     row.append(info, actions);
     customSoundList.append(row);
   }
@@ -3013,8 +3063,7 @@ function drawCustomSoundWaveform() {
   context.clearRect(0, 0, width, height);
 
   const duration = customSoundEditor.duration;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   const startX = (start / duration) * width;
   const endX = (end / duration) * width;
   const style = getComputedStyle(document.documentElement);
@@ -3070,31 +3119,52 @@ function setCustomSoundWaveformBoundary(event) {
   const bounds = customSoundWaveform.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
   const time = ratio * customSoundEditor.duration;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   const boundary = customSoundWaveformDrag || (Math.abs(time - start) <= Math.abs(time - end) ? "start" : "end");
   if (boundary === "start") {
-    customSoundStart.value = String(Math.min(time, end - 0.01));
+    customSoundEditor.start = Math.min(time, end - 0.01);
   } else {
-    customSoundEnd.value = String(Math.max(time, start + 0.01));
+    customSoundEditor.end = Math.max(time, start + 0.01);
   }
   updateCustomSoundTrimUi();
 }
 
 function updateCustomSoundTrimUi() {
   if (!customSoundEditor) return;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   if (start >= end) {
-    if (document.activeElement === customSoundStart) {
-      customSoundEnd.value = Math.min(customSoundEditor.duration, start + 0.01);
-    } else {
-      customSoundStart.value = Math.max(0, end - 0.01);
-    }
+    customSoundEditor.end = Math.min(customSoundEditor.duration, start + 0.01);
   }
-  customSoundStartValue.textContent = formatCustomSoundDuration(customSoundStart.value);
-  customSoundEndValue.textContent = formatCustomSoundDuration(customSoundEnd.value);
+  customSoundStartValue.textContent = formatCustomSoundDuration(customSoundEditor.start);
+  customSoundEndValue.textContent = formatCustomSoundDuration(customSoundEditor.end);
+  syncCustomSoundPlayer();
   scheduleCustomSoundWaveform();
+}
+
+function syncCustomSoundPlayer() {
+  if (!customSoundEditor) return;
+  const current = Math.max(0, Math.min(customSoundEditor.duration, customSoundPreview.currentTime || 0));
+  const selectionStart = (customSoundEditor.start / customSoundEditor.duration) * 100;
+  const selectionWidth = ((customSoundEditor.end - customSoundEditor.start) / customSoundEditor.duration) * 100;
+  const playedWidth = Math.max(
+    0,
+    ((Math.min(customSoundEditor.end, current) - customSoundEditor.start) /
+      customSoundEditor.duration) *
+      100,
+  );
+  customSoundCurrentTime.textContent = formatCustomSoundDuration(current);
+  customSoundDuration.textContent = formatCustomSoundDuration(customSoundEditor.duration);
+  customSoundProgressSelection.style.left = `${selectionStart}%`;
+  customSoundProgressSelection.style.width = `${selectionWidth}%`;
+  customSoundProgressFill.style.left = `${selectionStart}%`;
+  customSoundProgressFill.style.width = `${playedWidth}%`;
+  customSoundPlay.querySelector("i").className = customSoundPreview.paused
+    ? "fa-solid fa-play"
+    : "fa-solid fa-pause";
+  customSoundPlay.setAttribute(
+    "aria-label",
+    customSoundPreview.paused ? "Play preview" : "Pause preview",
+  );
 }
 
 async function openCustomSoundEditor(soundId, file) {
@@ -3125,18 +3195,20 @@ async function openCustomSoundEditor(soundId, file) {
     fileName: file.name || "Custom sound",
     buffer: decoded,
     duration: decoded.duration,
+    start: 0,
+    end: decoded.duration,
     previewUrl: URL.createObjectURL(file),
   };
   customSoundFileName.textContent = customSoundEditor.fileName;
   customSoundPreview.src = customSoundEditor.previewUrl;
-  customSoundStart.max = String(decoded.duration);
-  customSoundEnd.max = String(decoded.duration);
-  customSoundStart.value = "0";
-  customSoundEnd.value = String(decoded.duration);
+  customSoundDuration.textContent = formatCustomSoundDuration(decoded.duration);
+  customSoundCurrentTime.textContent = "0:00";
+  customSoundProgressFill.style.width = "0%";
   customSoundNormalize.checked = true;
   customSoundStatus.textContent = "";
   customSoundStatus.className = "custom-sound-status";
   updateCustomSoundTrimUi();
+  syncCustomSoundPlayer();
   customSoundModal.classList.remove("hidden");
 }
 
@@ -3297,8 +3369,10 @@ async function encodeCustomSoundToOgg(audioBuffer) {
       });
       encoder.encode(audioData);
       audioData.close();
-      if (encoder.encodeQueueSize > 32) await encoder.flush();
     }
+    // Draining partway through an Opus stream can introduce audible gaps in
+    // Chromium's encoder. Keep one continuous timeline and flush once only
+    // after the final frame.
     await encoder.flush();
     if (encoderError) throw encoderError;
   } finally {
@@ -3339,8 +3413,7 @@ async function encodeCustomSoundToOgg(audioBuffer) {
 async function saveCustomSoundEditor() {
   if (!customSoundEditor || customSoundSave.disabled) return;
   const { soundId, buffer, fileName } = customSoundEditor;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   const normalized = customSoundNormalize.checked;
   customSoundSave.disabled = true;
   customSoundStatus.textContent = "Converting to OGG/Opus…";
@@ -3351,13 +3424,15 @@ async function saveCustomSoundEditor() {
     if (!encoded.size || encoded.size > CUSTOM_SOUND_MAX_SOURCE_BYTES) {
       throw new Error("The converted sound is too large.");
     }
-    const saved = await platformApi.saveCustomSound(soundId, new Uint8Array(await encoded.arrayBuffer()));
+    const encodedBytes = new Uint8Array(await encoded.arrayBuffer());
+    const saved = await platformApi.saveCustomSound(soundId, encodedBytes);
     if (!saved?.ok) throw new Error(saved?.error || "Sound could not be saved.");
     appConfig.soundSettings.custom[soundId] = {
       name: fileName,
       duration: end - start,
       normalized,
       active: true,
+      sha256: await getCustomSoundSha256(encodedBytes),
       updatedAt: new Date().toISOString(),
     };
     await saveAppConfig();
@@ -3384,6 +3459,7 @@ async function removeCustomSound(soundId) {
   const result = await platformApi.deleteCustomSound(soundId);
   if (!result?.ok) return;
   delete appConfig.soundSettings.custom[soundId];
+  customSoundAvailability.delete(soundId);
   resetCustomSoundAudio(soundId);
   await saveAppConfig();
   renderCustomSoundList();
@@ -11319,15 +11395,12 @@ customSoundFileInput.addEventListener("change", () => {
   const soundId = customSoundFileInput.dataset.soundId || "";
   void openCustomSoundEditor(soundId, file);
 });
-customSoundStart.addEventListener("input", updateCustomSoundTrimUi);
-customSoundEnd.addEventListener("input", updateCustomSoundTrimUi);
 customSoundWaveform.addEventListener("pointerdown", (event) => {
   if (!customSoundEditor) return;
   const bounds = customSoundWaveform.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
   const time = ratio * customSoundEditor.duration;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   customSoundWaveformDrag = Math.abs(time - start) <= Math.abs(time - end) ? "start" : "end";
   customSoundWaveform.setPointerCapture(event.pointerId);
   setCustomSoundWaveformBoundary(event);
@@ -11345,32 +11418,61 @@ customSoundWaveform.addEventListener("keydown", (event) => {
   if (!customSoundEditor || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
   event.preventDefault();
   const step = event.shiftKey ? 1 : 0.1;
-  const start = Number(customSoundStart.value);
-  const end = Number(customSoundEnd.value);
+  const { start, end } = customSoundEditor;
   const direction = event.key === "ArrowLeft" ? -1 : 1;
   if (Math.abs(customSoundPreview.currentTime - start) <= Math.abs(customSoundPreview.currentTime - end)) {
-    customSoundStart.value = String(Math.max(0, Math.min(end - 0.01, start + direction * step)));
+    customSoundEditor.start = Math.max(0, Math.min(end - 0.01, start + direction * step));
   } else {
-    customSoundEnd.value = String(Math.max(start + 0.01, Math.min(customSoundEditor.duration, end + direction * step)));
+    customSoundEditor.end = Math.max(start + 0.01, Math.min(customSoundEditor.duration, end + direction * step));
   }
   updateCustomSoundTrimUi();
+});
+customSoundPlay.addEventListener("click", () => {
+  if (!customSoundEditor) return;
+  if (customSoundPreview.paused) {
+    if (
+      customSoundPreview.currentTime < customSoundEditor.start ||
+      customSoundPreview.currentTime >= customSoundEditor.end
+    ) {
+      customSoundPreview.currentTime = customSoundEditor.start;
+    }
+    customSoundPreview.play().catch(() => {});
+  } else {
+    customSoundPreview.pause();
+  }
+});
+customSoundProgress.addEventListener("click", (event) => {
+  if (!customSoundEditor) return;
+  const bounds = customSoundProgress.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+  const requestedTime = ratio * customSoundEditor.duration;
+  customSoundPreview.currentTime = Math.max(
+    customSoundEditor.start,
+    Math.min(customSoundEditor.end, requestedTime),
+  );
+  syncCustomSoundPlayer();
+  scheduleCustomSoundWaveform();
 });
 customSoundPreview.addEventListener("play", () => {
   if (
     customSoundEditor &&
-    (customSoundPreview.currentTime < Number(customSoundStart.value) ||
-      customSoundPreview.currentTime >= Number(customSoundEnd.value))
+    (customSoundPreview.currentTime < customSoundEditor.start ||
+      customSoundPreview.currentTime >= customSoundEditor.end)
   ) {
-    customSoundPreview.currentTime = Number(customSoundStart.value);
+    customSoundPreview.currentTime = customSoundEditor.start;
   }
+  syncCustomSoundPlayer();
 });
 customSoundPreview.addEventListener("timeupdate", () => {
-  if (customSoundEditor && customSoundPreview.currentTime >= Number(customSoundEnd.value)) {
+  if (customSoundEditor && customSoundPreview.currentTime >= customSoundEditor.end) {
     customSoundPreview.pause();
-    customSoundPreview.currentTime = Number(customSoundStart.value);
+    customSoundPreview.currentTime = customSoundEditor.start;
   }
+  syncCustomSoundPlayer();
   scheduleCustomSoundWaveform();
 });
+customSoundPreview.addEventListener("pause", syncCustomSoundPlayer);
+customSoundPreview.addEventListener("ended", syncCustomSoundPlayer);
 customSoundClose.addEventListener("click", closeCustomSoundEditor);
 customSoundCancel.addEventListener("click", closeCustomSoundEditor);
 customSoundSave.addEventListener("click", () => {

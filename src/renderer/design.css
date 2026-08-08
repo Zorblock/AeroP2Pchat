@@ -3623,7 +3623,6 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .custom-sounds-heading span,
 .custom-sound-file-name,
-.custom-sound-help,
 .custom-sound-status {
   color: var(--text-soft);
   font-size: 11px;
@@ -3639,21 +3638,21 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: none;
   font: inherit;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  transform: none !important;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .custom-sound-action-button:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 36%, transparent);
-  transform: translateY(-1px);
+  transform: none !important;
 }
 .custom-sound-action-button:active:not(:disabled) {
   background: var(--accent-pressed);
-  transform: translateY(0);
+  transform: none !important;
 }
 .custom-sound-action-button:focus-visible {
   outline: none;
@@ -3707,10 +3706,28 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   gap: 5px;
 }
 .custom-sound-row-actions .custom-sound-action-button {
-  min-width: 30px;
   min-height: 30px;
   padding: 0 8px;
   font-size: 11px;
+}
+.custom-sound-use-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  margin-left: 3px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.custom-sound-use-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 .custom-sound-row.is-custom {
   border-color: var(--line-accent);
@@ -3734,13 +3751,74 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.custom-sound-help {
-  margin: 0 0 12px;
-}
 .custom-sound-preview {
-  width: 100%;
-  height: 36px;
+  display: none;
+}
+.custom-sound-player {
+  display: grid;
+  grid-template-columns: 32px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
   margin-bottom: 14px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.custom-sound-player-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+.custom-sound-player-button:hover {
+  background: var(--accent-hover);
+}
+.custom-sound-player-button:focus-visible,
+.custom-sound-player-progress:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+}
+.custom-sound-player-time {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.custom-sound-player-progress {
+  position: relative;
+  min-width: 0;
+  height: 4px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line-strong);
+  cursor: pointer;
+}
+.custom-sound-player-progress span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: inherit;
+}
+.custom-sound-player-progress #custom-sound-progress-selection {
+  z-index: 1;
+  border-inline: 1px solid var(--accent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.custom-sound-player-progress #custom-sound-progress-fill {
+  z-index: 2;
+  background: var(--accent);
+  transition: width 0.08s linear;
 }
 .custom-sound-trim {
   display: grid;
@@ -3806,15 +3884,6 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .custom-sound-normalize {
   margin-top: 12px;
-}
-.custom-sound-normalize span {
-  display: grid;
-  gap: 1px;
-}
-.custom-sound-normalize small {
-  color: var(--text-soft);
-  font-size: 10px;
-  font-weight: 400;
 }
 .custom-sound-status {
   min-height: 16px;
