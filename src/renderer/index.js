@@ -279,6 +279,7 @@ const trustedDefaultDomainsList = document.querySelector("#trusted-default-domai
 const soundsToggle = document.querySelector("#sounds-toggle");
 const messageSoundToggle = document.querySelector("#message-sound-toggle");
 const ringtoneSoundToggle = document.querySelector("#ringtone-sound-toggle");
+const ringtoneLoopToggle = document.querySelector("#ringtone-loop-toggle");
 const callEventSoundToggle = document.querySelector("#call-event-sound-toggle");
 const connectedSoundToggle = document.querySelector("#connected-sound-toggle");
 const customSoundList = document.querySelector("#custom-sound-list");
@@ -1943,6 +1944,7 @@ function normalizeAppSettings() {
     enabled: appConfig.soundSettings.enabled !== false,
     messages: appConfig.soundSettings.messages !== false,
     ringtone: appConfig.soundSettings.ringtone !== false,
+    ringtoneLoop: appConfig.soundSettings.ringtoneLoop !== false,
     callEvents: appConfig.soundSettings.callEvents !== false,
     connected: appConfig.soundSettings.connected !== false,
     custom: normalizeCustomSounds(appConfig.soundSettings.custom),
@@ -2433,6 +2435,8 @@ function renderAppSettings() {
   soundsToggle.checked = appConfig.soundSettings.enabled;
   messageSoundToggle.checked = appConfig.soundSettings.messages;
   ringtoneSoundToggle.checked = appConfig.soundSettings.ringtone;
+  ringtoneLoopToggle.checked = appConfig.soundSettings.ringtoneLoop;
+  ringtoneAudio.loop = appConfig.soundSettings.ringtoneLoop;
   callEventSoundToggle.checked = appConfig.soundSettings.callEvents;
   connectedSoundToggle.checked = appConfig.soundSettings.connected;
   for (const toggle of [
@@ -2446,6 +2450,11 @@ function renderAppSettings() {
       .closest(".settings-check")
       ?.classList.toggle("disabled", !appConfig.soundSettings.enabled);
   }
+  ringtoneLoopToggle.disabled =
+    !appConfig.soundSettings.enabled || !appConfig.soundSettings.ringtone;
+  ringtoneLoopToggle
+    .closest(".settings-check")
+    ?.classList.toggle("disabled", ringtoneLoopToggle.disabled);
   renderCustomSoundList();
 
   renderWelcomeSettings();
@@ -11387,6 +11396,11 @@ messageSoundToggle.addEventListener("change", () => {
 
 ringtoneSoundToggle.addEventListener("change", () => {
   saveSoundSettings({ ringtone: ringtoneSoundToggle.checked });
+});
+
+ringtoneLoopToggle.addEventListener("change", () => {
+  ringtoneAudio.loop = ringtoneLoopToggle.checked;
+  saveSoundSettings({ ringtoneLoop: ringtoneLoopToggle.checked });
 });
 
 callEventSoundToggle.addEventListener("change", () => {
