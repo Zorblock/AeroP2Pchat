@@ -5058,3 +5058,17 @@ body.platform-android .incoming-call-screen {
 [data-name-font="serif"] {
   font-family: Georgia, "Times New Roman", serif;
 }
+
+/* Flat UI: surfaces stay crisp without glass blur, glow, or elevation. */
+*,
+*::before,
+*::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+*:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}

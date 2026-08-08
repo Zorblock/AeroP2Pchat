@@ -10,6 +10,15 @@
   --danger-hover: #dc2626;
 }
 
+*,
+*::before,
+*::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 body.light-theme {
   --background: #ffffff;
   --foreground: #09090b;
