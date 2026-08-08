@@ -9090,7 +9090,7 @@ function connectToPeer(remoteId) {
     label: CHAT_LABEL,
     metadata: createChatMetadata(),
     reliable: true,
-    serialization: "json",
+    serialization: "binary",
   });
   writeDevLog("Connection request started.");
   registerConnection(conn);

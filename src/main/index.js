@@ -1790,12 +1790,17 @@ function createWindow({ hidden = false } = {}) {
   });
 
   if (runtimeLogPath) {
-    const levels = ["error", "warn", "info", "log", "debug"];
-    win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
-      const method = levels[level] || "log";
-      console[method](
-        `[Renderer${sourceId ? ` ${sourceId}:${line || 0}` : ""}] ${message}`,
-      );
+    win.webContents.on("console-message", (details) => {
+      const sourceId = String(details.sourceId || "");
+      if (
+        sourceId.includes("/@vite/") ||
+        sourceId.includes("cdn.userjot.com") ||
+        sourceId.startsWith("node:electron/")
+      ) {
+        return;
+      }
+      const method = details.level === "warning" ? "warn" : details.level;
+      console[method](`[Renderer ${sourceId}:${details.lineNumber || 0}] ${details.message}`);
     });
   }
 
