@@ -4536,6 +4536,10 @@ function notifyIncomingMessage(peerId, text) {
   }
 }
 
+function formatIncomingVoiceNotification(voice) {
+  return `Voice message · ${formatVoiceDuration(voice.duration)} · ${formatVoiceSize(voice.size)}\nOpen chat to download & verify`;
+}
+
 function notifyIncomingCall(peerId, callId) {
   normalizeAppSettings();
   refreshNotificationState();
@@ -5198,7 +5202,7 @@ function handleVoiceOffer(peerId, conn, data) {
   const messageId = typeof data.id === "string" ? data.id.slice(0, 128) : createMessageId();
   addChatMessage({ id: messageId, text: "", sender: "them", peerId, time: typeof data.time === "string" ? data.time : formatTime(), voice: { ...voice, downloadState: "offered" } });
   if (appConfig.appSettings?.readReceipts) sendProtocolMessage(conn, "message-delivered", { messageId });
-  notifyIncomingMessage(peerId, "Voice message - click to download and verify");
+  notifyIncomingMessage(peerId, formatIncomingVoiceNotification(voice));
   if (appConfig.appSettings?.voiceAutoDownload) {
     requestVoiceMessage(findVoiceMessage(peerId, voice.id));
   }
