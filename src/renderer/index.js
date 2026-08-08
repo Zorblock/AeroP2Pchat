@@ -281,6 +281,23 @@ const messageSoundToggle = document.querySelector("#message-sound-toggle");
 const ringtoneSoundToggle = document.querySelector("#ringtone-sound-toggle");
 const callEventSoundToggle = document.querySelector("#call-event-sound-toggle");
 const connectedSoundToggle = document.querySelector("#connected-sound-toggle");
+const customSoundList = document.querySelector("#custom-sound-list");
+const openCustomSoundsFolderButton = document.querySelector(
+  "#open-custom-sounds-folder",
+);
+const customSoundModal = document.querySelector("#custom-sound-modal");
+const customSoundClose = document.querySelector("#custom-sound-close");
+const customSoundCancel = document.querySelector("#custom-sound-cancel");
+const customSoundSave = document.querySelector("#custom-sound-save");
+const customSoundFileName = document.querySelector("#custom-sound-file-name");
+const customSoundPreview = document.querySelector("#custom-sound-preview");
+const customSoundStart = document.querySelector("#custom-sound-start");
+const customSoundEnd = document.querySelector("#custom-sound-end");
+const customSoundStartValue = document.querySelector("#custom-sound-start-value");
+const customSoundEndValue = document.querySelector("#custom-sound-end-value");
+const customSoundNormalize = document.querySelector("#custom-sound-normalize");
+const customSoundStatus = document.querySelector("#custom-sound-status");
+const customSoundFileInput = document.querySelector("#custom-sound-file-input");
 const contactNicknameList = document.querySelector("#contact-nickname-list");
 const blockedList = document.querySelector("#blocked-list");
 const appMenu = document.querySelector("#app-menu");
@@ -478,6 +495,18 @@ const callLeaveAudio = new Audio("sound/call-leave.ogg");
 const connectedAudio = new Audio("sound/connected.ogg");
 const messageAudio = new Audio("sound/message.ogg");
 const ringtoneAudio = new Audio("sound/ringtone.ogg");
+const CUSTOM_SOUND_MAX_SOURCE_BYTES = 25 * 1024 * 1024;
+const CUSTOM_SOUND_MAX_DURATION_SECONDS = 300;
+const CUSTOM_SOUND_BITRATE = 160_000;
+const customSoundDefinitions = {
+  message: { label: "Message", audio: messageAudio, source: "sound/message.ogg" },
+  ringtone: { label: "Incoming call ringtone", audio: ringtoneAudio, source: "sound/ringtone.ogg" },
+  "call-join": { label: "Call joined", audio: callJoinAudio, source: "sound/call-join.ogg" },
+  "call-leave": { label: "Call ended", audio: callLeaveAudio, source: "sound/call-leave.ogg" },
+  connected: { label: "Peer connected", audio: connectedAudio, source: "sound/connected.ogg" },
+};
+const customSoundObjectUrls = new Map();
+let customSoundEditor = null;
 let notificationState = {
   appFocused: false,
   systemDnd: false,
@@ -488,6 +517,14 @@ connectedAudio.preload = "auto";
 messageAudio.preload = "auto";
 ringtoneAudio.preload = "auto";
 ringtoneAudio.loop = true;
+for (const [soundId, definition] of Object.entries(customSoundDefinitions)) {
+  definition.audio.addEventListener("error", () => {
+    if (customSoundObjectUrls.has(soundId)) {
+      resetCustomSoundAudio(soundId);
+      renderCustomSoundList();
+    }
+  });
+}
 let localVoiceAudioContext = null;
 let voiceCaptureGeneration = 0;
 let localVoiceMeterFrame = 0;
@@ -1184,6 +1221,7 @@ if (stripRetiredIdentityData(appConfig)) {
 normalizeAppSettings();
 applyAppearancePreferences();
 void refreshSystemAccentColor();
+void applyAllCustomSounds();
 const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
@@ -1760,6 +1798,29 @@ function updateRangeFill(input, value, min, max) {
   input.style.setProperty("--range-fill", `${percent}%`);
 }
 
+function normalizeCustomSounds(customSounds) {
+  if (!customSounds || typeof customSounds !== "object") return {};
+
+  return Object.fromEntries(
+    Object.entries(customSounds)
+      .filter(([soundId, value]) =>
+        Object.hasOwn(customSoundDefinitions, soundId) && value && typeof value === "object",
+      )
+      .map(([soundId, value]) => [
+        soundId,
+        {
+          name: String(value.name || "Custom sound").slice(0, 120),
+          duration: Number.isFinite(value.duration)
+            ? Math.max(0, Math.min(CUSTOM_SOUND_MAX_DURATION_SECONDS, value.duration))
+            : 0,
+          normalized: value.normalized !== false,
+          active: value.active !== false,
+          updatedAt: typeof value.updatedAt === "string" ? value.updatedAt.slice(0, 40) : "",
+        },
+      ]),
+  );
+}
+
 function normalizeAppSettings() {
   if (!appConfig.appSettings || typeof appConfig.appSettings !== "object") {
     appConfig.appSettings = {};
@@ -1861,6 +1922,7 @@ function normalizeAppSettings() {
     ringtone: appConfig.soundSettings.ringtone !== false,
     callEvents: appConfig.soundSettings.callEvents !== false,
     connected: appConfig.soundSettings.connected !== false,
+    custom: normalizeCustomSounds(appConfig.soundSettings.custom),
   };
 
   if (!appConfig.appSettings.autostart) {
@@ -2361,6 +2423,7 @@ function renderAppSettings() {
       .closest(".settings-check")
       ?.classList.toggle("disabled", !appConfig.soundSettings.enabled);
   }
+  renderCustomSoundList();
 
   renderWelcomeSettings();
   syncPresenceStatusIndicator();
@@ -2764,6 +2827,325 @@ function saveSoundSettings(updates = {}) {
   normalizeAppSettings();
   renderAppSettings();
   saveAppConfig();
+}
+
+function formatCustomSoundDuration(value) {
+  const seconds = Math.max(0, Math.round(Number(value) || 0));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function getCustomSoundMetadata(soundId) {
+  normalizeAppSettings();
+  return appConfig.soundSettings.custom[soundId] || null;
+}
+
+function resetCustomSoundAudio(soundId) {
+  const definition = customSoundDefinitions[soundId];
+  if (!definition) return;
+  const previousUrl = customSoundObjectUrls.get(soundId);
+  if (previousUrl) URL.revokeObjectURL(previousUrl);
+  customSoundObjectUrls.delete(soundId);
+  definition.audio.pause();
+  definition.audio.currentTime = 0;
+  definition.audio.src = definition.source;
+  definition.audio.load();
+}
+
+function setCustomSoundAudio(soundId, data) {
+  const definition = customSoundDefinitions[soundId];
+  if (!definition || !data) return false;
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (!bytes.byteLength) return false;
+
+  const previousUrl = customSoundObjectUrls.get(soundId);
+  if (previousUrl) URL.revokeObjectURL(previousUrl);
+  const objectUrl = URL.createObjectURL(new Blob([bytes], { type: "audio/ogg" }));
+  customSoundObjectUrls.set(soundId, objectUrl);
+  definition.audio.pause();
+  definition.audio.currentTime = 0;
+  definition.audio.src = objectUrl;
+  definition.audio.load();
+  return true;
+}
+
+async function applyCustomSound(soundId) {
+  const metadata = getCustomSoundMetadata(soundId);
+  if (!platformApi.supportsCustomSounds || !metadata?.active) {
+    resetCustomSoundAudio(soundId);
+    return false;
+  }
+
+  const result = await platformApi.loadCustomSound(soundId);
+  if (!result?.ok || !setCustomSoundAudio(soundId, result.data)) {
+    resetCustomSoundAudio(soundId);
+    return false;
+  }
+  return true;
+}
+
+async function applyAllCustomSounds() {
+  await Promise.all(
+    Object.keys(customSoundDefinitions).map((soundId) =>
+      applyCustomSound(soundId).catch(() => {
+        resetCustomSoundAudio(soundId);
+      }),
+    ),
+  );
+  renderCustomSoundList();
+}
+
+function renderCustomSoundList() {
+  if (!customSoundList) return;
+  const supported = platformApi.supportsCustomSounds;
+  openCustomSoundsFolderButton.disabled = !supported;
+  openCustomSoundsFolderButton.classList.toggle("hidden", !supported);
+  customSoundList.replaceChildren();
+
+  if (!supported) {
+    const unavailable = document.createElement("span");
+    unavailable.className = "settings-help";
+    unavailable.textContent = "Custom sounds are available in the desktop app.";
+    customSoundList.append(unavailable);
+    return;
+  }
+
+  for (const [soundId, definition] of Object.entries(customSoundDefinitions)) {
+    const metadata = getCustomSoundMetadata(soundId);
+    const row = document.createElement("div");
+    row.className = "custom-sound-row";
+    const customLoaded = Boolean(metadata && customSoundObjectUrls.has(soundId));
+    row.classList.toggle("is-custom", customLoaded);
+    row.classList.toggle("is-disabled", Boolean(metadata && !metadata.active));
+
+    const info = document.createElement("div");
+    info.className = "custom-sound-row-info";
+    const title = document.createElement("strong");
+    title.textContent = definition.label;
+    const detail = document.createElement("span");
+    detail.textContent = metadata
+      ? `${metadata.active ? (customLoaded ? "Custom" : "Built-in fallback") : "Built-in active"} · ${metadata.name} · ${formatCustomSoundDuration(metadata.duration)}`
+      : "Built-in sound";
+    info.append(title, detail);
+
+    const actions = document.createElement("div");
+    actions.className = "custom-sound-row-actions";
+    if (metadata) {
+      const toggle = document.createElement("button");
+      toggle.className = "custom-sound-action-button";
+      toggle.type = "button";
+      toggle.title = metadata.active ? "Use built-in sound" : "Use custom sound";
+      toggle.setAttribute("aria-label", toggle.title);
+      toggle.innerHTML = `<i class="fa-solid ${metadata.active ? "fa-toggle-on" : "fa-toggle-off"}" aria-hidden="true"></i>`;
+      toggle.addEventListener("click", async () => {
+        metadata.active = !metadata.active;
+        await applyCustomSound(soundId);
+        await saveAppConfig();
+        renderCustomSoundList();
+      });
+      actions.append(toggle);
+
+      const remove = document.createElement("button");
+      remove.className = "custom-sound-action-button";
+      remove.type = "button";
+      remove.title = "Remove custom sound";
+      remove.setAttribute("aria-label", remove.title);
+      remove.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+      remove.addEventListener("click", () => removeCustomSound(soundId));
+      actions.append(remove);
+    }
+    const replace = document.createElement("button");
+    replace.className = "custom-sound-action-button";
+    replace.type = "button";
+    replace.title = metadata ? "Replace custom sound" : "Choose custom sound";
+    replace.setAttribute("aria-label", replace.title);
+    replace.innerHTML = metadata
+      ? '<i class="fa-solid fa-pen" aria-hidden="true"></i>'
+      : '<i class="fa-solid fa-plus" aria-hidden="true"></i><span>Custom</span>';
+    replace.addEventListener("click", () => {
+      customSoundFileInput.dataset.soundId = soundId;
+      customSoundFileInput.click();
+    });
+    actions.append(replace);
+    row.append(info, actions);
+    customSoundList.append(row);
+  }
+}
+
+function closeCustomSoundEditor() {
+  customSoundPreview.pause();
+  if (customSoundEditor?.previewUrl) URL.revokeObjectURL(customSoundEditor.previewUrl);
+  customSoundEditor = null;
+  customSoundFileInput.value = "";
+  customSoundModal.classList.add("hidden");
+}
+
+function updateCustomSoundTrimUi() {
+  if (!customSoundEditor) return;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  if (start >= end) {
+    if (document.activeElement === customSoundStart) {
+      customSoundEnd.value = Math.min(customSoundEditor.duration, start + 0.01);
+    } else {
+      customSoundStart.value = Math.max(0, end - 0.01);
+    }
+  }
+  customSoundStartValue.textContent = formatCustomSoundDuration(customSoundStart.value);
+  customSoundEndValue.textContent = formatCustomSoundDuration(customSoundEnd.value);
+}
+
+async function openCustomSoundEditor(soundId, file) {
+  if (!file || !customSoundDefinitions[soundId]) return;
+  if (file.size > CUSTOM_SOUND_MAX_SOURCE_BYTES) {
+    await showAppDialog({ title: "Sound is too large", message: "Choose an audio file smaller than 25 MB.", confirmText: "OK", cancelText: "Close" });
+    return;
+  }
+
+  let decoded;
+  let context;
+  try {
+    context = new AudioContext();
+    decoded = await context.decodeAudioData(await file.arrayBuffer());
+  } catch {
+    await showAppDialog({ title: "Unsupported audio", message: "Aero could not read this audio file. Try MP3, WAV, M4A, or OGG.", confirmText: "OK", cancelText: "Close" });
+    return;
+  } finally {
+    await context?.close().catch(() => {});
+  }
+  if (!Number.isFinite(decoded.duration) || decoded.duration <= 0 || decoded.duration > CUSTOM_SOUND_MAX_DURATION_SECONDS) {
+    await showAppDialog({ title: "Sound length", message: "Choose a sound between 1 second and 5 minutes.", confirmText: "OK", cancelText: "Close" });
+    return;
+  }
+
+  customSoundEditor = {
+    soundId,
+    fileName: file.name || "Custom sound",
+    buffer: decoded,
+    duration: decoded.duration,
+    previewUrl: URL.createObjectURL(file),
+  };
+  customSoundFileName.textContent = customSoundEditor.fileName;
+  customSoundPreview.src = customSoundEditor.previewUrl;
+  customSoundStart.max = String(decoded.duration);
+  customSoundEnd.max = String(decoded.duration);
+  customSoundStart.value = "0";
+  customSoundEnd.value = String(decoded.duration);
+  customSoundNormalize.checked = true;
+  customSoundStatus.textContent = "";
+  customSoundStatus.className = "custom-sound-status";
+  updateCustomSoundTrimUi();
+  customSoundModal.classList.remove("hidden");
+}
+
+function createTrimmedSoundBuffer(sourceBuffer, start, end, normalize) {
+  const sampleRate = sourceBuffer.sampleRate;
+  const offset = Math.floor(start * sampleRate);
+  const length = Math.max(1, Math.ceil((end - start) * sampleRate));
+  const output = new AudioBuffer({
+    numberOfChannels: sourceBuffer.numberOfChannels,
+    length,
+    sampleRate,
+  });
+  let peak = 0;
+  for (let channel = 0; channel < output.numberOfChannels; channel += 1) {
+    const data = output.getChannelData(channel);
+    data.set(sourceBuffer.getChannelData(channel).subarray(offset, offset + length));
+    for (const sample of data) peak = Math.max(peak, Math.abs(sample));
+  }
+  const gain = normalize && peak > 0 ? Math.min(4, 0.98 / peak) : 1;
+  if (gain !== 1) {
+    for (let channel = 0; channel < output.numberOfChannels; channel += 1) {
+      const data = output.getChannelData(channel);
+      for (let index = 0; index < data.length; index += 1) data[index] *= gain;
+    }
+  }
+  return output;
+}
+
+async function encodeCustomSoundToOgg(audioBuffer) {
+  const mimeType = "audio/ogg;codecs=opus";
+  if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+    throw new Error("OGG/Opus encoding is not supported by this app runtime.");
+  }
+  const context = new AudioContext({ sampleRate: 48_000 });
+  try {
+    const destination = context.createMediaStreamDestination();
+    const source = context.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(destination);
+    const chunks = [];
+    const recorder = new MediaRecorder(destination.stream, {
+      mimeType,
+      audioBitsPerSecond: CUSTOM_SOUND_BITRATE,
+    });
+    const completed = new Promise((resolve, reject) => {
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data.size) chunks.push(event.data);
+      });
+      recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: "audio/ogg" })));
+      recorder.addEventListener("error", () => reject(new Error("Audio encoding failed.")));
+    });
+    recorder.start(250);
+    await context.resume();
+    source.start();
+    source.addEventListener("ended", () => recorder.stop(), { once: true });
+    return await completed;
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+async function saveCustomSoundEditor() {
+  if (!customSoundEditor || customSoundSave.disabled) return;
+  const { soundId, buffer, fileName } = customSoundEditor;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  const normalized = customSoundNormalize.checked;
+  customSoundSave.disabled = true;
+  customSoundStatus.textContent = "Converting to OGG/Opus…";
+  customSoundStatus.className = "custom-sound-status is-working";
+  try {
+    const trimmed = createTrimmedSoundBuffer(buffer, start, end, normalized);
+    const encoded = await encodeCustomSoundToOgg(trimmed);
+    if (!encoded.size || encoded.size > CUSTOM_SOUND_MAX_SOURCE_BYTES) {
+      throw new Error("The converted sound is too large.");
+    }
+    const saved = await platformApi.saveCustomSound(soundId, new Uint8Array(await encoded.arrayBuffer()));
+    if (!saved?.ok) throw new Error(saved?.error || "Sound could not be saved.");
+    appConfig.soundSettings.custom[soundId] = {
+      name: fileName,
+      duration: end - start,
+      normalized,
+      active: true,
+      updatedAt: new Date().toISOString(),
+    };
+    await saveAppConfig();
+    await applyCustomSound(soundId);
+    renderCustomSoundList();
+    closeCustomSoundEditor();
+  } catch (error) {
+    customSoundStatus.textContent = error?.message || "Sound could not be converted.";
+    customSoundStatus.className = "custom-sound-status is-error";
+  } finally {
+    customSoundSave.disabled = false;
+  }
+}
+
+async function removeCustomSound(soundId) {
+  const confirmed = await showAppDialog({
+    title: "Remove custom sound?",
+    message: "Aero will use the built-in sound again.",
+    confirmText: "Remove",
+    cancelText: "Cancel",
+    danger: true,
+  });
+  if (!confirmed) return;
+  const result = await platformApi.deleteCustomSound(soundId);
+  if (!result?.ok) return;
+  delete appConfig.soundSettings.custom[soundId];
+  resetCustomSoundAudio(soundId);
+  await saveAppConfig();
+  renderCustomSoundList();
 }
 
 function findContact(id) {
@@ -10685,6 +11067,38 @@ callEventSoundToggle.addEventListener("change", () => {
 
 connectedSoundToggle.addEventListener("change", () => {
   saveSoundSettings({ connected: connectedSoundToggle.checked });
+});
+
+openCustomSoundsFolderButton.addEventListener("click", () => {
+  platformApi.openCustomSoundsFolder().catch(() => {});
+});
+
+customSoundFileInput.addEventListener("change", () => {
+  const [file] = customSoundFileInput.files || [];
+  const soundId = customSoundFileInput.dataset.soundId || "";
+  void openCustomSoundEditor(soundId, file);
+});
+customSoundStart.addEventListener("input", updateCustomSoundTrimUi);
+customSoundEnd.addEventListener("input", updateCustomSoundTrimUi);
+customSoundPreview.addEventListener("play", () => {
+  if (
+    customSoundEditor &&
+    (customSoundPreview.currentTime < Number(customSoundStart.value) ||
+      customSoundPreview.currentTime >= Number(customSoundEnd.value))
+  ) {
+    customSoundPreview.currentTime = Number(customSoundStart.value);
+  }
+});
+customSoundPreview.addEventListener("timeupdate", () => {
+  if (customSoundEditor && customSoundPreview.currentTime >= Number(customSoundEnd.value)) {
+    customSoundPreview.pause();
+    customSoundPreview.currentTime = Number(customSoundStart.value);
+  }
+});
+customSoundClose.addEventListener("click", closeCustomSoundEditor);
+customSoundCancel.addEventListener("click", closeCustomSoundEditor);
+customSoundSave.addEventListener("click", () => {
+  void saveCustomSoundEditor();
 });
 
 navigator.mediaDevices?.addEventListener?.("devicechange", () => {

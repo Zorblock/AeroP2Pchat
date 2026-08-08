@@ -3605,6 +3605,183 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .settings-options.two-column {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.custom-sounds-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.custom-sounds-heading > div {
+  display: grid;
+  gap: 2px;
+}
+.custom-sounds-heading strong {
+  font-size: 13px;
+}
+.custom-sounds-heading span,
+.custom-sound-file-name,
+.custom-sound-help,
+.custom-sound-status {
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.custom-sound-action-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+.custom-sound-action-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 36%, transparent);
+  transform: translateY(-1px);
+}
+.custom-sound-action-button:active:not(:disabled) {
+  background: var(--accent-pressed);
+  transform: translateY(0);
+}
+.custom-sound-action-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+}
+.custom-sound-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+.custom-sounds-heading .custom-sound-action-button {
+  min-height: 32px;
+  padding-inline: 9px;
+  font-size: 11px;
+}
+.custom-sound-list {
+  display: grid;
+  gap: 7px;
+}
+.custom-sound-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.custom-sound-row-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.custom-sound-row-info strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.custom-sound-row-info span {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.custom-sound-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.custom-sound-row-actions .custom-sound-action-button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.custom-sound-row.is-custom {
+  border-color: var(--line-accent);
+  background: color-mix(in srgb, var(--accent-soft) 32%, var(--surface));
+}
+.custom-sound-row.is-disabled {
+  opacity: 0.7;
+}
+.custom-sound-modal-panel {
+  width: min(500px, calc(100vw - 36px));
+}
+.custom-sound-modal-panel .modal-header {
+  align-items: flex-start;
+}
+.custom-sound-modal-panel .modal-header h2 {
+  margin-bottom: 3px;
+}
+.custom-sound-file-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.custom-sound-help {
+  margin: 0 0 12px;
+}
+.custom-sound-preview {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 14px;
+}
+.custom-sound-trim {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.custom-sound-trim-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.custom-sound-trim-labels strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.custom-sound-normalize {
+  margin-top: 12px;
+}
+.custom-sound-normalize span {
+  display: grid;
+  gap: 1px;
+}
+.custom-sound-normalize small {
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 400;
+}
+.custom-sound-status {
+  min-height: 16px;
+  margin: 8px 0 0;
+}
+.custom-sound-status.is-error {
+  color: var(--danger);
+}
+.custom-sound-status.is-working {
+  color: var(--accent);
+}
 .settings-check,
 .settings-choice label {
   display: flex;

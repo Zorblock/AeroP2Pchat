@@ -71,6 +71,15 @@ const userConfigFileName = "config.aero";
 const userConfigKeyFileName = "config.key";
 const themesDirectoryName = "Themes";
 const maxThemeFileSize = 2 * 1024 * 1024;
+const customSoundDirectoryName = "Sounds";
+const maxCustomSoundBytes = 25 * 1024 * 1024;
+const customSoundIds = new Set([
+  "message",
+  "ringtone",
+  "call-join",
+  "call-leave",
+  "connected",
+]);
 const maxOnlineThemeCount = 8;
 const maxOnlineThemeSize = 2 * 1024 * 1024;
 const updateManifestTimeoutMs = 12000;
@@ -187,6 +196,37 @@ function getConfigPath() {
 
 function getThemesPath() {
   return join(app.getPath("userData"), themesDirectoryName);
+}
+
+function getCustomSoundsPath() {
+  return join(app.getPath("userData"), customSoundDirectoryName);
+}
+
+function getCustomSoundPath(soundId) {
+  return customSoundIds.has(soundId)
+    ? join(getCustomSoundsPath(), `${soundId}.ogg`)
+    : "";
+}
+
+function isCustomSoundRequest(event) {
+  return BrowserWindow.fromWebContents(event.sender) === mainWindow;
+}
+
+function toCustomSoundBuffer(value) {
+  if (value instanceof ArrayBuffer) return Buffer.from(value);
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return null;
+}
+
+function isOggOpus(buffer) {
+  return (
+    Buffer.isBuffer(buffer) &&
+    buffer.length >= 32 &&
+    buffer.subarray(0, 4).equals(Buffer.from("OggS")) &&
+    buffer.subarray(0, 128).includes(Buffer.from("OpusHead"))
+  );
 }
 
 function isThemeFileName(fileName) {
@@ -2038,6 +2078,75 @@ app.whenReady().then(async () => {
   }));
   ipcMain.handle("open-themes-folder", () => openThemesFolder());
   ipcMain.handle("load-theme", (_event, fileName) => loadTheme(fileName));
+  ipcMain.handle("save-custom-sound", async (event, soundId, data) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized sound request." };
+    }
+    const targetPath = getCustomSoundPath(String(soundId || ""));
+    const buffer = toCustomSoundBuffer(data);
+    if (!targetPath || !buffer || buffer.length < 4 || buffer.length > maxCustomSoundBytes) {
+      return { ok: false, error: "Invalid custom sound file." };
+    }
+    if (!isOggOpus(buffer)) {
+      return { ok: false, error: "Custom sounds must be OGG/Opus files." };
+    }
+
+    try {
+      await mkdir(getCustomSoundsPath(), { recursive: true });
+      const temporaryPath = `${targetPath}.${process.pid}.tmp`;
+      await writeFile(temporaryPath, buffer);
+      await rename(temporaryPath, targetPath);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Sound could not be saved." };
+    }
+  });
+  ipcMain.handle("load-custom-sound", async (event, soundId) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized sound request." };
+    }
+    const targetPath = getCustomSoundPath(String(soundId || ""));
+    if (!targetPath) return { ok: false, error: "Unknown sound." };
+    try {
+      const buffer = await readFile(targetPath);
+      if (
+        buffer.length < 4 ||
+        buffer.length > maxCustomSoundBytes ||
+        !isOggOpus(buffer)
+      ) {
+        return { ok: false, error: "Stored sound is invalid." };
+      }
+      return { ok: true, data: buffer };
+    } catch {
+      return { ok: false, missing: true };
+    }
+  });
+  ipcMain.handle("delete-custom-sound", async (event, soundId) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized sound request." };
+    }
+    const targetPath = getCustomSoundPath(String(soundId || ""));
+    if (!targetPath) return { ok: false, error: "Unknown sound." };
+    try {
+      await rm(targetPath, { force: true });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Sound could not be removed." };
+    }
+  });
+  ipcMain.handle("open-custom-sounds-folder", async (event) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized sound request." };
+    }
+    try {
+      const directory = getCustomSoundsPath();
+      await mkdir(directory, { recursive: true });
+      const error = await shell.openPath(directory);
+      return error ? { ok: false, error } : { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Folder could not be opened." };
+    }
+  });
   ipcMain.handle("fetch-online-theme", async (_event, url) => {
     try {
       return { ok: true, css: await fetchOnlineThemeCss(url) };

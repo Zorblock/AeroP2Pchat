@@ -154,6 +154,7 @@ export function createPlatformApi() {
     supportsUpdateChecks: isElectron || isAndroid,
     supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
     supportsDesktopScreenSources: isElectron,
+    supportsCustomSounds: isElectron,
 
     async loadConfig() {
       if (electron?.loadConfig) {
@@ -210,6 +211,34 @@ export function createPlatformApi() {
         return electron.loadTheme(fileName);
       }
       return { ok: false, error: "Custom themes are available in the desktop app." };
+    },
+
+    async saveCustomSound(soundId, data) {
+      if (!electron?.saveCustomSound) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.saveCustomSound(soundId, data);
+    },
+
+    async loadCustomSound(soundId) {
+      if (!electron?.loadCustomSound) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.loadCustomSound(soundId);
+    },
+
+    async deleteCustomSound(soundId) {
+      if (!electron?.deleteCustomSound) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.deleteCustomSound(soundId);
+    },
+
+    async openCustomSoundsFolder() {
+      if (!electron?.openCustomSoundsFolder) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.openCustomSoundsFolder();
     },
 
     async fetchOnlineTheme(url) {
