@@ -1393,31 +1393,36 @@
 
             <section class="settings-section" data-settings-page="chat">
               <h3>Chat</h3>
-              <div class="settings-options">
-                <label class="settings-check">
-                  <input id="voice-auto-download-toggle" type="checkbox" />
-                  <span>Automatically download voice messages</span>
-                </label>
-                <p class="settings-description">Files are still checked for format, size and SHA-256 integrity before they can play.</p>
-                <label class="settings-check">
-                  <input id="voice-waveform-toggle" type="checkbox" />
-                  <span>Show waveform for voice messages</span>
-                </label>
-                <div class="trusted-domains-control">
-                  <span id="trusted-domains-status">Built-in trusted domains</span>
-                  <button id="clear-trusted-domains" class="ghost-button" type="button">Clear personal domains</button>
+              <div class="chat-settings-stack">
+                <div class="chat-settings-group">
+                  <div class="chat-settings-heading"><h4>Voice messages</h4></div>
+                  <label class="settings-check">
+                    <input id="voice-auto-download-toggle" type="checkbox" />
+                    <span>Automatically download</span>
+                  </label>
+                  <p class="chat-inline-note">Format, size and SHA-256 are verified before playback.</p>
+                  <label class="settings-check">
+                    <input id="voice-waveform-toggle" type="checkbox" />
+                    <span>Show waveform</span>
+                  </label>
                 </div>
-                <details class="trusted-domains-details">
-                  <summary>
-                    <span>Show built-in trusted domains</span>
-                    <span class="trusted-domains-summary-meta">
-                      <span id="trusted-default-domains-count"></span>
-                      <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                    </span>
-                  </summary>
-                  <p>These main domains and their subdomains open without a confirmation.</p>
-                  <div id="trusted-default-domains-list" class="trusted-domains-list" aria-label="Built-in trusted domains"></div>
-                </details>
+                <div class="chat-settings-group">
+                  <div class="chat-settings-heading chat-trusted-heading">
+                    <div><h4>External links</h4><p id="trusted-domains-status">Built-in trusted domains</p></div>
+                    <button id="clear-trusted-domains" class="ghost-button" type="button">Clear personal</button>
+                  </div>
+                  <details class="trusted-domains-details">
+                    <summary>
+                      <span>Built-in trusted domains</span>
+                      <span class="trusted-domains-summary-meta">
+                        <span id="trusted-default-domains-count"></span>
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                      </span>
+                    </summary>
+                    <p>Main domains and their subdomains open without confirmation.</p>
+                    <div id="trusted-default-domains-list" class="trusted-domains-list" aria-label="Built-in trusted domains"></div>
+                  </details>
+                </div>
               </div>
             </section>
           </div>

@@ -2889,6 +2889,46 @@ body.reduce-motion *::after {
   font-size: 10px;
   font-weight: 600;
 }
+.chat-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+.chat-settings-group {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.chat-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.chat-settings-heading p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.chat-trusted-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.chat-trusted-heading button {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.chat-inline-note {
+  margin: -3px 0 0 38px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
 .trusted-domains-control button {
   min-height: 28px;
   padding: 4px 8px;
