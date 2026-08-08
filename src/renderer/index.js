@@ -4695,11 +4695,11 @@ async function ensureEmojiPicker() {
       dataSource: emojiShortcodeDataUrl,
       locale: "en",
     });
-    picker.addEventListener("click", (event) => {
-      const emojiTarget = event.composedPath().find(
-        (node) => node instanceof Element && node.classList.contains("emoji"),
-      );
-      if (emojiTarget) emojiPickerClickModifiers.push({ keepOpen: event.shiftKey });
+    picker.shadowRoot.addEventListener("click", (event) => {
+      const emojiTarget = event.target instanceof Element ? event.target.closest(".emoji") : null;
+      if (emojiTarget?.id?.match(/^(?:emo|fav)-/)) {
+        emojiPickerClickModifiers.push({ keepOpen: event.shiftKey });
+      }
     }, true);
     picker.addEventListener("emoji-click-sync", (event) => {
       const { keepOpen = false } = emojiPickerClickModifiers.shift() || {};
