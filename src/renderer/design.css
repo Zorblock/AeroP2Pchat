@@ -2215,10 +2215,7 @@ body.reduce-motion *::after {
 }
 .message-form {
   grid-row: 7;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
-  align-items: center;
-  gap: 8px;
+  display: block;
   padding: 10px 18px 12px;
   border-top: 1px solid var(--line);
   background: var(--surface);
@@ -2227,17 +2224,44 @@ body.reduce-motion *::after {
   border-top-color: color-mix(in srgb, var(--accent) 42%, var(--line));
   background: color-mix(in srgb, var(--accent) 3%, var(--surface));
 }
+.message-composer-field {
+  position: relative;
+  width: 100%;
+}
 #message-input {
+  display: block;
+  width: 100%;
   height: 42px;
-  padding: 0 14px;
+  padding: 0 48px 0 14px;
   border-radius: 14px;
   background: var(--surface-subtle);
   font-size: 13px;
 }
-#send-button {
+#send-button,
+#voice-record-button {
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 42px;
   height: 42px;
   border-radius: 13px;
+}
+#voice-record-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+#voice-record-button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--accent);
+}
+.voice-record-status {
+  position: absolute;
+  top: 50%;
+  right: 54px;
+  z-index: 2;
+  transform: translateY(-50%);
 }
 
 /* Shared modal surfaces */
@@ -2468,6 +2492,131 @@ body.reduce-motion *::after {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: min(520px, 100%);
   gap: 12px;
+}
+.voice-record-status {
+  min-width: 66px;
+  color: var(--muted);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  text-align: right;
+}
+#voice-record-button.recording {
+  background: var(--danger, #dc3545);
+  color: white;
+  animation: voice-record-pulse 1.2s ease-in-out infinite;
+}
+.voice-message {
+  display: grid;
+  min-width: 210px;
+  gap: 8px;
+}
+.voice-message > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.voice-message small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+.voice-message audio {
+  width: min(240px, 100%);
+  height: 32px;
+}
+.voice-waveform {
+  --voice-progress: 0%;
+  position: relative;
+  display: flex;
+  height: 24px;
+  align-items: center;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 6px;
+}
+.voice-waveform::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--voice-progress);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  content: "";
+  pointer-events: none;
+  transition: width 100ms linear;
+}
+.voice-waveform span {
+  z-index: 1;
+  width: 3px;
+  height: calc(4px + var(--voice-level) * 18px);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-soft) 60%, transparent);
+  transition: height 180ms ease, background-color 180ms ease;
+}
+.voice-waveform.playing span {
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-waveform::after,
+  .voice-waveform span {
+    transition: none;
+  }
+}
+.voice-download-button {
+  display: inline-flex;
+  width: fit-content;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 750;
+  box-shadow: 0 4px 12px var(--accent-ring);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.voice-download-button:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  box-shadow: 0 6px 16px var(--accent-ring);
+}
+.voice-download-button:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+.voice-transfer {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.voice-transfer-status {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 650;
+}
+.voice-transfer-progress {
+  grid-column: 2;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.voice-transfer-progress::after {
+  display: block;
+  width: var(--voice-transfer-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  content: "";
+  transition: width 100ms linear;
+}
+@keyframes voice-record-pulse {
+  50% { opacity: 0.72; }
 }
 .welcome-theme-options input {
   position: absolute;

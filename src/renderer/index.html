@@ -741,24 +741,38 @@
           ></div>
 
           <form id="message-form" class="message-form">
-            <input
-              id="message-input"
-              name="message"
-              autocomplete="off"
-              placeholder="Write a message..."
-              disabled
-            />
-            <button
-              id="send-button"
-              class="icon-only-button"
-              type="submit"
-              disabled
-              title="Send message"
-              aria-label="Send message"
-            >
-              <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-              <span>Send</span>
-            </button>
+            <div class="message-composer-field">
+              <input
+                id="message-input"
+                name="message"
+                autocomplete="off"
+                placeholder="Write a message..."
+                disabled
+              />
+              <span id="voice-record-status" class="voice-record-status hidden" aria-live="polite"></span>
+              <button
+                id="voice-record-button"
+                class="icon-only-button"
+                type="button"
+                disabled
+                title="Record voice message"
+                aria-label="Record voice message"
+              >
+                <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+                <span>Record voice message</span>
+              </button>
+              <button
+                id="send-button"
+                class="icon-only-button hidden"
+                type="submit"
+                disabled
+                title="Send message"
+                aria-label="Send message"
+              >
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                <span>Send</span>
+              </button>
+            </div>
           </form>
         </section>
       
@@ -1103,6 +1117,10 @@
               Sounds
             </button>
             <span class="settings-nav-label">Chat</span>
+            <button type="button" class="settings-nav-item" data-settings-nav="chat">
+              <i class="fa-solid fa-comment" aria-hidden="true"></i>
+              Chat
+            </button>
             <button type="button" class="settings-nav-item" data-settings-nav="voice">
               <i class="fa-solid fa-microphone" aria-hidden="true"></i>
               Voice & video
@@ -1327,6 +1345,21 @@
                 <label class="settings-check">
                   <input id="connected-sound-toggle" type="checkbox" />
                   <span>Connected sound</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section" data-settings-page="chat">
+              <h3>Chat</h3>
+              <div class="settings-options">
+                <label class="settings-check">
+                  <input id="voice-auto-download-toggle" type="checkbox" />
+                  <span>Automatically download voice messages</span>
+                </label>
+                <p class="settings-description">Files are still checked for format, size and SHA-256 integrity before they can play.</p>
+                <label class="settings-check">
+                  <input id="voice-waveform-toggle" type="checkbox" />
+                  <span>Show waveform for voice messages</span>
                 </label>
               </div>
             </section>

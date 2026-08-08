@@ -88,6 +88,8 @@ const typingIndicator = document.querySelector("#typing-indicator");
 const messageForm = document.querySelector("#message-form");
 const messageInput = document.querySelector("#message-input");
 const sendButton = document.querySelector("#send-button");
+const voiceRecordButton = document.querySelector("#voice-record-button");
+const voiceRecordStatus = document.querySelector("#voice-record-status");
 const headerUpdateButton = document.querySelector("#header-update-button");
 const updateCard = document.querySelector("#update-card");
 const offlineBanner = document.querySelector("#offline-banner");
@@ -255,6 +257,8 @@ const focusedNotificationsToggle = document.querySelector(
   "#focused-notifications-toggle",
 );
 const readReceiptsToggle = document.querySelector("#read-receipts-toggle");
+const voiceAutoDownloadToggle = document.querySelector("#voice-auto-download-toggle");
+const voiceWaveformToggle = document.querySelector("#voice-waveform-toggle");
 const soundsToggle = document.querySelector("#sounds-toggle");
 const messageSoundToggle = document.querySelector("#message-sound-toggle");
 const ringtoneSoundToggle = document.querySelector("#ringtone-sound-toggle");
@@ -328,6 +332,8 @@ const chatHistory = new Map();
 const unreadCounts = new Map();
 const remoteIdentities = new Map();
 const remoteReadReceiptsEnabled = new Map();
+const pendingVoiceUploads = new Map();
+const incomingVoiceTransfers = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
@@ -340,6 +346,25 @@ const THEME_STORAGE_KEY = "aero-p2p-chat.theme";
 const MAX_MESSAGE_LENGTH = 4000;
 const HIGH_BUFFER_SIZE = 25;
 const VOICE_AUDIO_BITRATE = 96000;
+const VOICE_MESSAGE_BITRATE = 48000;
+const VOICE_MESSAGE_MAX_BYTES = 10 * 1024 * 1024;
+const VOICE_MESSAGE_MAX_DURATION_SECONDS = 180;
+const VOICE_MESSAGE_CHUNK_BYTES = 32 * 1024;
+const VOICE_MESSAGE_EXPIRY_MS = 15 * 60 * 1000;
+const MAX_PENDING_VOICE_UPLOADS = 8;
+const MAX_ACTIVE_VOICE_TRANSFERS = 3;
+const VOICE_MESSAGE_MIME_TYPES = new Set([
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+]);
+let voiceRecorder = null;
+let voiceRecordingStream = null;
+let voiceRecordingStartedAt = 0;
+let voiceRecordingTimer = null;
+let voiceRecordingPeerId = null;
+let voiceRecordingPresenceTimer = null;
+let voiceWaveformAudioContext = null;
 const CALL_HEALTH_POLL_MS = 3000;
 const CALL_MEDIA_DISCONNECTED_TIMEOUT_MS = 12000;
 const CALL_MEDIA_STALE_TIMEOUT_MS = 45000;
@@ -476,6 +501,8 @@ const incomingMessageWindows = new Map();
 const actionCooldowns = new Map();
 const typingStates = new Map();
 const typingTimers = new Map();
+const voiceRecordingStates = new Map();
+const voiceRecordingTimers = new Map();
 const localTypingTimers = new Map();
 const lastTypingSentAt = new Map();
 let intentionalPeerDisconnect = false;
@@ -1712,6 +1739,8 @@ function normalizeAppSettings() {
     startHidden: appConfig.appSettings.startHidden !== false,
     closeToTray: appConfig.appSettings.closeToTray !== false,
     readReceipts: appConfig.appSettings.readReceipts !== false,
+    voiceAutoDownload: Boolean(appConfig.appSettings.voiceAutoDownload),
+    voiceWaveform: appConfig.appSettings.voiceWaveform !== false,
     presenceStatus: ["online", "dnd", "offline"].includes(
       appConfig.appSettings.presenceStatus,
     )
@@ -2242,6 +2271,8 @@ function renderAppSettings() {
   );
   closeToTrayToggle.checked = appConfig.appSettings.closeToTray;
   readReceiptsToggle.checked = appConfig.appSettings.readReceipts;
+  voiceAutoDownloadToggle.checked = appConfig.appSettings.voiceAutoDownload;
+  voiceWaveformToggle.checked = appConfig.appSettings.voiceWaveform;
 
   notificationsToggle.checked = appConfig.notificationSettings.enabled;
   messageNotificationsToggle.checked = appConfig.notificationSettings.messages;
@@ -3371,13 +3402,18 @@ function updateTypingIndicator() {
     return;
   }
 
-  if (!activePeerId || !typingStates.get(activePeerId)) {
+  if (
+    !activePeerId ||
+    (!typingStates.get(activePeerId) && !voiceRecordingStates.get(activePeerId))
+  ) {
     typingIndicator.classList.add("hidden");
     typingIndicator.textContent = "";
     return;
   }
 
-  typingIndicator.textContent = `${getPeerLabel(activePeerId, connections.get(activePeerId))} typing...`;
+  typingIndicator.textContent = voiceRecordingStates.get(activePeerId)
+    ? `${getPeerLabel(activePeerId, connections.get(activePeerId))} recording a voice message...`
+    : `${getPeerLabel(activePeerId, connections.get(activePeerId))} typing...`;
   typingIndicator.classList.remove("hidden");
 }
 
@@ -3401,6 +3437,32 @@ function setRemoteTyping(peerId, typing) {
   }
 
   updateTypingIndicator();
+}
+
+function setRemoteVoiceRecording(peerId, recording) {
+  voiceRecordingStates.set(peerId, Boolean(recording));
+  const existing = voiceRecordingTimers.get(peerId);
+  if (existing) clearTimeout(existing);
+  if (recording) {
+    voiceRecordingTimers.set(
+      peerId,
+      setTimeout(() => {
+        voiceRecordingStates.delete(peerId);
+        voiceRecordingTimers.delete(peerId);
+        updateTypingIndicator();
+      }, 12000),
+    );
+  } else {
+    voiceRecordingStates.delete(peerId);
+    voiceRecordingTimers.delete(peerId);
+  }
+  updateTypingIndicator();
+}
+
+function sendVoiceRecordingState(peerId, recording) {
+  return sendProtocolMessage(connections.get(peerId), "voice-recording", {
+    recording: Boolean(recording),
+  });
 }
 
 function sendTypingState(peerId, typing, { force = false } = {}) {
@@ -3468,6 +3530,121 @@ function createSystemMessage(text) {
   return row;
 }
 
+function applyVoiceWaveform(waveform, values) {
+  waveform.replaceChildren(
+    ...values.map((value) => {
+      const bar = document.createElement("span");
+      bar.style.setProperty("--voice-level", String(value));
+      return bar;
+    }),
+  );
+}
+
+async function analyzeVoiceWaveform(voice, waveform) {
+  if (voice.waveform || !voice.blob || !window.AudioContext) return;
+  try {
+    voiceWaveformAudioContext ||= new AudioContext();
+    const audioBuffer = await voiceWaveformAudioContext.decodeAudioData(
+      await voice.blob.arrayBuffer(),
+    );
+    const samples = audioBuffer.getChannelData(0);
+    const barCount = 36;
+    const values = Array.from({ length: barCount }, (_, index) => {
+      const start = Math.floor((index * samples.length) / barCount);
+      const end = Math.floor(((index + 1) * samples.length) / barCount);
+      const step = Math.max(1, Math.floor((end - start) / 160));
+      let peak = 0;
+      for (let sample = start; sample < end; sample += step) {
+        peak = Math.max(peak, Math.abs(samples[sample] || 0));
+      }
+      return Math.max(0.12, Math.min(1, Math.sqrt(peak)));
+    });
+    voice.waveform = values;
+    applyVoiceWaveform(waveform, values);
+  } catch {
+    // The verified audio remains playable even if waveform decoding is unavailable.
+  }
+}
+
+function createVoiceWaveform(voice, audio) {
+  const waveform = document.createElement("div");
+  waveform.className = "voice-waveform";
+  waveform.setAttribute("aria-hidden", "true");
+  applyVoiceWaveform(waveform, voice.waveform || Array(36).fill(0.2));
+  audio.addEventListener("play", () => {
+    waveform.classList.add("playing");
+    void analyzeVoiceWaveform(voice, waveform);
+  });
+  audio.addEventListener("pause", () => waveform.classList.remove("playing"));
+  audio.addEventListener("ended", () => {
+    waveform.classList.remove("playing");
+    waveform.style.setProperty("--voice-progress", "0%");
+  });
+  audio.addEventListener("timeupdate", () => {
+    const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+    waveform.style.setProperty("--voice-progress", `${progress}%`);
+  });
+  return waveform;
+}
+
+function createVoiceMessageBody(item) {
+  const voice = item.voice;
+  const body = document.createElement("div");
+  body.className = "voice-message";
+  const label = document.createElement("span");
+  label.innerHTML = `<i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> Voice message <small>${formatVoiceDuration(voice.duration)} · ${formatVoiceSize(voice.size)}</small>`;
+  body.append(label);
+  if (voice.downloadState === "ready" && voice.objectUrl) {
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "none";
+    audio.src = voice.objectUrl;
+    audio.setAttribute("aria-label", "Verified voice message");
+    body.append(audio);
+    if (appConfig.appSettings?.voiceWaveform) {
+      body.append(createVoiceWaveform(voice, audio));
+    }
+  } else {
+    const transfer = document.createElement("div");
+    transfer.className = "voice-transfer";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "voice-download-button";
+    button.disabled = voice.downloadState === "requested" || voice.downloadState === "invalid";
+    button.title = voice.downloadState === "invalid"
+      ? "Integrity check failed"
+      : voice.downloadState === "requested"
+        ? "Downloading and verifying voice message"
+        : "Download and verify voice message";
+    button.setAttribute("aria-label", button.title);
+    const icon = document.createElement("i");
+    icon.className = voice.downloadState === "invalid"
+      ? "fa-solid fa-triangle-exclamation"
+      : voice.downloadState === "requested"
+        ? "fa-solid fa-spinner fa-spin"
+        : voice.downloadState === "failed"
+          ? "fa-solid fa-rotate-right"
+        : "fa-solid fa-download";
+    icon.setAttribute("aria-hidden", "true");
+    button.append(icon);
+    button.addEventListener("click", () => requestVoiceMessage(item));
+    const status = document.createElement("span");
+    status.className = "voice-transfer-status";
+    status.textContent = voice.downloadState === "invalid"
+      ? "Integrity check failed"
+      : voice.downloadState === "requested"
+        ? "Requesting download..."
+        : voice.downloadState === "failed"
+          ? (voice.transferStatus || "Download interrupted - retry")
+        : "Download & verify";
+    const progress = document.createElement("span");
+    progress.className = "voice-transfer-progress";
+    transfer.append(button, status, progress);
+    body.append(transfer);
+  }
+  return body;
+}
+
 function createChatMessage(item) {
   const {
     id,
@@ -3498,8 +3675,8 @@ function createChatMessage(item) {
     footer.append(state);
   }
 
-  const body = document.createElement("p");
-  body.textContent = text;
+  const body = item.voice ? createVoiceMessageBody(item) : document.createElement("p");
+  if (!item.voice) body.textContent = text;
 
   bubble.append(body, footer);
   row.append(bubble);
@@ -3934,13 +4111,14 @@ function addSystemMessage(text) {
   appendMessageRow(createSystemMessage(text));
 }
 
-function addChatMessage({ id, text, sender, peerId, time }) {
+function addChatMessage({ id, text, sender, peerId, time, voice }) {
   const item = {
     id: id ?? createMessageId(),
     text,
     sender,
     peerId,
     time: time ?? formatTime(),
+    voice,
   };
 
   if (sender !== "me") {
@@ -4227,6 +4405,359 @@ function sendChatText(peerId, rawText) {
     setStatus("pending", `Sending ${queue.length} queued messages...`);
   }
   return true;
+}
+
+function createVoiceMessageId() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return `voice-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function formatVoiceDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function formatVoiceSize(bytes) {
+  return `${Math.max(1, Math.ceil(bytes / 1024))} KB`;
+}
+
+function getVoiceMessageMimeType() {
+  if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder.isTypeSupported !== "function") {
+    return "";
+  }
+  return [...VOICE_MESSAGE_MIME_TYPES].find((type) =>
+    MediaRecorder.isTypeSupported(type),
+  ) || "";
+}
+
+function syncComposerAction() {
+  const recording = voiceRecorder?.state === "recording";
+  const hasText = messageInput.value.trim().length > 0;
+  const canSend = Boolean(activePeerId && connections.get(activePeerId)?.open && hasText && !recording);
+  sendButton.disabled = !canSend;
+  sendButton.classList.toggle("hidden", !hasText || recording);
+  voiceRecordButton.classList.toggle("hidden", hasText && !recording);
+}
+
+function updateVoiceRecordUi() {
+  const recording = voiceRecorder?.state === "recording";
+  voiceRecordButton.classList.toggle("recording", recording);
+  voiceRecordButton.disabled = !recording && (!activePeerId || !connections.get(activePeerId)?.open || !getVoiceMessageMimeType());
+  voiceRecordButton.title = recording ? "Stop and send voice message" : "Record voice message";
+  voiceRecordButton.setAttribute("aria-label", voiceRecordButton.title);
+  voiceRecordButton.querySelector("i").className = recording
+    ? "fa-solid fa-stop"
+    : "fa-solid fa-microphone";
+  voiceRecordStatus.classList.toggle("hidden", !recording);
+  if (!recording) voiceRecordStatus.textContent = "";
+  syncComposerAction();
+}
+
+async function sha256Hex(blob) {
+  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+async function hasExpectedVoiceSignature(blob, mimeType) {
+  const header = new Uint8Array(await blob.slice(0, 8192).arrayBuffer());
+  const headerText = new TextDecoder().decode(header);
+  if (mimeType.startsWith("audio/webm")) {
+    return header[0] === 0x1a && header[1] === 0x45 && header[2] === 0xdf && header[3] === 0xa3 && headerText.includes("A_OPUS");
+  }
+  return headerText.startsWith("OggS") && headerText.includes("OpusHead");
+}
+
+function findVoiceMessage(peerId, voiceId) {
+  return ensureChatHistory(peerId).find(
+    (item) => item.voice?.id === voiceId,
+  );
+}
+
+function normalizeVoiceOffer(voice) {
+  if (!voice || typeof voice !== "object") return null;
+  const id = String(voice.id || "");
+  const mimeType = String(voice.mimeType || "").toLowerCase();
+  const size = Number(voice.size);
+  const duration = Number(voice.duration);
+  const sha256 = String(voice.sha256 || "").toLowerCase();
+  if (
+    !/^voice-[a-f0-9]{24}$/.test(id) ||
+    !VOICE_MESSAGE_MIME_TYPES.has(mimeType) ||
+    !Number.isInteger(size) || size < 1 || size > VOICE_MESSAGE_MAX_BYTES ||
+    !Number.isFinite(duration) || duration < 0 || duration > VOICE_MESSAGE_MAX_DURATION_SECONDS ||
+    !/^[a-f0-9]{64}$/.test(sha256)
+  ) {
+    return null;
+  }
+  return { id, mimeType, size, duration, sha256 };
+}
+
+async function sendRecordedVoiceMessage(blob, duration, peerId) {
+  if (!peerId || !connections.get(peerId)?.open) {
+    throw new Error("Contact is no longer connected.");
+  }
+  if (!VOICE_MESSAGE_MIME_TYPES.has(blob.type.toLowerCase())) {
+    throw new Error("Unsupported voice format.");
+  }
+  if (!blob.size || blob.size > VOICE_MESSAGE_MAX_BYTES) {
+    throw new Error("Voice message is too large.");
+  }
+  const voice = {
+    id: createVoiceMessageId(),
+    mimeType: blob.type.toLowerCase(),
+    size: blob.size,
+    duration: Math.min(VOICE_MESSAGE_MAX_DURATION_SECONDS, Math.max(0, duration)),
+    sha256: await sha256Hex(blob),
+  };
+  const messageId = createMessageId();
+  const conn = connections.get(peerId);
+  if (!sendProtocolMessage(conn, "voice-offer", { id: messageId, voice })) {
+    throw new Error("Could not offer voice message.");
+  }
+  while (pendingVoiceUploads.size >= MAX_PENDING_VOICE_UPLOADS) {
+    pendingVoiceUploads.delete(pendingVoiceUploads.keys().next().value);
+  }
+  pendingVoiceUploads.set(voice.id, { blob, peerId, voice, expiresAt: Date.now() + VOICE_MESSAGE_EXPIRY_MS });
+  setTimeout(() => pendingVoiceUploads.delete(voice.id), VOICE_MESSAGE_EXPIRY_MS);
+  addChatMessage({
+    id: messageId,
+    text: "",
+    sender: "me",
+    peerId,
+    time: formatTime(),
+    deliveryStatus: "sent",
+    voice: { ...voice, downloadState: "ready", objectUrl: URL.createObjectURL(blob), blob },
+  });
+}
+
+async function startVoiceRecording() {
+  if (voiceRecorder?.state === "recording") {
+    voiceRecorder.stop();
+    return;
+  }
+  const mimeType = getVoiceMessageMimeType();
+  if (!mimeType || !activePeerId || !connections.get(activePeerId)?.open) {
+    setStatus("pending", "Voice messages are unavailable for this connection.");
+    return;
+  }
+  try {
+    voiceRecordingStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+    const chunks = [];
+    voiceRecorder = new MediaRecorder(voiceRecordingStream, {
+      mimeType,
+      audioBitsPerSecond: VOICE_MESSAGE_BITRATE,
+    });
+    voiceRecordingPeerId = activePeerId;
+    sendTypingState(voiceRecordingPeerId, false, { force: true });
+    sendVoiceRecordingState(voiceRecordingPeerId, true);
+    clearInterval(voiceRecordingPresenceTimer);
+    voiceRecordingPresenceTimer = setInterval(
+      () => sendVoiceRecordingState(voiceRecordingPeerId, true),
+      5000,
+    );
+    voiceRecordingStartedAt = Date.now();
+    voiceRecorder.ondataavailable = ({ data }) => {
+      if (data.size) chunks.push(data);
+      if (voiceRecorder?.state === "recording" && chunks.reduce((total, chunk) => total + chunk.size, 0) > VOICE_MESSAGE_MAX_BYTES) {
+        voiceRecorder?.stop();
+      }
+    };
+    voiceRecorder.onstop = async () => {
+      const duration = (Date.now() - voiceRecordingStartedAt) / 1000;
+      clearInterval(voiceRecordingTimer);
+      voiceRecordingTimer = null;
+      clearInterval(voiceRecordingPresenceTimer);
+      voiceRecordingPresenceTimer = null;
+      voiceRecordingStream?.getTracks().forEach((track) => track.stop());
+      voiceRecordingStream = null;
+      voiceRecorder = null;
+      const peerId = voiceRecordingPeerId;
+      voiceRecordingPeerId = null;
+      if (peerId) sendVoiceRecordingState(peerId, false);
+      updateVoiceRecordUi();
+      const blob = new Blob(chunks, { type: mimeType });
+      if (duration < 0.3 || !blob.size) return;
+      try {
+        await sendRecordedVoiceMessage(blob, duration, peerId);
+      } catch (error) {
+        setStatus("pending", `Voice message not sent: ${error.message}`);
+      }
+    };
+    voiceRecorder.start(1000);
+    voiceRecordingTimer = setInterval(() => {
+      const seconds = (Date.now() - voiceRecordingStartedAt) / 1000;
+      voiceRecordStatus.textContent = `${formatVoiceDuration(seconds)} / ${formatVoiceDuration(VOICE_MESSAGE_MAX_DURATION_SECONDS)}`;
+      if (seconds >= VOICE_MESSAGE_MAX_DURATION_SECONDS) voiceRecorder?.stop();
+    }, 250);
+    updateVoiceRecordUi();
+  } catch (error) {
+    clearInterval(voiceRecordingPresenceTimer);
+    voiceRecordingPresenceTimer = null;
+    if (voiceRecordingPeerId) sendVoiceRecordingState(voiceRecordingPeerId, false);
+    voiceRecordingPeerId = null;
+    voiceRecordingStream?.getTracks().forEach((track) => track.stop());
+    voiceRecordingStream = null;
+    setStatus("pending", `Microphone unavailable: ${error.message || error}`);
+    updateVoiceRecordUi();
+  }
+}
+
+function getBinaryChunk(value) {
+  if (value instanceof ArrayBuffer) return value;
+  if (ArrayBuffer.isView(value)) {
+    return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+  }
+  return null;
+}
+
+async function sendVoiceTransfer(conn, upload) {
+  if (!sendProtocolMessage(conn, "voice-transfer-start", { voice: upload.voice })) {
+    throw new Error("Could not start transfer.");
+  }
+  for (let offset = 0, index = 0; offset < upload.blob.size; offset += VOICE_MESSAGE_CHUNK_BYTES, index += 1) {
+    if (!conn.open) throw new Error("Transfer interrupted.");
+    if (conn.bufferSize > 2 * 1024 * 1024) {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      offset -= VOICE_MESSAGE_CHUNK_BYTES;
+      index -= 1;
+      continue;
+    }
+    const bytes = await upload.blob.slice(offset, offset + VOICE_MESSAGE_CHUNK_BYTES).arrayBuffer();
+    if (!sendProtocolMessage(conn, "voice-transfer-chunk", { voiceId: upload.voice.id, index, bytes })) {
+      throw new Error("Transfer interrupted.");
+    }
+  }
+  sendProtocolMessage(conn, "voice-transfer-complete", { voiceId: upload.voice.id });
+}
+
+function requestVoiceMessage(item) {
+  if (!item?.voice) return;
+  const voice = item.voice;
+  if (!voice || item.sender === "me" || voice.downloadState === "ready") return;
+  const conn = connections.get(item.peerId);
+  if (!conn?.open) {
+    setStatus("pending", "Reconnect to download this voice message.");
+    return;
+  }
+  delete voice.transferStatus;
+  voice.downloadState = "requested";
+  renderChatHistory();
+  if (!sendProtocolMessage(conn, "voice-request", { voiceId: voice.id })) {
+    voice.downloadState = "offered";
+    renderChatHistory();
+  }
+}
+
+function failVoiceDownload(peerId, voiceId, message = "Download interrupted - retry") {
+  incomingVoiceTransfers.delete(`${peerId}:${voiceId}`);
+  const item = findVoiceMessage(peerId, voiceId);
+  if (!item?.voice || item.voice.downloadState !== "requested") return;
+  item.voice.downloadState = "failed";
+  item.voice.transferStatus = message;
+  if (activePeerId === peerId) renderChatHistory();
+}
+
+function updateVoiceDownloadStatus(peerId, voiceId, text, progress = 0) {
+  if (activePeerId !== peerId) return;
+  const item = findVoiceMessage(peerId, voiceId);
+  const row = item
+    ? Array.from(messages.querySelectorAll(".message-row")).find(
+      (candidate) => candidate.dataset.messageId === item.id,
+    )
+    : null;
+  row?.querySelector(".voice-transfer-status")?.replaceChildren(text);
+  row?.querySelector(".voice-transfer-progress")?.style.setProperty(
+    "--voice-transfer-progress",
+    `${Math.max(0, Math.min(100, progress))}%`,
+  );
+}
+
+function handleVoiceOffer(peerId, conn, data) {
+  const voice = normalizeVoiceOffer(data.voice);
+  if (!voice || !shouldAcceptIncomingMessage(peerId) || findVoiceMessage(peerId, voice.id)) return;
+  const messageId = typeof data.id === "string" ? data.id.slice(0, 128) : createMessageId();
+  addChatMessage({ id: messageId, text: "", sender: "them", peerId, time: typeof data.time === "string" ? data.time : formatTime(), voice: { ...voice, downloadState: "offered" } });
+  if (appConfig.appSettings?.readReceipts) sendProtocolMessage(conn, "message-delivered", { messageId });
+  notifyIncomingMessage(peerId, "Voice message - click to download and verify");
+  if (appConfig.appSettings?.voiceAutoDownload) {
+    requestVoiceMessage(findVoiceMessage(peerId, voice.id));
+  }
+}
+
+function handleVoiceRequest(peerId, conn, data) {
+  const voiceId = String(data.voiceId || "");
+  const upload = pendingVoiceUploads.get(voiceId);
+  if (!upload || upload.peerId !== peerId || upload.expiresAt < Date.now()) {
+    sendProtocolMessage(conn, "voice-transfer-failed", { voiceId });
+    return;
+  }
+  sendVoiceTransfer(conn, upload).catch(() => {
+    sendProtocolMessage(conn, "voice-transfer-failed", { voiceId: upload.voice.id });
+  });
+}
+
+function handleVoiceTransferStart(peerId, conn, data) {
+  const voice = normalizeVoiceOffer(data.voice);
+  const item = voice && findVoiceMessage(peerId, voice.id);
+  if (!voice || !item || item.voice.downloadState !== "requested" || item.voice.sha256 !== voice.sha256 || incomingVoiceTransfers.size >= MAX_ACTIVE_VOICE_TRANSFERS) {
+    sendProtocolMessage(conn, "voice-transfer-failed", { voiceId: String(data.voice?.id || "") });
+    return;
+  }
+  incomingVoiceTransfers.set(`${peerId}:${voice.id}`, { voice, chunks: [], receivedSize: 0, nextIndex: 0 });
+  updateVoiceDownloadStatus(peerId, voice.id, "Downloading...", 0);
+  setTimeout(() => {
+    const key = `${peerId}:${voice.id}`;
+    if (incomingVoiceTransfers.has(key)) failVoiceDownload(peerId, voice.id, "Download timed out - retry");
+  }, VOICE_MESSAGE_EXPIRY_MS);
+}
+
+function handleVoiceTransferChunk(peerId, data) {
+  const key = `${peerId}:${String(data.voiceId || "")}`;
+  const transfer = incomingVoiceTransfers.get(key);
+  const bytes = getBinaryChunk(data.bytes);
+  if (!transfer || !bytes || !Number.isInteger(data.index) || data.index !== transfer.nextIndex || !bytes.byteLength || bytes.byteLength > VOICE_MESSAGE_CHUNK_BYTES || transfer.receivedSize + bytes.byteLength > transfer.voice.size) {
+    if (transfer) failVoiceDownload(peerId, transfer.voice.id, "Invalid transfer data - retry");
+    return;
+  }
+  transfer.chunks.push(bytes);
+  transfer.receivedSize += bytes.byteLength;
+  transfer.nextIndex += 1;
+  updateVoiceDownloadStatus(
+    peerId,
+    transfer.voice.id,
+    `Downloading ${Math.round((transfer.receivedSize / transfer.voice.size) * 100)}%`,
+    (transfer.receivedSize / transfer.voice.size) * 100,
+  );
+}
+
+async function handleVoiceTransferComplete(peerId, data) {
+  const voiceId = String(data.voiceId || "");
+  const key = `${peerId}:${voiceId}`;
+  const transfer = incomingVoiceTransfers.get(key);
+  incomingVoiceTransfers.delete(key);
+  const item = transfer && findVoiceMessage(peerId, voiceId);
+  if (!transfer || !item) return;
+  if (transfer.receivedSize !== transfer.voice.size) {
+    failVoiceDownload(peerId, voiceId, "Incomplete download - retry");
+    return;
+  }
+  const blob = new Blob(transfer.chunks, { type: transfer.voice.mimeType });
+  updateVoiceDownloadStatus(peerId, voiceId, "Verifying integrity...", 100);
+  try {
+    if ((await sha256Hex(blob)) !== transfer.voice.sha256) throw new Error("SHA-256 mismatch");
+    if (!(await hasExpectedVoiceSignature(blob, transfer.voice.mimeType))) throw new Error("Invalid audio format");
+    item.voice.blob = blob;
+    item.voice.objectUrl = URL.createObjectURL(blob);
+    item.voice.downloadState = "ready";
+  } catch {
+    item.voice.downloadState = "invalid";
+  }
+  if (activePeerId === peerId) renderChatHistory();
 }
 
 function createCallId() {
@@ -7630,6 +8161,8 @@ function deleteMessageLocally(peerId, messageId) {
   const history = ensureChatHistory(peerId);
   const index = history.findIndex((msg) => msg.id === messageId);
   if (index !== -1) {
+    const objectUrl = history[index].voice?.objectUrl;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
     history.splice(index, 1);
     if (activePeerId === peerId) {
       renderChatHistory();
@@ -7778,6 +8311,20 @@ function removePeer(peerId, { silent = false } = {}) {
     localTypingTimers.delete(peerId);
   }
   lastTypingSentAt.delete(peerId);
+  voiceRecordingStates.delete(peerId);
+  const voiceRecordingTimeout = voiceRecordingTimers.get(peerId);
+  if (voiceRecordingTimeout) clearTimeout(voiceRecordingTimeout);
+  voiceRecordingTimers.delete(peerId);
+  for (const [key, transfer] of incomingVoiceTransfers) {
+    if (key.startsWith(`${peerId}:`)) {
+      incomingVoiceTransfers.delete(key);
+      const item = findVoiceMessage(peerId, transfer.voice.id);
+      if (item?.voice?.downloadState === "requested") {
+        item.voice.downloadState = "failed";
+        item.voice.transferStatus = "Connection lost - retry after reconnecting";
+      }
+    }
+  }
   remoteReadReceiptsEnabled.delete(peerId);
   remoteIdentities.delete(peerId);
   if (callState.peerId === peerId) {
@@ -7811,6 +8358,7 @@ function refreshPeers() {
     chatTitle.textContent = "Ready to connect";
     messageInput.disabled = true;
     sendButton.disabled = true;
+    updateVoiceRecordUi();
     callChat.disabled = true;
     disconnectChat.disabled = true;
     renderChatHistory();
@@ -8035,6 +8583,7 @@ function refreshPeers() {
 
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
+  updateVoiceRecordUi();
   disconnectChat.disabled = !canChat;
   messageForm.classList.toggle("unavailable", !canChat);
   updateConnectButton();
@@ -8277,6 +8826,11 @@ function attachConnectionHandlers(conn, peerId, direction) {
       return;
     }
 
+    if (data?.type === "voice-recording") {
+      setRemoteVoiceRecording(peerId, Boolean(data.recording));
+      return;
+    }
+
     if (data?.type === "typing") {
       setRemoteTyping(peerId, Boolean(data.typing));
       return;
@@ -8312,6 +8866,36 @@ function attachConnectionHandlers(conn, peerId, direction) {
       if (item?.sender === "them") {
         deleteMessageLocally(peerId, data.messageId);
       }
+      return;
+    }
+
+    if (data?.type === "voice-offer") {
+      handleVoiceOffer(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "voice-request") {
+      handleVoiceRequest(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "voice-transfer-start") {
+      handleVoiceTransferStart(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "voice-transfer-chunk") {
+      handleVoiceTransferChunk(peerId, data);
+      return;
+    }
+
+    if (data?.type === "voice-transfer-complete") {
+      handleVoiceTransferComplete(peerId, data);
+      return;
+    }
+
+    if (data?.type === "voice-transfer-failed") {
+      failVoiceDownload(peerId, String(data.voiceId || ""), "Sender unavailable - retry");
       return;
     }
 
@@ -8841,9 +9425,14 @@ messageForm.addEventListener("submit", (event) => {
   if (sendChatText(activePeerId, text)) {
     platformApi.vibrate("light");
     messageInput.value = "";
+    syncComposerAction();
     sendTypingState(activePeerId, false, { force: true });
     messageInput.focus();
   }
+});
+
+voiceRecordButton.addEventListener("click", () => {
+  startVoiceRecording();
 });
 
 clearChat.addEventListener("click", async () => {
@@ -8866,6 +9455,7 @@ clearChat.addEventListener("click", async () => {
 });
 
 messageInput.addEventListener("input", () => {
+  syncComposerAction();
   if (!activePeerId || messageInput.disabled) {
     return;
   }
@@ -9448,6 +10038,15 @@ readReceiptsToggle.addEventListener("change", () => {
   if (readReceiptsToggle.checked) {
     sendReadReceiptsForActiveChat();
   }
+});
+
+voiceAutoDownloadToggle.addEventListener("change", () => {
+  saveAppSettings({ voiceAutoDownload: voiceAutoDownloadToggle.checked });
+});
+
+voiceWaveformToggle.addEventListener("change", () => {
+  saveAppSettings({ voiceWaveform: voiceWaveformToggle.checked });
+  renderChatHistory();
 });
 
 soundsToggle.addEventListener("change", () => {
