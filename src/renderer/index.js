@@ -2937,6 +2937,20 @@ async function applyAllCustomSounds() {
   renderCustomSoundList();
 }
 
+async function setCustomSoundActive(soundId, active) {
+  normalizeAppSettings();
+  const metadata = appConfig.soundSettings.custom[soundId];
+  if (!metadata) return;
+
+  metadata.active = Boolean(active);
+  await saveAppConfig();
+  try {
+    await applyCustomSound(soundId);
+  } finally {
+    renderCustomSoundList();
+  }
+}
+
 function renderCustomSoundList() {
   if (!customSoundList) return;
   const supported = platformApi.supportsCustomSounds;
@@ -3000,11 +3014,8 @@ function renderCustomSoundList() {
       const input = document.createElement("input");
       input.type = "checkbox";
       input.checked = metadata.active;
-      input.addEventListener("change", async () => {
-        metadata.active = input.checked;
-        await applyCustomSound(soundId);
-        await saveAppConfig();
-        renderCustomSoundList();
+      input.addEventListener("change", () => {
+        void setCustomSoundActive(soundId, input.checked);
       });
       const label = document.createElement("span");
       label.textContent = "Use custom";
