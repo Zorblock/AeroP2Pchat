@@ -2686,6 +2686,21 @@ body.reduce-motion *::after {
   width: min(520px, 100%);
   gap: 12px;
 }
+.welcome-description {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.welcome-setup-card {
+  display: grid;
+  width: min(430px, 100%);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
 .app-dialog-checkbox {
   display: flex;
   align-items: center;
@@ -3122,10 +3137,19 @@ body.reduce-motion *::after {
   display: grid;
   width: min(430px, 100%);
   gap: 12px;
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface-subtle);
+}
+.welcome-appearance-card {
+  width: min(520px, 100%);
+}
+.welcome-appearance-card .welcome-theme-options {
+  width: 100%;
+}
+.welcome-devices-card {
+  width: min(520px, 100%);
 }
 .welcome-startup-toggle {
   min-height: 34px;

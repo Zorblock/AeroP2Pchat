@@ -991,8 +991,8 @@
         <div class="welcome-pages">
           <section class="welcome-page hidden" data-welcome-step="3">
             <div class="welcome-copy">
-              <h2>Your display name</h2>
-              <p style="font-size: 14px; color: var(--faint);">This name is sent directly to chat partners. Your avatar is generated locally from your Aero ID.</p>
+              <h2>Display name</h2>
+              <p class="welcome-description">Shared with chat partners. Your avatar stays generated locally.</p>
             </div>
             <label class="welcome-field" for="welcome-nickname">
               <span>Display name</span>
@@ -1009,48 +1009,23 @@
 
           <section class="welcome-page" data-welcome-step="0">
             <div class="welcome-copy">
-              <h2>Theme</h2>
+              <h2>Appearance</h2>
             </div>
-            <div class="welcome-theme-options" role="radiogroup" aria-label="Choose a theme">
-              <label>
-                <input id="welcome-theme-system" type="radio" name="welcome-theme" value="system" />
-                <span class="welcome-theme-card system-preview">
-                  <i class="fa-solid fa-desktop" aria-hidden="true"></i>
-                  <strong>System</strong>
-                </span>
-              </label>
-              <label>
-                <input id="welcome-theme-light" type="radio" name="welcome-theme" value="light" />
-                <span class="welcome-theme-card light-preview">
-                  <strong>Light</strong>
-                </span>
-              </label>
-              <label>
-                <input id="welcome-theme-dark" type="radio" name="welcome-theme" value="dark" />
-                <span class="welcome-theme-card dark-preview">
-                  <strong>Dark</strong>
-                </span>
-              </label>
+            <div class="welcome-setup-card welcome-appearance-card">
+              <div class="welcome-theme-options" role="radiogroup" aria-label="Choose a theme">
+                <label><input id="welcome-theme-system" type="radio" name="welcome-theme" value="system" /><span class="welcome-theme-card system-preview"><i class="fa-solid fa-desktop" aria-hidden="true"></i><strong>System</strong></span></label>
+                <label><input id="welcome-theme-light" type="radio" name="welcome-theme" value="light" /><span class="welcome-theme-card light-preview"><strong>Light</strong></span></label>
+                <label><input id="welcome-theme-dark" type="radio" name="welcome-theme" value="dark" /><span class="welcome-theme-card dark-preview"><strong>Dark</strong></span></label>
+              </div>
+              <label class="welcome-accent-field"><span>Accent color</span><select id="welcome-accent-color-select"><option value="system">System accent</option><option value="aero">Aero blue</option><option value="violet">Violet</option><option value="green">Green</option><option value="rose">Rose</option><option value="amber">Amber</option><option value="custom">Custom color</option></select><input id="welcome-custom-accent-color" class="hidden" type="color" value="#147fa6" aria-label="Custom accent color" /></label>
             </div>
-            <label class="welcome-accent-field">
-              <span>Accent color</span>
-              <select id="welcome-accent-color-select">
-                <option value="system">System accent</option>
-                <option value="aero">Aero blue</option>
-                <option value="violet">Violet</option>
-                <option value="green">Green</option>
-                <option value="rose">Rose</option>
-                <option value="amber">Amber</option>
-                <option value="custom">Custom color</option>
-              </select>
-              <input id="welcome-custom-accent-color" class="hidden" type="color" value="#147fa6" aria-label="Custom accent color" />
-            </label>
           </section>
 
           <section class="welcome-page hidden" data-welcome-step="1">
             <div class="welcome-copy">
               <h2>Devices</h2>
             </div>
+            <div class="welcome-setup-card welcome-devices-card">
             <div class="welcome-device-grid">
               <label for="welcome-microphone-select">
                 <span>Microphone</span>
@@ -1070,6 +1045,7 @@
                 Detect devices
               </button>
               <span id="welcome-device-status">Defaults work without device access.</span>
+            </div>
             </div>
           </section>
 
@@ -1517,6 +1493,7 @@
                 </div>
               </div>
               <div id="contact-nickname-list" class="contact-nickname-list"></div>
+            </div>
             </div>
             <div class="contacts-settings-group">
               <div class="contacts-settings-heading">
