@@ -1249,46 +1249,42 @@
             <section class="settings-section" data-settings-page="themes">
               <h3>Themes</h3>
               <div class="theme-tabs" role="tablist" aria-label="Theme source">
-                <button class="theme-tab active" type="button" role="tab" aria-selected="true" data-theme-tab="local">Local Themes</button>
-                <button class="theme-tab" type="button" role="tab" aria-selected="false" data-theme-tab="online">Online Themes</button>
+                <button class="theme-tab active" type="button" role="tab" aria-selected="true" data-theme-tab="local">Installed</button>
+                <button class="theme-tab" type="button" role="tab" aria-selected="false" data-theme-tab="online">Online</button>
               </div>
               <div class="theme-panel" data-theme-panel="local">
-                <div class="theme-notice">
-                  <strong>Theme performance</strong>
-                  <span>Custom CSS can affect performance. If something feels slow or looks wrong, disable the theme to check whether it is the cause.</span>
-                </div>
-                <div class="theme-info-card">
-                  <strong>External resources</strong>
-                  <span>For security reasons, resources such as fonts and images are blocked unless they are hosted on GitHub, GitLab, Codeberg, Imgur, Discord or Google Fonts.</span>
-                </div>
                 <div class="themes-manager-actions">
                   <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">
                     <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                    <span>Themes folder</span>
+                    <span>Open theme folder</span>
                   </button>
                   <button id="reload-themes" class="ghost-button theme-action-button" type="button">
                     <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-                    <span>Reload themes</span>
+                    <span>Reload</span>
                   </button>
                 </div>
                 <div id="local-theme-list" class="local-theme-list"></div>
+                <details class="theme-help">
+                  <summary>Theme notes</summary>
+                  <div>
+                    <p>Custom CSS can affect performance. Disable the theme if something looks wrong.</p>
+                    <p>External fonts and images are allowed only from trusted hosts.</p>
+                  </div>
+                </details>
               </div>
               <div class="theme-panel hidden" data-theme-panel="online">
-                <div class="theme-notice">
-                  <strong>Advanced setting</strong>
-                  <span>Online themes are loaded from the URLs you enter. Only use CSS links from sources you trust.</span>
-                </div>
                 <label class="settings-field online-theme-field">
                   <span>CSS theme links</span>
                   <textarea id="online-theme-urls" rows="8" spellcheck="false" placeholder="https://example.com/theme.css&#10;One HTTPS URL per line"></textarea>
                 </label>
                 <div class="online-theme-actions">
-                  <button id="apply-online-themes" type="button">
+                  <button id="apply-online-themes" class="ghost-button theme-action-button" type="button">
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
                     Apply online themes
                   </button>
                   <span id="online-theme-status" class="settings-description" aria-live="polite"></span>
                 </div>
+                <p class="theme-inline-note">Only add CSS links from sources you trust.</p>
               </div>
             </section>
 

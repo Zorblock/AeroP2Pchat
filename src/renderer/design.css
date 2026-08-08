@@ -3327,8 +3327,8 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .theme-tabs {
   display: flex;
-  gap: 20px;
-  margin: -2px 0 12px;
+  gap: 16px;
+  margin: -2px 0 8px;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
 }
 .theme-tab {
@@ -3364,41 +3364,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .theme-panel {
   display: grid;
-  gap: 12px;
-}
-.theme-notice {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--warning) 64%, var(--line));
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--warning-soft) 72%, var(--surface-raised));
-}
-.theme-notice strong {
-  color: var(--text);
-  font-size: 12px;
-}
-.theme-notice span {
-  color: var(--text-soft);
-  font-size: 11px;
-  line-height: 1.45;
-}
-.theme-info-card {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-}
-.theme-info-card strong {
-  color: var(--text);
-  font-size: 12px;
-}
-.theme-info-card span {
-  color: var(--text-soft);
-  font-size: 11px;
-  line-height: 1.45;
+  gap: 8px;
 }
 .local-theme-list {
   display: grid;
@@ -3407,10 +3373,10 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .local-theme-card {
   display: grid;
-  min-height: 88px;
+  min-height: 64px;
   align-content: start;
-  gap: 6px;
-  padding: 12px;
+  gap: 3px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
@@ -3436,7 +3402,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .local-theme-card span {
   color: var(--muted);
   font-size: 10px;
-  line-height: 1.4;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 .online-theme-field textarea {
@@ -3454,7 +3420,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .online-theme-actions > button {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 32px;
   align-items: center;
   gap: 7px;
   padding-inline: 12px;
@@ -3464,23 +3430,47 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   margin: 0;
 }
 .themes-manager-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 7px;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
 }
 .theme-action-button {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 32px;
   align-items: center;
   justify-content: center;
   gap: 7px;
   padding-inline: 10px;
   font-size: 11px;
   white-space: nowrap;
+}
+.theme-help {
+  color: var(--muted);
+  font-size: 10px;
+}
+.theme-help summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+}
+.theme-help > div {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--line-accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  line-height: 1.4;
+}
+.theme-help p,
+.theme-inline-note {
+  margin: 0;
+}
+.theme-inline-note {
+  color: var(--muted);
+  font-size: 10px;
 }
 .theme-action-button.is-loading i {
   animation: theme-reload-spin 650ms linear infinite;
@@ -3492,7 +3482,10 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 @media (max-width: 460px) {
   .themes-manager-actions {
-    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+  .theme-action-button {
+    flex: 1;
   }
   .appearance-options {
     grid-template-columns: minmax(0, 1fr);
