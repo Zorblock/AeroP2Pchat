@@ -61,6 +61,20 @@ if (windowIcon.isEmpty() && windowIconPath !== bundledWindowIconPath) {
   windowIconPath = bundledWindowIconPath;
   windowIcon = nativeImage.createFromPath(windowIconPath);
 }
+const bundledConnectionBadgePath = join(
+  __dirname,
+  "../../assets/status/peer-connected.png",
+);
+const packagedConnectionBadgePath = join(
+  process.resourcesPath,
+  "peer-connected.png",
+);
+let connectionBadgeImage = nativeImage.createFromPath(
+  app.isPackaged ? packagedConnectionBadgePath : bundledConnectionBadgePath,
+);
+if (connectionBadgeImage.isEmpty() && app.isPackaged) {
+  connectionBadgeImage = nativeImage.createFromPath(bundledConnectionBadgePath);
+}
 const releaseHost = "github.com";
 const releasePathPrefix = `/${projectConfig.repo}/releases/`;
 const latestManifestUrl = `https://${releaseHost}${releasePathPrefix}latest/download/latest.yml`;
@@ -957,7 +971,34 @@ function getConnectedTrayIcon() {
     const icon = windowIcon.resize({ width: 64, height: 64 });
     const { width, height } = icon.getSize();
     const bitmap = Buffer.from(icon.toBitmap());
-    if (paintConnectionBadge(bitmap, width, height, { corner: true })) {
+    const badge = connectionBadgeImage.resize({ width: 26, height: 26 });
+    const { width: badgeWidth, height: badgeHeight } = badge.getSize();
+    const badgeBitmap = Buffer.from(badge.toBitmap());
+    const offsetX = Math.max(0, width - badgeWidth);
+    const offsetY = Math.max(0, height - badgeHeight);
+    const canOverlayBadge =
+      !badge.isEmpty() && badgeBitmap.length >= badgeWidth * badgeHeight * 4;
+    if (canOverlayBadge) {
+      for (let y = 0; y < badgeHeight; y += 1) {
+        for (let x = 0; x < badgeWidth; x += 1) {
+          const sourceOffset = (y * badgeWidth + x) * 4;
+          const alpha = badgeBitmap[sourceOffset + 3] / 255;
+          if (!alpha) continue;
+          const targetOffset = ((offsetY + y) * width + offsetX + x) * 4;
+          for (let channel = 0; channel < 3; channel += 1) {
+            bitmap[targetOffset + channel] = Math.round(
+              badgeBitmap[sourceOffset + channel] * alpha +
+                bitmap[targetOffset + channel] * (1 - alpha),
+            );
+          }
+          bitmap[targetOffset + 3] = Math.max(
+            bitmap[targetOffset + 3],
+            badgeBitmap[sourceOffset + 3],
+          );
+        }
+      }
+    }
+    if (canOverlayBadge || paintConnectionBadge(bitmap, width, height, { corner: true })) {
       connectedTrayIcon = nativeImage.createFromBitmap(bitmap, {
         width,
         height,
@@ -977,14 +1018,22 @@ function getConnectionOverlayIcon() {
   if (connectionOverlayIcon) return connectionOverlayIcon;
 
   try {
-    const size = 16;
-    const bitmap = Buffer.alloc(size * size * 4);
-    if (paintConnectionBadge(bitmap, size, size)) {
-      connectionOverlayIcon = nativeImage.createFromBitmap(bitmap, {
-        width: size,
-        height: size,
-        scaleFactor: 1,
+    if (!connectionBadgeImage.isEmpty()) {
+      connectionOverlayIcon = connectionBadgeImage.resize({
+        width: 16,
+        height: 16,
       });
+    }
+    if (!connectionOverlayIcon || connectionOverlayIcon.isEmpty()) {
+      const size = 16;
+      const bitmap = Buffer.alloc(size * size * 4);
+      if (paintConnectionBadge(bitmap, size, size)) {
+        connectionOverlayIcon = nativeImage.createFromBitmap(bitmap, {
+          width: size,
+          height: size,
+          scaleFactor: 1,
+        });
+      }
     }
   } catch {
     // Taskbar overlays are optional OS decoration.

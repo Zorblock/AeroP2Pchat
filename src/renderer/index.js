@@ -295,6 +295,16 @@ const customSoundStart = document.querySelector("#custom-sound-start");
 const customSoundEnd = document.querySelector("#custom-sound-end");
 const customSoundStartValue = document.querySelector("#custom-sound-start-value");
 const customSoundEndValue = document.querySelector("#custom-sound-end-value");
+const customSoundWaveform = document.querySelector("#custom-sound-waveform");
+const customSoundWaveformCanvas = document.querySelector(
+  "#custom-sound-waveform-canvas",
+);
+const customSoundWaveformStartHandle = document.querySelector(
+  "#custom-sound-waveform-start-handle",
+);
+const customSoundWaveformEndHandle = document.querySelector(
+  "#custom-sound-waveform-end-handle",
+);
 const customSoundNormalize = document.querySelector("#custom-sound-normalize");
 const customSoundStatus = document.querySelector("#custom-sound-status");
 const customSoundFileInput = document.querySelector("#custom-sound-file-input");
@@ -507,6 +517,9 @@ const customSoundDefinitions = {
 };
 const customSoundObjectUrls = new Map();
 let customSoundEditor = null;
+let customSoundWaveformDrag = "";
+let customSoundWaveformFrame = 0;
+let oggCrcTable = null;
 let notificationState = {
   appFocused: false,
   systemDnd: false,
@@ -2973,10 +2986,99 @@ function renderCustomSoundList() {
 
 function closeCustomSoundEditor() {
   customSoundPreview.pause();
+  cancelAnimationFrame(customSoundWaveformFrame);
+  customSoundWaveformFrame = 0;
+  customSoundWaveformDrag = "";
   if (customSoundEditor?.previewUrl) URL.revokeObjectURL(customSoundEditor.previewUrl);
   customSoundEditor = null;
   customSoundFileInput.value = "";
   customSoundModal.classList.add("hidden");
+}
+
+function drawCustomSoundWaveform() {
+  customSoundWaveformFrame = 0;
+  if (!customSoundEditor || !customSoundWaveformCanvas) return;
+  const bounds = customSoundWaveform.getBoundingClientRect();
+  const width = Math.max(1, Math.floor(bounds.width));
+  const height = Math.max(1, Math.floor(bounds.height));
+  const scale = Math.min(2, window.devicePixelRatio || 1);
+  const canvas = customSoundWaveformCanvas;
+  if (canvas.width !== width * scale || canvas.height !== height * scale) {
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+  }
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.clearRect(0, 0, width, height);
+
+  const duration = customSoundEditor.duration;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  const startX = (start / duration) * width;
+  const endX = (end / duration) * width;
+  const style = getComputedStyle(document.documentElement);
+  const accent = style.getPropertyValue("--accent").trim() || "#147fa6";
+  const muted = style.getPropertyValue("--text-soft").trim() || "#7f8a94";
+  const source = customSoundEditor.buffer;
+  const channel = source.getChannelData(0);
+  const center = height / 2;
+  const waveformHeight = Math.max(8, height / 2 - 12);
+
+  context.fillStyle = `${accent}1f`;
+  context.fillRect(startX, 0, Math.max(0, endX - startX), height);
+  for (let x = 0; x < width; x += 1) {
+    const first = Math.floor((x / width) * channel.length);
+    const last = Math.min(channel.length, Math.floor(((x + 1) / width) * channel.length));
+    const stride = Math.max(1, Math.floor((last - first) / 72));
+    let peak = 0;
+    for (let index = first; index < last; index += stride) {
+      peak = Math.max(peak, Math.abs(channel[index] || 0));
+    }
+    context.strokeStyle = x >= startX && x <= endX ? accent : muted;
+    context.globalAlpha = x >= startX && x <= endX ? 0.92 : 0.35;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(x + 0.5, center - peak * waveformHeight);
+    context.lineTo(x + 0.5, center + peak * waveformHeight);
+    context.stroke();
+  }
+  context.globalAlpha = 1;
+  context.fillStyle = accent;
+  context.fillRect(startX, 0, 2, height);
+  context.fillRect(Math.max(0, endX - 2), 0, 2, height);
+  if (!customSoundPreview.paused) {
+    const playheadX = Math.max(startX, Math.min(endX, (customSoundPreview.currentTime / duration) * width));
+    context.fillStyle = "rgba(255, 255, 255, 0.92)";
+    context.fillRect(playheadX, 0, 1, height);
+  }
+  customSoundWaveformStartHandle.style.left = `calc(${(start / duration) * 100}% - 1px)`;
+  customSoundWaveformEndHandle.style.left = `calc(${(end / duration) * 100}% - 1px)`;
+  customSoundWaveform.setAttribute("aria-valuemin", "0");
+  customSoundWaveform.setAttribute("aria-valuemax", String(Math.round(duration * 100) / 100));
+  customSoundWaveform.setAttribute("aria-valuetext", `${formatCustomSoundDuration(start)} to ${formatCustomSoundDuration(end)}`);
+}
+
+function scheduleCustomSoundWaveform() {
+  if (!customSoundWaveformFrame) {
+    customSoundWaveformFrame = requestAnimationFrame(drawCustomSoundWaveform);
+  }
+}
+
+function setCustomSoundWaveformBoundary(event) {
+  if (!customSoundEditor) return;
+  const bounds = customSoundWaveform.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+  const time = ratio * customSoundEditor.duration;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  const boundary = customSoundWaveformDrag || (Math.abs(time - start) <= Math.abs(time - end) ? "start" : "end");
+  if (boundary === "start") {
+    customSoundStart.value = String(Math.min(time, end - 0.01));
+  } else {
+    customSoundEnd.value = String(Math.max(time, start + 0.01));
+  }
+  updateCustomSoundTrimUi();
 }
 
 function updateCustomSoundTrimUi() {
@@ -2992,6 +3094,7 @@ function updateCustomSoundTrimUi() {
   }
   customSoundStartValue.textContent = formatCustomSoundDuration(customSoundStart.value);
   customSoundEndValue.textContent = formatCustomSoundDuration(customSoundEnd.value);
+  scheduleCustomSoundWaveform();
 }
 
 async function openCustomSoundEditor(soundId, file) {
@@ -3062,37 +3165,175 @@ function createTrimmedSoundBuffer(sourceBuffer, start, end, normalize) {
   return output;
 }
 
+function getOggCrcTable() {
+  if (oggCrcTable) return oggCrcTable;
+  oggCrcTable = new Uint32Array(256);
+  for (let index = 0; index < 256; index += 1) {
+    let value = index << 24;
+    for (let bit = 0; bit < 8; bit += 1) {
+      value = (value & 0x80000000)
+        ? ((value << 1) ^ 0x04c11db7) >>> 0
+        : (value << 1) >>> 0;
+    }
+    oggCrcTable[index] = value;
+  }
+  return oggCrcTable;
+}
+
+function getOggChecksum(page) {
+  let checksum = 0;
+  const table = getOggCrcTable();
+  for (const byte of page) {
+    checksum = ((checksum << 8) ^ table[((checksum >>> 24) ^ byte) & 0xff]) >>> 0;
+  }
+  return checksum;
+}
+
+function createOggPage(packet, { serial, sequence, granulePosition, headerType }) {
+  const segments = [];
+  for (let remaining = packet.length; remaining >= 255; remaining -= 255) {
+    segments.push(255);
+  }
+  segments.push(packet.length % 255);
+  const page = new Uint8Array(27 + segments.length + packet.length);
+  page.set([0x4f, 0x67, 0x67, 0x53, 0x00, headerType], 0);
+  const view = new DataView(page.buffer);
+  view.setUint32(6, granulePosition >>> 0, true);
+  view.setUint32(10, Math.floor(granulePosition / 0x100000000) >>> 0, true);
+  view.setUint32(14, serial >>> 0, true);
+  view.setUint32(18, sequence >>> 0, true);
+  view.setUint32(22, 0, true);
+  page[26] = segments.length;
+  page.set(segments, 27);
+  page.set(packet, 27 + segments.length);
+  view.setUint32(22, getOggChecksum(page), true);
+  return page;
+}
+
+function createOpusHead(channelCount) {
+  const header = new Uint8Array(19);
+  header.set(new TextEncoder().encode("OpusHead"));
+  header[8] = 1;
+  header[9] = channelCount;
+  const view = new DataView(header.buffer);
+  view.setUint16(10, 0, true);
+  view.setUint32(12, 48_000, true);
+  view.setInt16(16, 0, true);
+  header[18] = 0;
+  return header;
+}
+
+function createOpusTags() {
+  const vendor = new TextEncoder().encode("Aero P2P Chat");
+  const tags = new Uint8Array(8 + 4 + vendor.length + 4);
+  tags.set(new TextEncoder().encode("OpusTags"));
+  const view = new DataView(tags.buffer);
+  view.setUint32(8, vendor.length, true);
+  tags.set(vendor, 12);
+  view.setUint32(12 + vendor.length, 0, true);
+  return tags;
+}
+
+async function resampleCustomSoundBuffer(audioBuffer) {
+  if (audioBuffer.sampleRate === 48_000) return audioBuffer;
+  const frameCount = Math.ceil((audioBuffer.length / audioBuffer.sampleRate) * 48_000);
+  const context = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    frameCount,
+    48_000,
+  );
+  const source = context.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(context.destination);
+  source.start();
+  return context.startRendering();
+}
+
 async function encodeCustomSoundToOgg(audioBuffer) {
-  const mimeType = "audio/ogg;codecs=opus";
-  if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
-    throw new Error("OGG/Opus encoding is not supported by this app runtime.");
+  if (!window.AudioEncoder || !window.AudioData) {
+    throw new Error("This app runtime does not support local OGG/Opus encoding.");
   }
-  const context = new AudioContext({ sampleRate: 48_000 });
+  const buffer = await resampleCustomSoundBuffer(audioBuffer);
+  const config = {
+    codec: "opus",
+    sampleRate: 48_000,
+    numberOfChannels: buffer.numberOfChannels,
+    bitrate: CUSTOM_SOUND_BITRATE,
+  };
+  const support = await AudioEncoder.isConfigSupported(config);
+  if (!support?.supported) {
+    throw new Error("This app runtime does not support local OGG/Opus encoding.");
+  }
+
+  const packets = [];
+  let encoderError = null;
+  const encoder = new AudioEncoder({
+    output: (chunk) => {
+      const packet = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(packet);
+      packets.push({ packet, duration: chunk.duration || 20_000 });
+    },
+    error: (error) => { encoderError = error; },
+  });
   try {
-    const destination = context.createMediaStreamDestination();
-    const source = context.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(destination);
-    const chunks = [];
-    const recorder = new MediaRecorder(destination.stream, {
-      mimeType,
-      audioBitsPerSecond: CUSTOM_SOUND_BITRATE,
-    });
-    const completed = new Promise((resolve, reject) => {
-      recorder.addEventListener("dataavailable", (event) => {
-        if (event.data.size) chunks.push(event.data);
+    encoder.configure(config);
+    const frameSize = 960;
+    for (let offset = 0; offset < buffer.length; offset += frameSize) {
+      const planar = new Float32Array(frameSize * buffer.numberOfChannels);
+      const available = Math.min(frameSize, buffer.length - offset);
+      for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+        planar.set(
+          buffer.getChannelData(channel).subarray(offset, offset + available),
+          channel * frameSize,
+        );
+      }
+      const audioData = new AudioData({
+        format: "f32-planar",
+        sampleRate: 48_000,
+        numberOfFrames: frameSize,
+        numberOfChannels: buffer.numberOfChannels,
+        timestamp: Math.round((offset / 48_000) * 1_000_000),
+        data: planar,
       });
-      recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: "audio/ogg" })));
-      recorder.addEventListener("error", () => reject(new Error("Audio encoding failed.")));
-    });
-    recorder.start(250);
-    await context.resume();
-    source.start();
-    source.addEventListener("ended", () => recorder.stop(), { once: true });
-    return await completed;
+      encoder.encode(audioData);
+      audioData.close();
+      if (encoder.encodeQueueSize > 32) await encoder.flush();
+    }
+    await encoder.flush();
+    if (encoderError) throw encoderError;
   } finally {
-    await context.close().catch(() => {});
+    encoder.close();
   }
+  if (!packets.length) throw new Error("Audio encoding produced no data.");
+
+  const serial = crypto.getRandomValues(new Uint32Array(1))[0];
+  const pages = [
+    createOggPage(createOpusHead(buffer.numberOfChannels), {
+      serial,
+      sequence: 0,
+      granulePosition: 0,
+      headerType: 0x02,
+    }),
+    createOggPage(createOpusTags(), {
+      serial,
+      sequence: 1,
+      granulePosition: 0,
+      headerType: 0,
+    }),
+  ];
+  let granulePosition = 0;
+  for (let index = 0; index < packets.length; index += 1) {
+    granulePosition += Math.round((packets[index].duration * 48_000) / 1_000_000);
+    pages.push(
+      createOggPage(packets[index].packet, {
+        serial,
+        sequence: index + 2,
+        granulePosition,
+        headerType: index === packets.length - 1 ? 0x04 : 0,
+      }),
+    );
+  }
+  return new Blob(pages, { type: "audio/ogg" });
 }
 
 async function saveCustomSoundEditor() {
@@ -11080,6 +11321,40 @@ customSoundFileInput.addEventListener("change", () => {
 });
 customSoundStart.addEventListener("input", updateCustomSoundTrimUi);
 customSoundEnd.addEventListener("input", updateCustomSoundTrimUi);
+customSoundWaveform.addEventListener("pointerdown", (event) => {
+  if (!customSoundEditor) return;
+  const bounds = customSoundWaveform.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+  const time = ratio * customSoundEditor.duration;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  customSoundWaveformDrag = Math.abs(time - start) <= Math.abs(time - end) ? "start" : "end";
+  customSoundWaveform.setPointerCapture(event.pointerId);
+  setCustomSoundWaveformBoundary(event);
+});
+customSoundWaveform.addEventListener("pointermove", (event) => {
+  if (customSoundWaveformDrag) setCustomSoundWaveformBoundary(event);
+});
+customSoundWaveform.addEventListener("pointerup", (event) => {
+  customSoundWaveformDrag = "";
+  if (customSoundWaveform.hasPointerCapture(event.pointerId)) {
+    customSoundWaveform.releasePointerCapture(event.pointerId);
+  }
+});
+customSoundWaveform.addEventListener("keydown", (event) => {
+  if (!customSoundEditor || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+  event.preventDefault();
+  const step = event.shiftKey ? 1 : 0.1;
+  const start = Number(customSoundStart.value);
+  const end = Number(customSoundEnd.value);
+  const direction = event.key === "ArrowLeft" ? -1 : 1;
+  if (Math.abs(customSoundPreview.currentTime - start) <= Math.abs(customSoundPreview.currentTime - end)) {
+    customSoundStart.value = String(Math.max(0, Math.min(end - 0.01, start + direction * step)));
+  } else {
+    customSoundEnd.value = String(Math.max(start + 0.01, Math.min(customSoundEditor.duration, end + direction * step)));
+  }
+  updateCustomSoundTrimUi();
+});
 customSoundPreview.addEventListener("play", () => {
   if (
     customSoundEditor &&
@@ -11094,6 +11369,7 @@ customSoundPreview.addEventListener("timeupdate", () => {
     customSoundPreview.pause();
     customSoundPreview.currentTime = Number(customSoundStart.value);
   }
+  scheduleCustomSoundWaveform();
 });
 customSoundClose.addEventListener("click", closeCustomSoundEditor);
 customSoundCancel.addEventListener("click", closeCustomSoundEditor);

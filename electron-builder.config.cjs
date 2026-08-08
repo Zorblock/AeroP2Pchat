@@ -26,6 +26,10 @@ module.exports = {
       from: "assets/linux-icons/512x512.png",
       to: "app-icon.png",
     },
+    {
+      from: "assets/status/peer-connected.png",
+      to: "peer-connected.png",
+    },
   ],
   win: {
     target: "dir",

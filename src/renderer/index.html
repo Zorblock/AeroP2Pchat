@@ -1616,6 +1616,11 @@
         <p class="custom-sound-help">Choose the section to keep. The original sound stays available as a fallback.</p>
         <audio id="custom-sound-preview" class="custom-sound-preview" controls preload="metadata"></audio>
         <div class="custom-sound-trim">
+          <div id="custom-sound-waveform" class="custom-sound-waveform" role="slider" tabindex="0" aria-label="Trim audio selection">
+            <canvas id="custom-sound-waveform-canvas"></canvas>
+            <span id="custom-sound-waveform-start-handle" class="custom-sound-waveform-handle is-start" aria-hidden="true"></span>
+            <span id="custom-sound-waveform-end-handle" class="custom-sound-waveform-handle is-end" aria-hidden="true"></span>
+          </div>
           <div class="custom-sound-trim-labels">
             <span>Start <strong id="custom-sound-start-value">0:00</strong></span>
             <span>End <strong id="custom-sound-end-value">0:00</strong></span>
