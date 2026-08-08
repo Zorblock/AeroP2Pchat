@@ -1272,12 +1272,16 @@ function showAppNotification(details = {}) {
   const body = String(details.body || "");
   const peerId = details.peerId || "";
   const callId = details.callId || "";
+  const variant = ["chat", "voice", "call"].includes(details.variant)
+    ? details.variant
+    : kind === "call" ? "call" : "chat";
 
   const toastPayload = {
     id: notificationId,
     title,
     body,
     kind,
+    variant,
     peerId,
     avatar: details.avatar,
     callId,

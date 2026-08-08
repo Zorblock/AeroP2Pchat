@@ -48,6 +48,16 @@ function createAvatarSeed(value) {
 // Map of active toasts to their timeout IDs
 const activeToasts = new Map();
 
+function getToastTypeIcon(kind, variant) {
+  if (kind === "call" || variant === "call") {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.64a2 2 0 0 1-.45 2.11L8 9.75a16 16 0 0 0 6 6l1.28-1.28a2 2 0 0 1 2.11-.45c.86.29 1.74.5 2.64.62A2 2 0 0 1 22 16.92Z" /></svg>`;
+  }
+  if (variant === "voice") {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8" /></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.5 9.5 9.5 0 0 1-4.78-1.33L3 20l1.34-4.02A8.5 8.5 0 1 1 21 11.5Z" /></svg>`;
+}
+
 window.aeroChatNotification.onShowToast((details) => {
   showToast(details);
 });
@@ -85,6 +95,7 @@ function showToast(details) {
     title,
     body,
     kind,
+    variant,
     peerId,
     callId,
     theme,
@@ -109,12 +120,15 @@ function showToast(details) {
   } else {
     // Create new toast element
     const toastEl = document.createElement("div");
-    toastEl.className = "toast";
+    toastEl.className = `toast toast-${variant || kind}`;
     toastEl.id = `toast-${id}`;
 
     let html = `<div class="toast-header">
       <div class="toast-content">
-        <h4 class="toast-title">${escapeHtml(title)}</h4>
+        <div class="toast-title-row">
+          <span class="toast-type-icon" aria-hidden="true">${getToastTypeIcon(kind, variant)}</span>
+          <h4 class="toast-title">${escapeHtml(title)}</h4>
+        </div>
         <p class="toast-body">${escapeHtml(body)}</p>
       </div>
       <button class="toast-close-btn" id="btn-close-${id}" aria-label="Close">

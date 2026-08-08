@@ -56,6 +56,9 @@ body {
   pointer-events: auto;
   cursor: pointer;
 }
+.toast-chat { border-left: 3px solid var(--accent); }
+.toast-voice { border-left: 3px solid #8b5cf6; }
+.toast-call { border-left: 3px solid #22c55e; }
 
 .toast.fade-out {
   opacity: 0;
@@ -93,6 +96,43 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.toast-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+.toast-title-row .toast-title {
+  min-width: 0;
+  flex: 1;
+}
+.toast-type-icon {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+.toast-voice .toast-type-icon {
+  background: rgb(139 92 246 / 16%);
+  color: #8b5cf6;
+}
+.toast-call .toast-type-icon {
+  background: rgb(34 197 94 / 16%);
+  color: #22c55e;
+}
+.toast-type-icon svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .toast-body {

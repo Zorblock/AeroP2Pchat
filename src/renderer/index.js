@@ -4508,7 +4508,13 @@ function playConnectedSound() {
   playSound(connectedAudio, "connected");
 }
 
-function notifyIncomingMessage(peerId, text) {
+function formatIncomingMessagePreview(text) {
+  const compact = String(text || "").replace(/\s+/g, " ").trim();
+  if (!compact) return "New message";
+  return compact.length > 140 ? `${compact.slice(0, 137).trimEnd()}…` : compact;
+}
+
+function notifyIncomingMessage(peerId, text, { variant = "chat" } = {}) {
   normalizeAppSettings();
   refreshNotificationState();
   if (isPresenceDnd() || isPresenceOffline()) {
@@ -4528,7 +4534,8 @@ function notifyIncomingMessage(peerId, text) {
     peerId,
     avatar: getPeerAvatar(peerId, identityId),
     title: getPeerLabel(peerId, conn),
-    body: text,
+    body: variant === "voice" ? text : formatIncomingMessagePreview(text),
+    variant,
     silent: !isSoundEnabled("messages"),
   });
   if (!shown) {
@@ -4566,8 +4573,9 @@ function notifyIncomingCall(peerId, callId) {
     peerId,
     avatar: getPeerAvatar(peerId, identityId),
     callId,
-    title: "Incoming voice call",
-    body: `${getPeerLabel(peerId, conn)} is calling`,
+    title: getPeerLabel(peerId, conn),
+    body: "Incoming voice call",
+    variant: "call",
     silent: true,
   });
 }
@@ -5202,7 +5210,7 @@ function handleVoiceOffer(peerId, conn, data) {
   const messageId = typeof data.id === "string" ? data.id.slice(0, 128) : createMessageId();
   addChatMessage({ id: messageId, text: "", sender: "them", peerId, time: typeof data.time === "string" ? data.time : formatTime(), voice: { ...voice, downloadState: "offered" } });
   if (appConfig.appSettings?.readReceipts) sendProtocolMessage(conn, "message-delivered", { messageId });
-  notifyIncomingMessage(peerId, formatIncomingVoiceNotification(voice));
+  notifyIncomingMessage(peerId, formatIncomingVoiceNotification(voice), { variant: "voice" });
   if (appConfig.appSettings?.voiceAutoDownload) {
     requestVoiceMessage(findVoiceMessage(peerId, voice.id));
   }
