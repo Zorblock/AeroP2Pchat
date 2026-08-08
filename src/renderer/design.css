@@ -3475,6 +3475,17 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   justify-content: flex-end;
   gap: 7px;
 }
+.theme-panel-toolbar {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.theme-panel-toolbar > strong {
+  color: var(--text);
+  font-size: 11px;
+}
 .theme-action-button {
   display: inline-flex;
   min-height: 32px;
@@ -3490,10 +3501,27 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   font-size: 10px;
 }
 .theme-help summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   width: fit-content;
   cursor: pointer;
   color: var(--muted);
   font-weight: 700;
+  list-style: none;
+}
+.theme-help summary::-webkit-details-marker {
+  display: none;
+}
+.theme-help summary > i {
+  width: 10px;
+  color: var(--accent);
+  font-size: 9px;
+  text-align: center;
+  transition: transform 120ms ease;
+}
+.theme-help[open] summary > i {
+  transform: rotate(90deg);
 }
 .theme-help > div {
   display: grid;
@@ -3521,6 +3549,10 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   }
 }
 @media (max-width: 460px) {
+  .theme-panel-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
   .themes-manager-actions {
     justify-content: stretch;
   }

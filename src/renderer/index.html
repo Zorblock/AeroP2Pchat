@@ -1219,19 +1219,22 @@
                 <button class="theme-tab" type="button" role="tab" aria-selected="false" data-theme-tab="online">Online</button>
               </div>
               <div class="theme-panel" data-theme-panel="local">
-                <div class="themes-manager-actions">
-                  <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">
-                    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                    <span>Open theme folder</span>
-                  </button>
-                  <button id="reload-themes" class="ghost-button theme-action-button" type="button">
-                    <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-                    <span>Reload</span>
-                  </button>
+                <div class="theme-panel-toolbar">
+                  <strong>Installed themes</strong>
+                  <div class="themes-manager-actions">
+                    <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">
+                      <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+                      <span>Open theme folder</span>
+                    </button>
+                    <button id="reload-themes" class="ghost-button theme-action-button" type="button">
+                      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                      <span>Reload</span>
+                    </button>
+                  </div>
                 </div>
                 <div id="local-theme-list" class="local-theme-list"></div>
                 <details class="theme-help">
-                  <summary>Theme notes</summary>
+                  <summary><i class="fa-solid fa-chevron-right" aria-hidden="true"></i><span>Theme notes</span></summary>
                   <div>
                     <p>Custom CSS can affect performance. Disable the theme if something looks wrong.</p>
                     <p>External fonts and images are allowed only from trusted hosts.</p>
