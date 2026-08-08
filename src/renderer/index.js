@@ -1160,8 +1160,8 @@ function normalizeAvatarConfig(value) {
   return {
     template,
     color,
-    decoration,
-    showInitial: value?.showInitial !== false,
+    decoration: "none",
+    showInitial: true,
   };
 }
 
@@ -3793,12 +3793,18 @@ function applyAvatarAppearance(element, id, config) {
   element.dataset.decoration = avatar.decoration;
   element.classList.toggle("avatar-without-initial", !avatar.showInitial);
   const seed = createAvatarSeed(id);
-  const uniqueHue = Math.floor(seed() * 360);
+  const uniquePalette = [
+    ["#315b73", "#5d8ca3"], ["#4c5b8a", "#7887b4"], ["#6a4f7c", "#9675a8"],
+    ["#755052", "#a97676"], ["#6a5a3e", "#9a855f"], ["#3e685d", "#6f978b"],
+    ["#465f75", "#7894a8"], ["#654e63", "#987892"],
+  ];
+  const [uniqueBase, uniqueAccent] = uniquePalette[
+    Math.floor(seed() * uniquePalette.length)
+  ];
   const angle = Math.floor(seed() * 360);
-  const accentHue = (uniqueHue + 28 + Math.floor(seed() * 56)) % 360;
-  const baseColor = avatar.template === "unique" ? `hsl(${uniqueHue} 68% 42%)` : avatar.color;
+  const baseColor = avatar.template === "unique" ? uniqueBase : avatar.color;
   const accentColor =
-    avatar.template === "unique" ? `hsl(${accentHue} 72% 56%)` : getAccentColor(avatar.color, 34);
+    avatar.template === "unique" ? uniqueAccent : getAccentColor(avatar.color, 22);
 
   if (avatar.template === "solid") {
     element.style.background = baseColor;

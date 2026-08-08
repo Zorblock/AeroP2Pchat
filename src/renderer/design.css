@@ -3752,6 +3752,11 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .settings-section[data-settings-page="profile"] .profile-actions {
   padding-top: 2px;
 }
+.settings-section[data-settings-page="profile"] label:has(#profile-avatar-decoration),
+.settings-section[data-settings-page="profile"] label:has(#profile-avatar-initial),
+.settings-section[data-settings-page="profile"] .profile-avatar-settings:has(#profile-name-font) {
+  display: none;
+}
 .settings-section[data-settings-page="profile"] .profile-reset,
 .settings-section[data-settings-page="profile"] .profile-save {
   min-height: 36px;
