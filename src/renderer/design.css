@@ -3725,6 +3725,40 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .settings-section[data-settings-page="profile"] .profile-identity {
   margin-top: 0;
 }
+.settings-section[data-settings-page="profile"] .profile-avatar-preview {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+}
+.settings-section[data-settings-page="profile"] .profile-identity {
+  margin-bottom: 10px;
+  padding: 9px;
+}
+.settings-section[data-settings-page="profile"] .profile-content {
+  gap: 10px;
+}
+.settings-section[data-settings-page="profile"] .profile-avatar-settings {
+  gap: 8px;
+  padding: 10px;
+}
+.settings-section[data-settings-page="profile"] .profile-field input,
+.settings-section[data-settings-page="profile"] .profile-template-toggle {
+  min-height: 36px;
+  height: 36px;
+}
+.settings-section[data-settings-page="profile"] .profile-name-preview-sample {
+  padding: 8px;
+}
+.settings-section[data-settings-page="profile"] .profile-actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 8px;
+  background: var(--surface-raised);
+}
+.settings-section[data-settings-page="profile"] .profile-reset,
+.settings-section[data-settings-page="profile"] .profile-save {
+  min-height: 36px;
+}
 .appearance-settings-group {
   display: grid;
   gap: 10px;

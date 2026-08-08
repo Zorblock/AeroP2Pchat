@@ -10516,6 +10516,12 @@ function selectSettingsPage(page = "appearance") {
       selectedSection = section;
     }
   }
+  if (selectedPage === "profile") {
+    populateProfileSettings();
+  }
+  if (pageChanged && settingsContent) {
+    settingsContent.scrollTop = 0;
+  }
   if (
     pageChanged &&
     selectedSection &&
@@ -11880,7 +11886,7 @@ titlebarLogo.addEventListener("keydown", (event) => {
   }
 });
 
-appMenuProfile.addEventListener("click", () => {
+function populateProfileSettings() {
   profileNickname.value = identity.nickname || "";
   const avatar = normalizeAvatarConfig(identity.avatar);
   setProfileAvatarTemplate(avatar.template);
@@ -11899,6 +11905,10 @@ appMenuProfile.addEventListener("click", () => {
   syncEnhancedSelect(profileNameFont);
   profileId.textContent = identity.id;
   renderProfileAvatarPreview();
+}
+
+appMenuProfile.addEventListener("click", () => {
+  populateProfileSettings();
   settingsModal.classList.remove("hidden");
   selectSettingsPage("profile");
   closeAppMenu();
