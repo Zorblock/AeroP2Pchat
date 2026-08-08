@@ -1326,27 +1326,35 @@
 
             <section class="settings-section" data-settings-page="notifications">
               <h3>Notifications</h3>
-              <div class="settings-options">
-                <label class="settings-check">
-                  <input id="notifications-toggle" type="checkbox" />
-                  <span>Show desktop notifications</span>
-                </label>
-                <label class="settings-check">
-                  <input id="message-notifications-toggle" type="checkbox" />
-                  <span>Notify for new messages</span>
-                </label>
-                <label class="settings-check">
-                  <input id="call-notifications-toggle" type="checkbox" />
-                  <span>Notify for incoming calls</span>
-                </label>
-                <label class="settings-check">
-                  <input id="focused-notifications-toggle" type="checkbox" />
-                  <span>Show notifications while Aero is focused</span>
-                </label>
-                <label class="settings-check">
-                  <input id="read-receipts-toggle" type="checkbox" />
-                  <span>Send and show read receipts</span>
-                </label>
+              <div class="notification-settings-stack">
+                <div class="notification-settings-group">
+                  <div class="notification-settings-heading"><h4>Desktop notifications</h4></div>
+                  <label class="settings-check notification-master-toggle">
+                    <input id="notifications-toggle" type="checkbox" />
+                    <span>Enable notifications</span>
+                  </label>
+                  <div class="notification-event-options">
+                    <label class="settings-check">
+                      <input id="message-notifications-toggle" type="checkbox" />
+                      <span>New messages</span>
+                    </label>
+                    <label class="settings-check">
+                      <input id="call-notifications-toggle" type="checkbox" />
+                      <span>Incoming calls</span>
+                    </label>
+                    <label class="settings-check notification-suboption">
+                      <input id="focused-notifications-toggle" type="checkbox" />
+                      <span>Also while Aero is focused</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="notification-settings-group">
+                  <div class="notification-settings-heading"><h4>Privacy</h4></div>
+                  <label class="settings-check">
+                    <input id="read-receipts-toggle" type="checkbox" />
+                    <span>Send read receipts</span>
+                  </label>
+                </div>
               </div>
             </section>
 

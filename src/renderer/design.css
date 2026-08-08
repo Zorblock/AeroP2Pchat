@@ -3734,6 +3734,34 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .sound-suboption {
   margin: -2px 0 0 38px;
 }
+.notification-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+.notification-settings-group {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.notification-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.notification-master-toggle {
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.notification-event-options {
+  display: grid;
+  gap: 9px;
+}
+.notification-suboption {
+  margin: -2px 0 0 38px;
+}
 .custom-sound-list {
   display: grid;
   gap: 7px;
