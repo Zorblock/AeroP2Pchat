@@ -129,6 +129,9 @@ select:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
 input,
 textarea,
 code,
@@ -3723,11 +3726,38 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   white-space: nowrap;
 }
 .custom-sound-use-toggle input {
-  width: 15px;
-  height: 15px;
+  position: relative;
+  width: 32px;
+  height: 18px;
   margin: 0;
-  accent-color: var(--accent);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line-strong);
+  appearance: none;
+  -webkit-appearance: none;
   cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+.custom-sound-use-toggle input::before {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 2px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  content: "";
+  transition: transform 0.14s ease;
+}
+.custom-sound-use-toggle input:checked {
+  background: var(--accent);
+}
+.custom-sound-use-toggle input:checked::before {
+  transform: translateX(14px);
+}
+.custom-sound-use-toggle input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 }
 .custom-sound-row.is-custom {
   border-color: var(--line-accent);
@@ -3935,7 +3965,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 }
 .settings-check input[type="checkbox"]:checked,
 .stream-audio-toggle input[type="checkbox"]:checked {
-  background: var(--text);
+  background: var(--accent);
 }
 .settings-check input[type="checkbox"]::before,
 .stream-audio-toggle input[type="checkbox"]::before {
@@ -3943,7 +3973,7 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   display: block;
   width: 20px;
   height: 20px;
-  background-color: var(--surface);
+  background-color: var(--on-accent);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
@@ -4049,6 +4079,19 @@ input[type="range"]::-webkit-slider-runnable-track {
     var(--line-strong) var(--range-fill, 0%)
   );
   box-shadow: inset 0 1px 1px color-mix(in srgb, var(--text) 12%, transparent);
+}
+.settings-section .ghost-button:not(.danger) {
+  border-color: var(--line-accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: none;
+  transform: none !important;
+}
+.settings-section .ghost-button:not(.danger):hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+  color: var(--accent);
+  transform: none !important;
 }
 input[type="range"]::-webkit-slider-thumb {
   width: 16px;
