@@ -1,6 +1,5 @@
 // deno-lint-ignore-file no-window no-window-prefix no-unused-vars require-await
 import Peer, { util } from "peerjs";
-import emojiDataUrl from "../../node_modules/emoji-picker-element-data/de/cldr/data.json?url";
 import emojiShortcodeDataUrl from "../../node_modules/emoji-picker-element-data/en/github/data.json?url";
 import countryFlagEmojiFontUrl from "../../node_modules/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url";
 import { getDomain } from "tldts";
@@ -4691,14 +4690,10 @@ async function ensureEmojiPicker() {
   if (emojiPickerLoading) return emojiPickerLoading;
 
   emojiPickerLoading = (async () => {
-    const [pickerModule, translationModule] = await Promise.all([
-      import("emoji-picker-element/picker"),
-      import("emoji-picker-element/i18n/de"),
-    ]);
+    const pickerModule = await import("emoji-picker-element/picker");
     const picker = new pickerModule.default({
-      dataSource: emojiDataUrl,
-      locale: "de",
-      i18n: translationModule.default,
+      dataSource: emojiShortcodeDataUrl,
+      locale: "en",
     });
     picker.addEventListener("click", (event) => {
       const emojiTarget = event.composedPath().find(
