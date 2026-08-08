@@ -9137,6 +9137,7 @@ function refreshPeers() {
   syncChatActionAvailability();
   refreshCallStage();
   updateEmptyChatState();
+  syncTrayState();
 }
 
 function acceptConnection(peerId) {
@@ -11515,6 +11516,9 @@ window.addEventListener("online", restoreNetworkConnection);
 function syncTrayState() {
   platformApi.updateTrayState({
     peerId: callState.peerId || (peer && peer.id) || null,
+    hasActivePeerConnection: [...connections.values()].some(
+      (connection) => Boolean(connection?.open),
+    ),
     isMuted: Boolean(callState.muted),
     isDeafened: Boolean(callState.deafened),
     status: isNetworkOffline()

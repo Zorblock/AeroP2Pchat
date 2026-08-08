@@ -102,6 +102,8 @@ const bootAccentPresets = {
 let mainWindow = null;
 let toastWindow = null;
 let tray = null;
+let connectedTrayIcon = null;
+let connectionOverlayIcon = null;
 let appConfig = {};
 let forceQuit = false;
 let systemShutdownStarted = false;
@@ -852,6 +854,7 @@ function showMainWindow() {
 
 let trayState = {
   peerId: null,
+  hasActivePeerConnection: false,
   isMuted: false,
   isDeafened: false,
   status: "online",
@@ -866,6 +869,7 @@ let trayState = {
 function hasTrayStateChanged(nextState) {
   return [
     "peerId",
+    "hasActivePeerConnection",
     "isMuted",
     "isDeafened",
     "status",
@@ -876,6 +880,97 @@ function hasTrayStateChanged(nextState) {
     "debugSimulateUpdate",
     "debugBootSimulation",
   ].some((key) => trayState[key] !== nextState[key]);
+}
+
+function paintConnectionBadge(bitmap, width, height, { corner = false } = {}) {
+  if (!Buffer.isBuffer(bitmap) || bitmap.length < width * height * 4) {
+    return false;
+  }
+
+  const outerRadius = Math.max(2, Math.round(Math.min(width, height) * (corner ? 0.2 : 0.39)));
+  const innerRadius = Math.max(1, outerRadius - Math.max(1, Math.round(outerRadius * 0.22)));
+  const centerX = corner ? width - outerRadius - 1 : Math.floor(width / 2);
+  const centerY = corner ? height - outerRadius - 1 : Math.floor(height / 2);
+
+  for (let y = Math.max(0, centerY - outerRadius); y <= Math.min(height - 1, centerY + outerRadius); y += 1) {
+    for (let x = Math.max(0, centerX - outerRadius); x <= Math.min(width - 1, centerX + outerRadius); x += 1) {
+      const distance = Math.hypot(x - centerX, y - centerY);
+      if (distance > outerRadius) continue;
+
+      const offset = (y * width + x) * 4;
+      const isInnerDot = distance <= innerRadius;
+      // nativeImage bitmap pixels use BGRA ordering.
+      bitmap[offset] = isInnerDot ? 82 : 14;
+      bitmap[offset + 1] = isInnerDot ? 197 : 57;
+      bitmap[offset + 2] = isInnerDot ? 34 : 22;
+      bitmap[offset + 3] = 255;
+    }
+  }
+
+  return true;
+}
+
+function getConnectedTrayIcon() {
+  if (connectedTrayIcon) return connectedTrayIcon;
+
+  try {
+    const icon = windowIcon.resize({ width: 64, height: 64 });
+    const { width, height } = icon.getSize();
+    const bitmap = Buffer.from(icon.toBitmap());
+    if (paintConnectionBadge(bitmap, width, height, { corner: true })) {
+      connectedTrayIcon = nativeImage.createFromBitmap(bitmap, {
+        width,
+        height,
+        scaleFactor: 1,
+      });
+    }
+  } catch {
+    // A missing or unsupported icon must never affect the tray itself.
+  }
+
+  return connectedTrayIcon && !connectedTrayIcon.isEmpty()
+    ? connectedTrayIcon
+    : windowIcon;
+}
+
+function getConnectionOverlayIcon() {
+  if (connectionOverlayIcon) return connectionOverlayIcon;
+
+  try {
+    const size = 16;
+    const bitmap = Buffer.alloc(size * size * 4);
+    if (paintConnectionBadge(bitmap, size, size)) {
+      connectionOverlayIcon = nativeImage.createFromBitmap(bitmap, {
+        width: size,
+        height: size,
+        scaleFactor: 1,
+      });
+    }
+  } catch {
+    // Taskbar overlays are optional OS decoration.
+  }
+
+  return connectionOverlayIcon && !connectionOverlayIcon.isEmpty()
+    ? connectionOverlayIcon
+    : null;
+}
+
+function updateConnectionBadge() {
+  const isConnected = Boolean(trayState.hasActivePeerConnection);
+
+  if (tray) {
+    tray.setImage(isConnected ? getConnectedTrayIcon() : windowIcon);
+    tray.setToolTip(
+      isConnected ? `${appDisplayName} · Peer connected` : appDisplayName,
+    );
+  }
+
+  if (process.platform === "win32" && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setOverlayIcon(
+      isConnected ? getConnectionOverlayIcon() : null,
+      isConnected ? "Peer connected" : "",
+    );
+  }
 }
 
 function updateTrayMenu() {
@@ -1097,12 +1192,13 @@ function updateTrayMenu() {
 
 function createTray() {
   if (tray) {
+    updateConnectionBadge();
     updateTrayMenu();
     return tray;
   }
 
   tray = new Tray(windowIcon);
-  tray.setToolTip(appDisplayName);
+  updateConnectionBadge();
   tray.on("click", showMainWindow);
   updateTrayMenu();
   return tray;
@@ -1841,6 +1937,7 @@ function createWindow({ hidden = false } = {}) {
   }
 
   mainWindow = win;
+  updateConnectionBadge();
   win.on("query-session-end", () => {
     notifyRendererShutdown("session-end");
   });
@@ -1958,6 +2055,7 @@ app.whenReady().then(async () => {
     }
 
     trayState = nextTrayState;
+    updateConnectionBadge();
     updateTrayMenu();
   });
   ipcMain.handle("get-screen-sources", async (event) => {
