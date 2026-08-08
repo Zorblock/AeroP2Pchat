@@ -4522,6 +4522,7 @@ async function sendRecordedVoiceMessage(blob, duration, peerId) {
   }
   pendingVoiceUploads.set(voice.id, { blob, peerId, voice, expiresAt: Date.now() + VOICE_MESSAGE_EXPIRY_MS });
   setTimeout(() => pendingVoiceUploads.delete(voice.id), VOICE_MESSAGE_EXPIRY_MS);
+  writeDevLog(`Voice message offered (${Math.round(blob.size / 1024)} KB).`);
   addChatMessage({
     id: messageId,
     text: "",
@@ -4646,6 +4647,7 @@ function requestVoiceMessage(item) {
   }
   delete voice.transferStatus;
   voice.downloadState = "requested";
+  writeDevLog("Voice message download requested.");
   renderChatHistory();
   if (!sendProtocolMessage(conn, "voice-request", { voiceId: voice.id })) {
     voice.downloadState = "offered";
@@ -4659,6 +4661,7 @@ function failVoiceDownload(peerId, voiceId, message = "Download interrupted - re
   if (!item?.voice || item.voice.downloadState !== "requested") return;
   item.voice.downloadState = "failed";
   item.voice.transferStatus = message;
+  writeDevLog(`Voice message download failed: ${message}`);
   if (activePeerId === peerId) renderChatHistory();
 }
 
@@ -4709,6 +4712,7 @@ function handleVoiceTransferStart(peerId, conn, data) {
     return;
   }
   incomingVoiceTransfers.set(`${peerId}:${voice.id}`, { voice, chunks: [], receivedSize: 0, nextIndex: 0 });
+  writeDevLog(`Voice message transfer started (${Math.round(voice.size / 1024)} KB).`);
   updateVoiceDownloadStatus(peerId, voice.id, "Downloading...", 0);
   setTimeout(() => {
     const key = `${peerId}:${voice.id}`;
@@ -4754,8 +4758,10 @@ async function handleVoiceTransferComplete(peerId, data) {
     item.voice.blob = blob;
     item.voice.objectUrl = URL.createObjectURL(blob);
     item.voice.downloadState = "ready";
+    writeDevLog("Voice message downloaded and verified.");
   } catch {
     item.voice.downloadState = "invalid";
+    writeDevLog("Voice message verification failed.");
   }
   if (activePeerId === peerId) renderChatHistory();
 }
@@ -8216,6 +8222,12 @@ function sendProtocolMessage(conn, type, extra = {}) {
   }
 }
 
+function writeDevLog(message) {
+  if (location.protocol === "http:") {
+    window.aeroChat?.log(`[Aero] ${message}`);
+  }
+}
+
 function areReadReceiptsVisibleForPeer(peerId) {
   return Boolean(
     appConfig.appSettings?.readReceipts &&
@@ -8615,6 +8627,7 @@ function acceptConnection(peerId) {
       getPeerLabel(peerId, entry.conn),
     );
     setStatus("online", `Connected to ${peerLabel}`);
+    writeDevLog("Connection accepted.");
     renderChatHistory();
     addSystemMessage(`Connection with ${peerLabel} accepted.`);
     playConnectedSound();
@@ -8665,6 +8678,7 @@ function promoteOutgoingConnection(peerId) {
   sendReceiptSettings(entry.conn);
   startConnectionHeartbeat(peerId, entry.conn);
   setStatus("online", `Connected to ${peerLabel}`);
+  writeDevLog("Connection established.");
   renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
   playConnectedSound();
@@ -8947,6 +8961,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
     removePeer(peerId, {
       silent: suppressPeerCloseMessages || isPresenceOffline(),
     });
+    writeDevLog("Connection closed.");
     if (!suppressPeerCloseMessages && !isPresenceOffline()) {
       addSystemMessage(`${peerLabel()} closed the connection.`);
       setStatus(
@@ -9077,6 +9092,7 @@ function connectToPeer(remoteId) {
     reliable: true,
     serialization: "json",
   });
+  writeDevLog("Connection request started.");
   registerConnection(conn);
 }
 
@@ -10879,6 +10895,7 @@ window.addEventListener("beforeunload", () => {
   cleanupRealtimeConnections();
 });
 
+writeDevLog("Renderer ready.");
 refreshPeers();
 refreshAudioDevices();
 openWelcomeScreen();

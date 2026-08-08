@@ -16,7 +16,7 @@ const {
   systemPreferences,
   screen,
 } = require("electron");
-const { createWriteStream, readFileSync } = require("node:fs");
+const { appendFileSync, createWriteStream, readFileSync } = require("node:fs");
 const {
   chmod,
   copyFile,
@@ -35,6 +35,7 @@ const { get } = require("node:https");
 const { tmpdir } = require("node:os");
 const { basename, dirname, join, resolve } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
+const { format } = require("node:util");
 const {
   KEY_BYTES,
   decryptAuthenticatedConfig,
@@ -87,6 +88,9 @@ const defaultMicEqMid = 0;
 const defaultMicEqHigh = 0;
 const allowMultipleInstances =
   process.env.AERO_CHAT_ALLOW_MULTI_INSTANCE === "1";
+const runtimeLogPath = app.isPackaged
+  ? ""
+  : String(process.env.AERO_CHAT_RUNTIME_LOG_FILE || "").trim();
 const autostartDesktopFileName = projectConfig.linux.autostartDesktopFileName;
 const bootAccentPresets = {
   aero: "#147fa6",
@@ -105,6 +109,29 @@ let delayedQuitStarted = false;
 let delayedQuitTimer = null;
 const activeNotifications = new Map();
 let lastSystemDndCheck = { checkedAt: 0, enabled: false };
+
+function writeRuntimeLog(level, args) {
+  if (!runtimeLogPath) return;
+  try {
+    appendFileSync(
+      runtimeLogPath,
+      `[${new Date().toISOString()}] [${level}] ${format(...args)}\n`,
+      "utf8",
+    );
+  } catch {
+    // Development diagnostics must never interfere with the app itself.
+  }
+}
+
+if (runtimeLogPath) {
+  for (const level of ["debug", "info", "log", "warn", "error"]) {
+    const writeToConsole = console[level].bind(console);
+    console[level] = (...args) => {
+      writeRuntimeLog(level, args);
+      writeToConsole(...args);
+    };
+  }
+}
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.name = projectConfig.app.name || "Aero P2P Chat";
@@ -1676,6 +1703,24 @@ async function installWindowsUpdate(
 }
 
 function createWindow({ hidden = false } = {}) {
+  const devLayout = !app.isPackaged
+    ? String(process.env.AERO_CHAT_DEV_LAYOUT || "")
+    : "";
+  const workArea = screen.getPrimaryDisplay().workArea;
+  const useDevGrid =
+    (devLayout === "left" || devLayout === "right") &&
+    workArea.width >= 1240 &&
+    workArea.height >= 880;
+  const topHeight = Math.floor(workArea.height / 2);
+  const columnWidth = Math.floor(workArea.width / 2);
+  const devBounds = useDevGrid
+    ? {
+        x: workArea.x + (devLayout === "right" ? columnWidth : 0),
+        y: workArea.y,
+        width: devLayout === "right" ? workArea.width - columnWidth : columnWidth,
+        height: topHeight,
+      }
+    : null;
   const savedTheme = appConfig?.appSettings?.theme || "system";
   const initialTheme =
     savedTheme === "system"
@@ -1703,8 +1748,10 @@ function createWindow({ hidden = false } = {}) {
     }
   }
   const win = new BrowserWindow({
-    width: 980,
-    height: 680,
+    width: devBounds?.width || 980,
+    height: devBounds?.height || 680,
+    x: devBounds?.x,
+    y: devBounds?.y,
     minWidth: 620,
     minHeight: 440,
     title: appDisplayName,
@@ -1741,6 +1788,16 @@ function createWindow({ hidden = false } = {}) {
     shell.openExternal(url);
     return { action: "deny" };
   });
+
+  if (runtimeLogPath) {
+    const levels = ["error", "warn", "info", "log", "debug"];
+    win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+      const method = levels[level] || "log";
+      console[method](
+        `[Renderer${sourceId ? ` ${sourceId}:${line || 0}` : ""}] ${message}`,
+      );
+    });
+  }
 
   if (process.env.ELECTRON_RENDERER_URL) {
     const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
