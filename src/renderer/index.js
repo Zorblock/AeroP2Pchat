@@ -345,7 +345,6 @@ const appMenuUpdateIgnore = document.querySelector("#app-menu-update-ignore");
 
 
 
-const appMenuStatus = document.querySelector("#app-menu-status");
 const appMenuSettings = document.querySelector("#app-menu-settings");
 const appMenuProfile = document.querySelector("#app-menu-profile");
 
@@ -11798,11 +11797,6 @@ appMenuUpdate.addEventListener("click", () => {
 appMenuUpdateIgnore.addEventListener("click", () => {
   ignoreAvailableUpdateHint();
   closeAppMenu();
-});
-
-appMenuStatus.addEventListener("click", () => {
-  closeAppMenu();
-  window.open(newsPageUrl, "_blank", "noopener");
 });
 
 appMenuOnline?.addEventListener("click", () => {
