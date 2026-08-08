@@ -1425,145 +1425,59 @@
           <div class="settings-column">
             <section class="settings-section" data-settings-page="voice">
               <h3>Voice</h3>
-              <div class="device-settings">
-              <label for="microphone-select">Microphone</label>
-              <select id="microphone-select"></select>
-              <label for="camera-select">Camera</label>
-              <select id="camera-select"></select>
-              <label for="speaker-select">Output</label>
-              <select id="speaker-select"></select>
-              <label for="mic-profile-select">Voice profile</label>
-              <select id="mic-profile-select">
-                <option value="voice-isolation">Voice isolation</option>
-                <option value="studio">Studio</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div id="voice-custom-controls">
-              <label class="settings-range" for="mic-mode-select">
-                <div class="settings-range-header">
-                  <span>Sensitivity mode</span>
-                  <strong id="mic-mode-label">Auto</strong>
+              <div class="voice-settings-stack">
+                <div class="voice-settings-group">
+                  <div class="voice-settings-heading"><h4>Devices</h4></div>
+                  <div class="device-settings voice-device-settings">
+                    <label for="microphone-select">Microphone<select id="microphone-select"></select></label>
+                    <label for="camera-select">Camera<select id="camera-select"></select></label>
+                    <label for="speaker-select">Output<select id="speaker-select"></select></label>
+                  </div>
                 </div>
-                <div class="settings-range-body">
-                  <select id="mic-mode-select">
-                    <option value="auto">Auto</option>
-                    <option value="manual">Manual</option>
-                  </select>
+                <div class="voice-settings-group">
+                  <div class="voice-settings-heading"><h4>Microphone</h4></div>
+                  <label class="voice-profile-field" for="mic-profile-select">Voice profile
+                    <select id="mic-profile-select">
+                      <option value="voice-isolation">Voice isolation</option>
+                      <option value="studio">Studio</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                  <div id="voice-custom-controls">
+                    <label class="settings-range" for="mic-mode-select">
+                      <div class="settings-range-header"><span>Sensitivity mode</span><strong id="mic-mode-label">Auto</strong></div>
+                      <div class="settings-range-body"><select id="mic-mode-select"><option value="auto">Auto</option><option value="manual">Manual</option></select></div>
+                    </label>
+                    <label class="settings-range" for="mic-sensitivity-slider">
+                      <div class="settings-range-header"><span>Mic sensitivity</span><strong id="mic-sensitivity-label">55%</strong></div>
+                      <div class="settings-range-body"><input id="mic-sensitivity-slider" type="range" min="0" max="100" step="1" /></div>
+                    </label>
+                    <label class="settings-range" for="mic-noise-reduction-slider">
+                      <div class="settings-range-header"><span>Background noise reduction</span><strong id="mic-noise-reduction-label">55%</strong></div>
+                      <div class="settings-range-body"><input id="mic-noise-reduction-slider" type="range" min="0" max="100" step="1" /></div>
+                    </label>
+                  </div>
+                  <label class="settings-range" for="mic-boost-slider">
+                    <div class="settings-range-header"><span>Mic boost</span><strong id="mic-boost-label">100%</strong></div>
+                    <div class="settings-range-body"><input id="mic-boost-slider" type="range" min="0" max="200" step="1" /></div>
+                  </label>
+                  <details class="voice-eq-details">
+                    <summary><i class="fa-solid fa-chevron-right" aria-hidden="true"></i><span>3-band EQ</span><strong id="mic-eq-label">Flat</strong></summary>
+                    <div class="settings-range-group">
+                      <label class="settings-range" for="mic-eq-low-slider"><div class="settings-range-header"><span>Low</span><strong id="mic-eq-low-label">0 dB</strong></div><div class="settings-range-body"><input id="mic-eq-low-slider" type="range" min="-12" max="12" step="1" /></div></label>
+                      <label class="settings-range" for="mic-eq-mid-slider"><div class="settings-range-header"><span>Mid</span><strong id="mic-eq-mid-label">0 dB</strong></div><div class="settings-range-body"><input id="mic-eq-mid-slider" type="range" min="-12" max="12" step="1" /></div></label>
+                      <label class="settings-range" for="mic-eq-high-slider"><div class="settings-range-header"><span>High</span><strong id="mic-eq-high-label">0 dB</strong></div><div class="settings-range-body"><input id="mic-eq-high-slider" type="range" min="-12" max="12" step="1" /></div></label>
+                    </div>
+                  </details>
                 </div>
-              </label>
-              <label class="settings-range" for="mic-sensitivity-slider">
-                <div class="settings-range-header">
-                  <span>Mic sensitivity</span>
-                  <strong id="mic-sensitivity-label">55%</strong>
+                <div class="voice-settings-group">
+                  <div class="voice-settings-heading"><h4>Call audio</h4></div>
+                  <label class="settings-range" for="remote-volume-slider">
+                    <div class="settings-range-header"><span>Call volume</span><strong id="remote-volume-label">100%</strong></div>
+                    <div class="settings-range-body"><input id="remote-volume-slider" type="range" min="0" max="100" step="1" /></div>
+                  </label>
                 </div>
-                <div class="settings-range-body">
-                  <input
-                    id="mic-sensitivity-slider"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                  />
-                </div>
-              </label>
-              <label class="settings-range" for="mic-noise-reduction-slider">
-                <div class="settings-range-header">
-                  <span>Background noise reduction</span>
-                  <strong id="mic-noise-reduction-label">55%</strong>
-                </div>
-                <div class="settings-range-body">
-                  <input
-                    id="mic-noise-reduction-slider"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                  />
-                </div>
-              </label>
-            </div>
-            <label class="settings-range" for="mic-boost-slider">
-              <div class="settings-range-header">
-                <span>Mic boost</span>
-                <strong id="mic-boost-label">100%</strong>
               </div>
-              <div class="settings-range-body">
-                <input
-                  id="mic-boost-slider"
-                  type="range"
-                  min="0"
-                  max="200"
-                  step="1"
-                />
-              </div>
-            </label>
-            <div class="settings-range-group">
-              <div class="settings-range-header">
-                <span>3-band EQ</span>
-                <strong id="mic-eq-label">Flat</strong>
-              </div>
-              <label class="settings-range" for="mic-eq-low-slider">
-                <div class="settings-range-header">
-                  <span>Low</span>
-                  <strong id="mic-eq-low-label">0 dB</strong>
-                </div>
-                <div class="settings-range-body">
-                  <input
-                    id="mic-eq-low-slider"
-                    type="range"
-                    min="-12"
-                    max="12"
-                    step="1"
-                  />
-                </div>
-              </label>
-              <label class="settings-range" for="mic-eq-mid-slider">
-                <div class="settings-range-header">
-                  <span>Mid</span>
-                  <strong id="mic-eq-mid-label">0 dB</strong>
-                </div>
-                <div class="settings-range-body">
-                  <input
-                    id="mic-eq-mid-slider"
-                    type="range"
-                    min="-12"
-                    max="12"
-                    step="1"
-                  />
-                </div>
-              </label>
-              <label class="settings-range" for="mic-eq-high-slider">
-                <div class="settings-range-header">
-                  <span>High</span>
-                  <strong id="mic-eq-high-label">0 dB</strong>
-                </div>
-                <div class="settings-range-body">
-                  <input
-                    id="mic-eq-high-slider"
-                    type="range"
-                    min="-12"
-                    max="12"
-                    step="1"
-                  />
-                </div>
-              </label>
-            </div>
-              <label class="settings-range" for="remote-volume-slider">
-              <div class="settings-range-header">
-                <span>Call volume</span>
-                <strong id="remote-volume-label">100%</strong>
-              </div>
-              <div class="settings-range-body">
-                <input
-                  id="remote-volume-slider"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                />
-              </div>
-              </label>
             </section>
           </div>
 
