@@ -3637,10 +3637,10 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   justify-content: center;
   gap: 6px;
   padding: 0 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--line-accent);
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--on-accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
   box-shadow: none;
   font: inherit;
   font-size: 11px;
@@ -3650,11 +3650,13 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   transition: background-color 0.12s ease, color 0.12s ease;
 }
 .custom-sound-action-button:hover:not(:disabled) {
-  background: var(--accent-hover);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
   transform: none !important;
 }
 .custom-sound-action-button:active:not(:disabled) {
-  background: var(--accent-pressed);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
   transform: none !important;
 }
 .custom-sound-action-button:focus-visible {
@@ -5057,6 +5059,25 @@ body.platform-android .incoming-call-screen {
 .contact-label[data-name-font="serif"],
 [data-name-font="serif"] {
   font-family: Georgia, "Times New Roman", serif;
+}
+
+/* Settings actions share one quiet accent-outline treatment. */
+#settings-modal .settings-section button:not(.danger) {
+  border-color: var(--line-accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  box-shadow: none !important;
+  transform: none !important;
+}
+#settings-modal .settings-section button:not(.danger):hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  transform: none !important;
+}
+#settings-modal .settings-section button:not(.danger):active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  transform: none !important;
 }
 
 /* Flat UI: surfaces stay crisp without glass blur, glow, or elevation. */
