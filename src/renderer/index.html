@@ -1389,9 +1389,20 @@
                   <span>Show waveform for voice messages</span>
                 </label>
                 <div class="trusted-domains-control">
-                  <span id="trusted-domains-status">No trusted link domains</span>
-                  <button id="clear-trusted-domains" class="ghost-button" type="button">Clear trusted domains</button>
+                  <span id="trusted-domains-status">Built-in trusted domains</span>
+                  <button id="clear-trusted-domains" class="ghost-button" type="button">Clear personal domains</button>
                 </div>
+                <details class="trusted-domains-details">
+                  <summary>
+                    <span>Show built-in trusted domains</span>
+                    <span class="trusted-domains-summary-meta">
+                      <span id="trusted-default-domains-count"></span>
+                      <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </span>
+                  </summary>
+                  <p>These main domains and their subdomains open without a confirmation.</p>
+                  <div id="trusted-default-domains-list" class="trusted-domains-list" aria-label="Built-in trusted domains"></div>
+                </details>
               </div>
             </section>
           </div>

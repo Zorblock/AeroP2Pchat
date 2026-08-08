@@ -3,6 +3,7 @@ import Peer, { util } from "peerjs";
 import { Picker as EmojiPicker } from "emoji-picker-element";
 import emojiPickerGerman from "emoji-picker-element/i18n/de";
 import emojiDataUrl from "../../node_modules/emoji-picker-element-data/de/cldr/data.json?url";
+import { getDomain } from "tldts";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json" with { type: "json" };
@@ -272,6 +273,8 @@ const voiceAutoDownloadToggle = document.querySelector("#voice-auto-download-tog
 const voiceWaveformToggle = document.querySelector("#voice-waveform-toggle");
 const trustedDomainsStatus = document.querySelector("#trusted-domains-status");
 const clearTrustedDomainsButton = document.querySelector("#clear-trusted-domains");
+const trustedDefaultDomainsCount = document.querySelector("#trusted-default-domains-count");
+const trustedDefaultDomainsList = document.querySelector("#trusted-default-domains-list");
 const soundsToggle = document.querySelector("#sounds-toggle");
 const messageSoundToggle = document.querySelector("#message-sound-toggle");
 const ringtoneSoundToggle = document.querySelector("#ringtone-sound-toggle");
@@ -2304,11 +2307,23 @@ function renderAppSettings() {
   readReceiptsToggle.checked = appConfig.appSettings.readReceipts;
   voiceAutoDownloadToggle.checked = appConfig.appSettings.voiceAutoDownload;
   voiceWaveformToggle.checked = appConfig.appSettings.voiceWaveform;
-  const trustedDomainCount = appConfig.appSettings.trustedLinkDomains.length;
-  trustedDomainsStatus.textContent = trustedDomainCount
-    ? `${trustedDomainCount} trusted link domain${trustedDomainCount === 1 ? "" : "s"}`
-    : "No trusted link domains";
-  clearTrustedDomainsButton.disabled = trustedDomainCount === 0;
+  const personalTrustedDomainCount = appConfig.appSettings.trustedLinkDomains.filter(
+    (domain) => !DEFAULT_TRUSTED_LINK_DOMAINS.has(domain),
+  ).length;
+  trustedDomainsStatus.textContent = personalTrustedDomainCount
+    ? `${DEFAULT_TRUSTED_LINK_DOMAINS.size} built-in · ${personalTrustedDomainCount} personal`
+    : `${DEFAULT_TRUSTED_LINK_DOMAINS.size} built-in trusted domains`;
+  clearTrustedDomainsButton.disabled = personalTrustedDomainCount === 0;
+  trustedDefaultDomainsCount.textContent = `${DEFAULT_TRUSTED_LINK_DOMAINS.size}`;
+  trustedDefaultDomainsList.replaceChildren(
+    ...[...DEFAULT_TRUSTED_LINK_DOMAINS]
+      .sort((first, second) => first.localeCompare(second))
+      .map((domain) => {
+        const domainElement = document.createElement("span");
+        domainElement.textContent = domain;
+        return domainElement;
+      }),
+  );
 
   notificationsToggle.checked = appConfig.notificationSettings.enabled;
   messageNotificationsToggle.checked = appConfig.notificationSettings.messages;
@@ -3496,6 +3511,15 @@ function setRemoteVoiceRecording(peerId, recording) {
 }
 
 const EXTERNAL_LINK_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const DEFAULT_TRUSTED_LINK_DOMAINS = new Set([
+  "google.com", "youtube.com", "microsoft.com", "apple.com", "amazon.com", "primevideo.com",
+  "wikipedia.org", "wikimedia.org", "github.com", "gitlab.com", "bitbucket.org", "stackoverflow.com", "stackexchange.com", "npmjs.com", "mozilla.org",
+  "openai.com", "chatgpt.com", "discord.com", "discordapp.com", "twitch.tv", "spotify.com", "netflix.com",
+  "reddit.com", "linkedin.com", "facebook.com", "instagram.com", "tiktok.com", "x.com", "twitter.com",
+  "whatsapp.com", "telegram.org", "signal.org", "steampowered.com", "steamcommunity.com", "epicgames.com",
+  "adobe.com", "cloudflare.com", "dropbox.com", "notion.so", "figma.com", "canva.com", "vercel.com",
+  "nvidia.com", "amd.com", "intel.com", "zoom.us", "slack.com", "trello.com", "atlassian.com",
+]);
 let pendingExternalLinkOpen = false;
 
 function normalizeTrustedLinkDomain(value) {
@@ -3503,10 +3527,17 @@ function normalizeTrustedLinkDomain(value) {
     const source = String(value || "").trim().toLowerCase();
     const url = new URL(source.includes("://") ? source : `https://${source}`);
     if (!url.hostname || url.username || url.password) return "";
-    return url.hostname;
+    return getDomain(url.hostname, { allowPrivateDomains: true })?.toLowerCase() || "";
   } catch {
     return "";
   }
+}
+
+function isTrustedDomain(hostname, trustedDomains) {
+  const normalizedHost = String(hostname || "").toLowerCase();
+  return [...trustedDomains].some(
+    (domain) => normalizedHost === domain || normalizedHost.endsWith(`.${domain}`),
+  );
 }
 
 function trimExternalLinkMatch(value) {
@@ -3535,6 +3566,7 @@ function getSafeExternalLink(value) {
     return {
       url: url.toString(),
       domain: url.hostname.toLowerCase(),
+      trustedDomain: normalizeTrustedLinkDomain(url.hostname),
       matchedLength: rawUrl.length,
     };
   } catch {
@@ -3546,8 +3578,11 @@ async function openExternalLinkWithConfirmation(url) {
   if (pendingExternalLinkOpen) return;
   const link = getSafeExternalLink(url);
   if (!link) return;
-  const trustedDomains = appConfig.appSettings?.trustedLinkDomains || [];
-  if (trustedDomains.includes(link.domain)) {
+  const personalTrustedDomains = appConfig.appSettings?.trustedLinkDomains || [];
+  if (
+    isTrustedDomain(link.domain, DEFAULT_TRUSTED_LINK_DOMAINS) ||
+    isTrustedDomain(link.domain, personalTrustedDomains)
+  ) {
     await platformApi.openExternalLink(link.url);
     return;
   }
@@ -3559,13 +3594,16 @@ async function openExternalLinkWithConfirmation(url) {
       message: "This link opens in your browser.",
       confirmText: "Open",
       cancelText: "Cancel",
-      checkboxLabel: `Always trust ${link.domain}`,
+      checkboxLabel: link.trustedDomain ? `Always trust ${link.trustedDomain}` : "",
       linkDetails: link,
     });
-    if (!result.confirmed) return;
-    if (result.checkboxChecked) {
+    const confirmation = typeof result === "boolean"
+      ? { confirmed: result, checkboxChecked: false }
+      : result;
+    if (!confirmation.confirmed) return;
+    if (confirmation.checkboxChecked && link.trustedDomain) {
       await saveAppSettings({
-        trustedLinkDomains: [...trustedDomains, link.domain],
+        trustedLinkDomains: [...personalTrustedDomains, link.trustedDomain],
       });
     }
     await platformApi.openExternalLink(link.url);

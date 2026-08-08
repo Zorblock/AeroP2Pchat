@@ -2823,6 +2823,74 @@ body.reduce-motion *::after {
   padding: 4px 8px;
   font-size: 10px;
 }
+.trusted-domains-details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 10px;
+}
+.trusted-domains-details summary {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 9px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  list-style: none;
+}
+.trusted-domains-details summary::-webkit-details-marker {
+  display: none;
+}
+.trusted-domains-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: inherit;
+}
+.trusted-domains-summary-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+.trusted-domains-summary-meta i {
+  transition: transform 150ms ease;
+}
+.trusted-domains-details[open] .trusted-domains-summary-meta i {
+  transform: rotate(180deg);
+}
+.trusted-domains-details > p {
+  margin: 0;
+  padding: 0 9px 8px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.trusted-domains-list {
+  display: flex;
+  max-height: 148px;
+  flex-wrap: wrap;
+  gap: 5px;
+  overflow: auto;
+  padding: 8px 9px 9px;
+  border-top: 1px solid var(--line);
+}
+.trusted-domains-list span {
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+}
 @keyframes voice-record-pulse {
   50% { opacity: 0.72; }
 }
