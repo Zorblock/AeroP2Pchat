@@ -5077,8 +5077,10 @@ body.platform-android .incoming-call-screen {
 #settings-modal .settings-section .theme-tab,
 #settings-modal .settings-section .theme-tab:hover:not(:disabled),
 #settings-modal .settings-section .theme-tab:active:not(:disabled) {
-  border-color: transparent;
-  background: transparent;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Flat UI: surfaces stay crisp without glass blur, glow, or elevation. */
