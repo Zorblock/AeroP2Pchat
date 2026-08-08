@@ -4115,8 +4115,29 @@ input[type="range"]:active::-webkit-slider-thumb {
   display: grid;
   gap: 7px;
   max-height: 200px;
-  margin: 7px 0 12px;
+  margin: 0;
   overflow-y: auto;
+}
+.contacts-settings-group {
+  display: grid;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.contacts-settings-group + .contacts-settings-group {
+  margin-top: 10px;
+}
+.contacts-settings-heading h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.contacts-settings-heading p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 10px;
 }
 .contact-nickname-item,
 .blocked-item {
@@ -4124,7 +4145,8 @@ input[type="range"]:active::-webkit-slider-thumb {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 9px;
+  min-height: 52px;
+  padding: 8px 9px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
@@ -4149,14 +4171,20 @@ input[type="range"]:active::-webkit-slider-thumb {
 }
 .contact-nickname-editor {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 .contact-nickname-editor input {
-  height: 32px;
+  width: 184px;
+  height: 30px;
 }
 .contact-nickname-editor button,
 .blocked-item button {
-  height: 32px;
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -4164,6 +4192,30 @@ input[type="range"]:active::-webkit-slider-thumb {
   color: var(--text-soft);
   font-size: 10px;
   font-weight: 700;
+}
+.contact-nickname-clear {
+  width: 30px;
+  padding: 0 !important;
+}
+.contacts-empty {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 10px;
+}
+@media (max-width: 620px) {
+  .contact-nickname-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contact-nickname-editor input {
+    flex: 1;
+    width: auto;
+  }
 }
 
 /* Context menus */

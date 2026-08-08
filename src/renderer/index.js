@@ -10358,9 +10358,12 @@ function renderBlockedList() {
   const blockedContacts = contacts.filter((contact) => contact.blocked);
 
   if (blockedContacts.length === 0) {
-    const empty = document.createElement("span");
-    empty.className = "empty-peer";
-    empty.textContent = "No blocked users";
+    const empty = document.createElement("div");
+    empty.className = "contacts-empty";
+    empty.append(
+      renderIcon("fa-solid fa-shield-halved"),
+      document.createTextNode("No blocked users"),
+    );
     blockedList.append(empty);
     return;
   }
@@ -10369,18 +10372,24 @@ function renderBlockedList() {
     const row = document.createElement("div");
     row.className = "blocked-item";
 
-    const name = document.createElement("span");
+    const details = document.createElement("div");
+    details.className = "contact-nickname-details";
+    const name = document.createElement("strong");
     name.textContent = contact.label;
+    const id = document.createElement("code");
+    id.textContent = contact.id;
+    details.append(name, id);
 
     const unblock = document.createElement("button");
     unblock.type = "button";
-    unblock.textContent = "Unblock";
+    unblock.className = "contact-unblock-button";
+    unblock.append(renderIcon("fa-solid fa-unlock"), document.createTextNode("Unblock"));
     unblock.addEventListener("click", () => {
       setBlocked(contact.id, false);
       addSystemMessage(`${contact.label} unblocked.`);
     });
 
-    row.append(name, unblock);
+    row.append(details, unblock);
     blockedList.append(row);
   }
 
@@ -10392,9 +10401,12 @@ function renderContactNicknameList() {
   const editableContacts = contacts.filter((contact) => !contact.blocked);
 
   if (editableContacts.length === 0) {
-    const empty = document.createElement("span");
-    empty.className = "empty-peer";
-    empty.textContent = "No contacts yet";
+    const empty = document.createElement("div");
+    empty.className = "contacts-empty";
+    empty.append(
+      renderIcon("fa-regular fa-address-book"),
+      document.createTextNode("No contacts yet"),
+    );
     contactNicknameList.append(empty);
     return;
   }
@@ -10427,6 +10439,7 @@ function renderContactNicknameList() {
 
     const save = document.createElement("button");
     save.type = "button";
+    save.className = "contact-nickname-save";
     save.textContent = "Save";
     save.addEventListener("click", () => {
       setContactNickname(contact.id, input.value);
@@ -10437,9 +10450,10 @@ function renderContactNicknameList() {
 
     const clear = document.createElement("button");
     clear.type = "button";
+    clear.className = "contact-nickname-clear";
     clear.title = "Clear nickname";
     clear.setAttribute("aria-label", "Clear nickname");
-    clear.append(renderIcon("fa-solid fa-xmark"));
+    clear.append(renderIcon("fa-solid fa-rotate-left"));
     clear.addEventListener("click", () => {
       input.value = "";
       setContactNickname(contact.id, "");
