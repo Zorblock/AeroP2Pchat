@@ -4482,7 +4482,8 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-color: var(--line-accent);
   background: color-mix(in srgb, var(--accent-soft) 32%, var(--surface));
 }
-.custom-sound-row.is-disabled {
+.custom-sound-row.is-disabled,
+.custom-wallpaper-row.is-disabled {
   opacity: 0.7;
 }
 .custom-sound-modal-panel {

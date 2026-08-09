@@ -3781,15 +3781,17 @@ async function applyAllCustomWallpapers() {
 function renderCustomWallpaperList() {
   if (!customWallpaperList) return;
   const supported = platformApi.supportsCustomWallpapers;
-  openCustomWallpapersFolderButton.disabled = !supported;
+  const wallpapersEnabled = appConfig.wallpaperSettings?.enabled !== false;
+  const controlsEnabled = supported && wallpapersEnabled;
+  openCustomWallpapersFolderButton.disabled = !controlsEnabled;
   openCustomWallpapersFolderButton.classList.toggle("hidden", !supported);
-  wallpaperEnabledToggle.checked = appConfig.wallpaperSettings?.enabled !== false;
+  wallpaperEnabledToggle.checked = wallpapersEnabled;
   wallpaperAccentTintToggle.checked =
     appConfig.wallpaperSettings?.tintWithAccent === true;
-  wallpaperAccentTintToggle.disabled = !supported;
+  wallpaperAccentTintToggle.disabled = !controlsEnabled;
   wallpaperBootToggle.checked =
     appConfig.wallpaperSettings?.useCustomDuringBoot !== false;
-  wallpaperBootToggle.disabled = !supported;
+  wallpaperBootToggle.disabled = !controlsEnabled;
   customWallpaperList.replaceChildren();
 
   if (!supported) {
@@ -3813,6 +3815,7 @@ function renderCustomWallpaperList() {
     const row = document.createElement("div");
     row.className = "custom-wallpaper-row";
     row.classList.toggle("is-custom", availability === "valid");
+    row.classList.toggle("is-disabled", !wallpapersEnabled);
     const info = document.createElement("div");
     info.className = "custom-wallpaper-row-info";
     const title = document.createElement("strong");
@@ -3835,6 +3838,7 @@ function renderCustomWallpaperList() {
     const add = document.createElement("button");
     add.type = "button";
     add.className = "custom-wallpaper-action-button";
+    add.disabled = !wallpapersEnabled;
     add.textContent = metadata ? "Replace" : "Add custom";
     add.addEventListener("click", () => {
       customWallpaperFileInput.dataset.wallpaperId = wallpaperId;
@@ -3845,6 +3849,7 @@ function renderCustomWallpaperList() {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "custom-wallpaper-action-button";
+      remove.disabled = !wallpapersEnabled;
       remove.textContent = "Remove";
       remove.addEventListener("click", () => {
         void removeCustomWallpaper(wallpaperId);
@@ -12645,6 +12650,7 @@ wallpaperAccentTintToggle.addEventListener("change", () => {
 wallpaperEnabledToggle.addEventListener("change", () => {
   appConfig.wallpaperSettings.enabled = wallpaperEnabledToggle.checked;
   applyCustomWallpaperStyle();
+  renderCustomWallpaperList();
   void saveAppConfig();
 });
 
