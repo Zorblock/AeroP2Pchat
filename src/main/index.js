@@ -483,6 +483,8 @@ function getDefaultAppSettings() {
     autostart: true,
     startHidden: true,
     closeToTray: true,
+    autoDownloadUpdates: false,
+    showUpdateModal: true,
     readReceipts: true,
     hideOwnId: true,
     sidebarWidth: defaultSidebarWidth,
@@ -525,6 +527,8 @@ function normalizeConfig(config = {}) {
     autostart: Boolean(settings.autostart),
     startHidden: Boolean(settings.startHidden),
     closeToTray: settings.closeToTray !== false,
+    autoDownloadUpdates: Boolean(settings.autoDownloadUpdates),
+    showUpdateModal: settings.showUpdateModal !== false,
     readReceipts: settings.readReceipts !== false,
     hideOwnId: Boolean(settings.hideOwnId),
     presenceStatus: ["online", "dnd", "offline"].includes(
@@ -1582,12 +1586,76 @@ function getInstalledOnlineInstallerPath() {
   );
 }
 
+function getCachedOnlineInstallerPath() {
+  return join(
+    app.getPath("userData"),
+    "Updates",
+    projectConfig.release.windowsOnlineInstallerAsset,
+  );
+}
+
 async function hasInstalledOnlineInstaller(filePath) {
   try {
     const file = await stat(filePath);
     return file.isFile() && file.size > 0;
   } catch {
     return false;
+  }
+}
+
+async function stageWindowsUpdateInstaller(
+  rawOnlineInstallerUrl,
+  expectedOnlineInstallerSha256 = "",
+  expectedOnlineInstallerSha512 = "",
+  onProgress = () => {},
+) {
+  if (process.platform !== "win32" || process.windowsStore) {
+    throw new Error("Automatic update downloads are unavailable on this platform.");
+  }
+  if (!app.isPackaged) {
+    throw new Error("Automatic update downloads are only available in the packaged app.");
+  }
+
+  const cachedInstallerPath = getCachedOnlineInstallerPath();
+  if (await hasInstalledOnlineInstaller(cachedInstallerPath)) {
+    try {
+      verifyUpdateDownload(
+        cachedInstallerPath,
+        expectedOnlineInstallerSha256,
+        expectedOnlineInstallerSha512,
+      );
+      return { path: cachedInstallerPath, cached: true };
+    } catch {
+      await rm(cachedInstallerPath, { force: true }).catch(() => {});
+    }
+  }
+
+  const onlineInstallerUrl = assertTrustedOnlineInstallerUrl(rawOnlineInstallerUrl);
+  const temporaryUpdateDir = await mkdtemp(join(tmpdir(), "aero-p2p-update-"));
+  const downloadedInstallerPath = join(
+    temporaryUpdateDir,
+    projectConfig.release.windowsOnlineInstallerAsset,
+  );
+
+  try {
+    onProgress({
+      phase: "download",
+      percent: 0,
+      receivedBytes: 0,
+      totalBytes: null,
+    });
+    await downloadFile(onlineInstallerUrl, downloadedInstallerPath, onProgress);
+    onProgress({ phase: "verify", percent: 100 });
+    verifyUpdateDownload(
+      downloadedInstallerPath,
+      expectedOnlineInstallerSha256,
+      expectedOnlineInstallerSha512,
+    );
+    await mkdir(dirname(cachedInstallerPath), { recursive: true });
+    await copyFile(downloadedInstallerPath, cachedInstallerPath);
+    return { path: cachedInstallerPath, cached: false };
+  } finally {
+    await rm(temporaryUpdateDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
@@ -1854,46 +1922,16 @@ async function installWindowsUpdate(
 
   const installedOnlineInstallerPath = getInstalledOnlineInstallerPath();
   let onlineInstallerPath = installedOnlineInstallerPath;
-  let temporaryUpdateDir = "";
 
   try {
     if (!(await hasInstalledOnlineInstaller(installedOnlineInstallerPath))) {
-      const onlineInstallerUrl = assertTrustedOnlineInstallerUrl(
+      const stagedInstaller = await stageWindowsUpdateInstaller(
         rawOnlineInstallerUrl,
-      );
-      temporaryUpdateDir = await mkdtemp(join(tmpdir(), "aero-p2p-update-"));
-      const downloadedInstallerPath = join(
-        temporaryUpdateDir,
-        projectConfig.release.windowsOnlineInstallerAsset,
-      );
-
-      onProgress({
-        phase: "download",
-        percent: 0,
-        receivedBytes: 0,
-        totalBytes: null,
-      });
-      await downloadFile(
-        onlineInstallerUrl,
-        downloadedInstallerPath,
-        onProgress,
-      );
-      onProgress({ phase: "verify", percent: 100 });
-      verifyUpdateDownload(
-        downloadedInstallerPath,
         expectedOnlineInstallerSha256,
         expectedOnlineInstallerSha512,
+        onProgress,
       );
-
-      try {
-        await copyFile(downloadedInstallerPath, installedOnlineInstallerPath);
-        onlineInstallerPath = installedOnlineInstallerPath;
-        await rm(temporaryUpdateDir, { recursive: true, force: true });
-        temporaryUpdateDir = "";
-      } catch {
-        // A non-writable legacy install location must not prevent a verified update.
-        onlineInstallerPath = downloadedInstallerPath;
-      }
+      onlineInstallerPath = stagedInstaller.path;
     }
 
     onProgress({ phase: "install", percent: 100 });
@@ -1932,11 +1970,6 @@ async function installWindowsUpdate(
     }, 250);
     return { ok: true };
   } catch (error) {
-    if (temporaryUpdateDir) {
-      await rm(temporaryUpdateDir, { recursive: true, force: true }).catch(
-        () => {},
-      );
-    }
     throw error;
   }
 }
@@ -2102,6 +2135,18 @@ app.whenReady().then(async () => {
       },
     ),
   );
+  ipcMain.handle("download-update", async (_event, details = {}) => {
+    try {
+      const result = await stageWindowsUpdateInstaller(
+        details.onlineInstallerUrl,
+        details.onlineInstallerSha256,
+        details.onlineInstallerSha512,
+      );
+      return { ok: true, cached: result.cached };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Update download failed." };
+    }
+  });
   ipcMain.handle("open-microsoft-store-updates", async () => {
     if (process.platform !== "win32" || !process.windowsStore) {
       return { ok: false };

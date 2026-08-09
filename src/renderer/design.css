@@ -4146,11 +4146,13 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
 .notification-suboption {
   margin: -2px 0 0 38px;
 }
-.general-settings-stack {
+.general-settings-stack,
+.update-settings-stack {
   display: grid;
   gap: 10px;
 }
-.general-settings-group {
+.general-settings-group,
+.update-settings-group {
   display: grid;
   gap: 10px;
   padding: 11px;
@@ -4158,10 +4160,23 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
 }
-.general-settings-heading h4 {
+.general-settings-heading h4,
+.update-settings-heading h4 {
   margin: 0;
   color: var(--text);
   font-size: 11px;
+}
+.update-settings-check-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.update-settings-check-row .settings-help {
+  margin: 0;
+}
+.update-platform-note {
+  margin: 0;
 }
 .general-autostart-toggle {
   padding-bottom: 9px;

@@ -145,6 +145,7 @@ export function createPlatformApi() {
     platform,
     isAndroid,
     isElectron,
+    isPackaged: Boolean(electron?.isPackaged),
     isWindowsStore,
     isChromeExtension,
     hasNativeWindowControls: isElectron,
@@ -153,6 +154,11 @@ export function createPlatformApi() {
     supportsCloseToTray: isElectron,
     supportsUpdateChecks: isElectron || isAndroid,
     supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
+    supportsUpdateDownloads:
+      platform === "win32" &&
+      !isWindowsStore &&
+      Boolean(electron?.isPackaged) &&
+      Boolean(electron?.downloadUpdate),
     supportsDesktopScreenSources: isElectron,
     supportsCustomSounds: isElectron,
     supportsCustomWallpapers: isElectron,
@@ -175,6 +181,13 @@ export function createPlatformApi() {
         return electron.openMicrosoftStoreUpdates();
       }
       return { ok: false };
+    },
+
+    async downloadUpdate(details) {
+      if (!electron?.downloadUpdate) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.downloadUpdate(details);
     },
 
     async saveConfig(config) {

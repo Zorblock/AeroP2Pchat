@@ -121,7 +121,15 @@ const startupUpdateText = document.querySelector("#startup-update-text");
 const startupUpdateClose = document.querySelector("#startup-update-close");
 const startupUpdateIgnoreButton = document.querySelector("#startup-update-ignore-button");
 const startupUpdateButton = document.querySelector("#startup-update-button");
+const checkUpdatesButton = document.querySelector("#check-updates-button");
+const updateCheckStatus = document.querySelector("#update-check-status");
+const autoDownloadUpdatesToggle = document.querySelector("#auto-download-updates-toggle");
+const updateModalToggle = document.querySelector("#update-modal-toggle");
+const updatePlatformNote = document.querySelector("#update-platform-note");
 let startupUpdateModalShownForVersion = "";
+let updateSettingsStatus = "";
+let updateAutoDownloadInFlight = false;
+let autoDownloadedUpdateVersion = "";
 
 const modalText = document.querySelector("#modal-text");
 const modalClose = document.querySelector("#modal-close");
@@ -1932,6 +1940,8 @@ function normalizeAppSettings() {
     readReceipts: appConfig.appSettings.readReceipts !== false,
     voiceAutoDownload: Boolean(appConfig.appSettings.voiceAutoDownload),
     voiceWaveform: appConfig.appSettings.voiceWaveform !== false,
+    autoDownloadUpdates: Boolean(appConfig.appSettings.autoDownloadUpdates),
+    showUpdateModal: appConfig.appSettings.showUpdateModal !== false,
     trustedLinkDomains: Array.isArray(appConfig.appSettings.trustedLinkDomains)
       ? [...new Set(appConfig.appSettings.trustedLinkDomains
           .map(normalizeTrustedLinkDomain)
@@ -2473,6 +2483,40 @@ function renderAppSettings() {
     !appConfig.appSettings.autostart,
   );
   closeToTrayToggle.checked = appConfig.appSettings.closeToTray;
+  const updateChecksSupported = platformApi.supportsUpdateChecks;
+  const updateModalSupported = updateChecksSupported && !platformApi.isWindowsStore;
+  const updatePlatformMessage = platformApi.isWindowsStore
+    ? "Microsoft Store manages downloads and installation."
+    : platform === "win32"
+      ? platformApi.isPackaged
+        ? "Downloads are verified locally; installation always needs confirmation."
+        : "Auto-download is available in the packaged Windows app."
+      : platform === "linux"
+        ? "Aero checks for releases and shows the update command."
+        : platform === "darwin"
+          ? "Aero checks for releases and opens the macOS download when you choose to update."
+        : platformApi.isAndroid
+          ? "Aero checks for releases and opens Android's installer when you choose to update."
+          : platformApi.isChromeExtension
+            ? "Chrome manages extension updates automatically."
+            : "Updates are managed by this platform.";
+  checkUpdatesButton.innerHTML = platformApi.isWindowsStore
+    ? '<i class="fa-brands fa-microsoft" aria-hidden="true"></i> Open Microsoft Store'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i> Check now';
+  checkUpdatesButton.disabled = !updateChecksSupported;
+  autoDownloadUpdatesToggle.checked = appConfig.appSettings.autoDownloadUpdates;
+  autoDownloadUpdatesToggle.disabled = !platformApi.supportsUpdateDownloads;
+  autoDownloadUpdatesToggle
+    .closest(".settings-check")
+    ?.classList.toggle("disabled", autoDownloadUpdatesToggle.disabled);
+  updateModalToggle.checked = appConfig.appSettings.showUpdateModal;
+  updateModalToggle.disabled = !updateModalSupported;
+  updateModalToggle
+    .closest(".settings-check")
+    ?.classList.toggle("disabled", updateModalToggle.disabled);
+  updateCheckStatus.textContent = updateSettingsStatus ||
+    (updateChecksSupported ? "" : "Updates are unavailable on this platform.");
+  updatePlatformNote.textContent = updatePlatformMessage;
   readReceiptsToggle.checked = appConfig.appSettings.readReceipts;
   voiceAutoDownloadToggle.checked = appConfig.appSettings.voiceAutoDownload;
   voiceWaveformToggle.checked = appConfig.appSettings.voiceWaveform;
@@ -5169,20 +5213,26 @@ function syncAvailableUpdateUi() {
   updateIgnoreButton.classList.toggle("hidden", isMandatory);
   headerUpdateButton.classList.add("hidden");
   titlebarLogo.classList.add("update-available");
-    if ((isMandatory || !isIgnored) && startupUpdateModalShownForVersion !== availableUpdate.version) {
-      startupUpdateModalShownForVersion = availableUpdate.version;
-      startupUpdateModal.dataset.required = String(isMandatory);
-      startupUpdateTitle.textContent = isMandatory ? "Update required" : "Update available";
-      startupUpdateText.textContent = isMandatory
-        ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
-        : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
-      startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
-        ? "Install update"
-        : platform === "linux"
-          ? "Show command"
-          : "Open release";
-      startupUpdateModal.classList.remove("hidden");
-    }
+  const shouldOpenModal =
+    isMandatory || appConfig.appSettings.showUpdateModal !== false;
+  if (
+    shouldOpenModal &&
+    (isMandatory || !isIgnored) &&
+    startupUpdateModalShownForVersion !== availableUpdate.version
+  ) {
+    startupUpdateModalShownForVersion = availableUpdate.version;
+    startupUpdateModal.dataset.required = String(isMandatory);
+    startupUpdateTitle.textContent = isMandatory ? "Update required" : "Update available";
+    startupUpdateText.textContent = isMandatory
+      ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
+      : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
+    startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
+      ? "Install update"
+      : platform === "linux"
+        ? "Show command"
+        : "Open release";
+    startupUpdateModal.classList.remove("hidden");
+  }
   startupUpdateClose.classList.toggle("hidden", isMandatory);
   startupUpdateIgnoreButton.classList.toggle("hidden", isMandatory);
   titlebarLogo.title = isIgnored
@@ -5235,6 +5285,65 @@ function ignoreAvailableUpdateHint() {
   syncAvailableUpdateUi();
 }
 
+function getAvailableUpdateDownloadDetails() {
+  if (!availableUpdate) {
+    return null;
+  }
+
+  return {
+    onlineInstallerUrl: availableUpdate.onlineInstallerUrl,
+    onlineInstallerSha256: availableUpdate.onlineInstallerSha256,
+    onlineInstallerSha512: availableUpdate.onlineInstallerSha512,
+  };
+}
+
+function renderUpdateSettingsStatus(text) {
+  updateSettingsStatus = text;
+  if (updateCheckStatus) {
+    updateCheckStatus.textContent = text;
+  }
+}
+
+async function maybeAutoDownloadAvailableUpdate() {
+  normalizeAppSettings();
+  if (
+    !availableUpdate ||
+    !appConfig.appSettings.autoDownloadUpdates ||
+    !platformApi.supportsUpdateDownloads ||
+    updateAutoDownloadInFlight ||
+    autoDownloadedUpdateVersion === availableUpdate.version
+  ) {
+    return;
+  }
+
+  const details = getAvailableUpdateDownloadDetails();
+  if (!details?.onlineInstallerUrl) {
+    return;
+  }
+
+  updateAutoDownloadInFlight = true;
+  renderUpdateSettingsStatus(`Preparing verified update ${availableUpdate.version}...`);
+  try {
+    const result = await platformApi.downloadUpdate(details);
+    if (!result?.ok) {
+      throw new Error(result?.error || "Update download failed.");
+    }
+
+    autoDownloadedUpdateVersion = availableUpdate.version;
+    renderUpdateSettingsStatus(
+      result.cached
+        ? `Verified update ${availableUpdate.version} is already prepared.`
+        : `Verified update ${availableUpdate.version} is ready to install.`,
+    );
+  } catch {
+    renderUpdateSettingsStatus(
+      "Automatic download failed. You can still install manually.",
+    );
+  } finally {
+    updateAutoDownloadInFlight = false;
+  }
+}
+
 async function checkForUpdates({ manual = false } = {}) {
   if (platformApi.isWindowsStore) {
     if (manual) {
@@ -5242,8 +5351,10 @@ async function checkForUpdates({ manual = false } = {}) {
       if (result?.ok) {
         setUpdateMenuStatus("Microsoft Store opened");
         setStatus("online", "Updates are managed by the Microsoft Store.");
+        renderUpdateSettingsStatus("Microsoft Store opened.");
       } else {
         setUpdateMenuStatus("Microsoft Store unavailable");
+        renderUpdateSettingsStatus("Microsoft Store is unavailable.");
       }
     }
     return;
@@ -5252,6 +5363,7 @@ async function checkForUpdates({ manual = false } = {}) {
   if (isNetworkOffline()) {
     if (manual) {
       setStatus("offline", "You're offline. Internet connection required.");
+      renderUpdateSettingsStatus("You're offline.");
     }
     return;
   }
@@ -5259,6 +5371,7 @@ async function checkForUpdates({ manual = false } = {}) {
   if (updateCheckInFlight) {
     if (manual) {
       setUpdateMenuStatus("Checking...", { reset: false });
+      renderUpdateSettingsStatus("A check is already running.");
     }
     return;
   }
@@ -5300,6 +5413,7 @@ async function checkForUpdates({ manual = false } = {}) {
       if (manual) {
         setUpdateMenuStatus("No update found");
         setStatus("online", "You are up to date.");
+        renderUpdateSettingsStatus("You are up to date.");
       }
       return;
     }
@@ -5331,6 +5445,7 @@ async function checkForUpdates({ manual = false } = {}) {
       if (manual) {
         setUpdateMenuStatus("No installer found");
         setStatus("offline", "Update manifest has no Windows installer.");
+        renderUpdateSettingsStatus("No installer is available for this platform.");
       }
       return;
     }
@@ -5346,6 +5461,7 @@ async function checkForUpdates({ manual = false } = {}) {
       if (manual) {
         setUpdateMenuStatus("Invalid update");
         setStatus("offline", "Update manifest is missing checksums.");
+        renderUpdateSettingsStatus("The update could not be verified.");
       }
       return;
     }
@@ -5355,6 +5471,7 @@ async function checkForUpdates({ manual = false } = {}) {
       if (manual) {
         setUpdateMenuStatus("No macOS build found");
         setStatus("offline", "Update manifest has no macOS installer.");
+        renderUpdateSettingsStatus("No installer is available for this platform.");
       }
       return;
     }
@@ -5376,8 +5493,10 @@ async function checkForUpdates({ manual = false } = {}) {
     };
 
     syncAvailableUpdateUi();
+    void maybeAutoDownloadAvailableUpdate();
     if (manual) {
       setStatus("online", `Update ${availableUpdate.version} available.`);
+      renderUpdateSettingsStatus(`Update ${availableUpdate.version} is available.`);
     }
   } catch (error) {
     // Keep an existing update hint visible when a periodic check fails.
@@ -5387,6 +5506,7 @@ async function checkForUpdates({ manual = false } = {}) {
         "offline",
         `Update check failed${error?.message ? `: ${error.message}` : "."}`,
       );
+      renderUpdateSettingsStatus("Update check failed.");
     }
   } finally {
     updateCheckInFlight = false;
@@ -11843,6 +11963,24 @@ autostartHidden.addEventListener("change", () => {
 
 closeToTrayToggle.addEventListener("change", () => {
   saveAppSettings({ closeToTray: closeToTrayToggle.checked });
+});
+
+checkUpdatesButton.addEventListener("click", async () => {
+  renderUpdateSettingsStatus("Checking...");
+  await checkForUpdates({ manual: true });
+});
+
+autoDownloadUpdatesToggle.addEventListener("change", async () => {
+  await saveAppSettings({
+    autoDownloadUpdates: autoDownloadUpdatesToggle.checked,
+  });
+  if (autoDownloadUpdatesToggle.checked) {
+    void maybeAutoDownloadAvailableUpdate();
+  }
+});
+
+updateModalToggle.addEventListener("change", () => {
+  saveAppSettings({ showUpdateModal: updateModalToggle.checked });
 });
 
 themeLight.addEventListener("change", () => {

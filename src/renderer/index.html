@@ -1137,6 +1137,10 @@
               <i class="fa-solid fa-sliders" aria-hidden="true"></i>
               System
             </button>
+            <button type="button" class="settings-nav-item" data-settings-nav="updates">
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Updates
+            </button>
             <span class="settings-nav-label">Chat</span>
             <button type="button" class="settings-nav-item" data-settings-nav="chat">
               <i class="fa-solid fa-comment" aria-hidden="true"></i>
@@ -1283,6 +1287,38 @@
                   <label class="settings-check">
                     <input id="close-to-tray-toggle" type="checkbox" />
                     <span>Close button sends Aero to tray</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section" data-settings-page="updates">
+              <h3>Updates</h3>
+              <div class="update-settings-stack">
+                <p id="update-platform-note" class="settings-help update-platform-note"></p>
+                <div class="update-settings-group">
+                  <div class="update-settings-heading"><h4>Check</h4></div>
+                  <div class="update-settings-check-row">
+                    <button id="check-updates-button" class="ghost-button" type="button">
+                      <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                      Check now
+                    </button>
+                    <span id="update-check-status" class="settings-help" aria-live="polite"></span>
+                  </div>
+                </div>
+                <div class="update-settings-group">
+                  <div class="update-settings-heading"><h4>Download</h4></div>
+                  <label class="settings-check">
+                    <input id="auto-download-updates-toggle" type="checkbox" />
+                    <span>Automatically download available updates</span>
+                  </label>
+                  <p class="settings-help">Downloads are verified. Installation always needs confirmation.</p>
+                </div>
+                <div class="update-settings-group">
+                  <div class="update-settings-heading"><h4>Prompt</h4></div>
+                  <label class="settings-check">
+                    <input id="update-modal-toggle" type="checkbox" />
+                    <span>Open the update modal when an update is found</span>
                   </label>
                 </div>
               </div>

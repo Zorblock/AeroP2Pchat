@@ -2,8 +2,10 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("aeroChat", {
   platform: process.platform,
+  isPackaged: !process.defaultApp,
   isWindowsStore: Boolean(process.windowsStore),
   installUpdate: (details) => ipcRenderer.invoke("install-update", details),
+  downloadUpdate: (details) => ipcRenderer.invoke("download-update", details),
   openMicrosoftStoreUpdates: () =>
     ipcRenderer.invoke("open-microsoft-store-updates"),
   onUpdateProgress: (callback) => {
