@@ -4,6 +4,10 @@ const fields = {
   loss: $("#loss"), bitrate: $("#bitrate"), outgoingBitrate: $("#outgoing-bitrate"), jitter: $("#jitter"),
   latencyGraph: $("#latency-graph"), lossGraph: $("#loss-graph"),
   incomingGraph: $("#incoming-graph"), outgoingGraph: $("#outgoing-graph"), jitterGraph: $("#jitter-graph"),
+  connectionState: $("#connection-state"), iceState: $("#ice-state"), mediaKinds: $("#media-kinds"),
+  incomingCodec: $("#incoming-codec"), outgoingCodec: $("#outgoing-codec"), playoutDelay: $("#playout-delay"),
+  totalReceived: $("#total-received"), totalSent: $("#total-sent"), packetsReceived: $("#packets-received"),
+  packetsSent: $("#packets-sent"), packetsLost: $("#packets-lost"), videoInfo: $("#video-info"),
 };
 
 function formatPercent(value) {
@@ -14,6 +18,17 @@ function formatPercent(value) {
 function labelFor(quality, latency) {
   const label = { good: "Good", unstable: "Unstable", bad: "Poor", unknown: "Checking" }[quality] || "Checking";
   return Number.isFinite(latency) ? `${label} · ${Math.round(latency)} ms` : label;
+}
+
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return "—";
+  if (value < 1024) return `${Math.round(value)} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatCount(value) {
+  return Number.isFinite(value) ? Intl.NumberFormat().format(Math.round(value)) : "—";
 }
 
 function drawGraph(canvas, values, color, ceiling) {
@@ -46,6 +61,18 @@ function render(details = {}) {
   fields.bitrate.textContent = Number.isFinite(details.bitrateKbps) ? `${Math.round(details.bitrateKbps)} kbps` : "—";
   fields.outgoingBitrate.textContent = Number.isFinite(details.outgoingBitrateKbps) ? `${Math.round(details.outgoingBitrateKbps)} kbps` : "—";
   fields.jitter.textContent = Number.isFinite(details.jitterMs) ? `${Math.round(details.jitterMs)} ms` : "—";
+  fields.connectionState.textContent = details.connectionState || "—";
+  fields.iceState.textContent = details.iceState || "—";
+  fields.mediaKinds.textContent = details.mediaKinds?.length ? details.mediaKinds.join(" + ") : "—";
+  fields.incomingCodec.textContent = details.incomingCodec || "—";
+  fields.outgoingCodec.textContent = details.outgoingCodec || "—";
+  fields.playoutDelay.textContent = Number.isFinite(details.playoutDelayMs) ? `${Math.round(details.playoutDelayMs)} ms` : "—";
+  fields.totalReceived.textContent = formatBytes(details.bytesReceived);
+  fields.totalSent.textContent = formatBytes(details.bytesSent);
+  fields.packetsReceived.textContent = formatCount(details.packetsReceived);
+  fields.packetsSent.textContent = formatCount(details.packetsSent);
+  fields.packetsLost.textContent = formatCount(details.packetsLost);
+  fields.videoInfo.textContent = details.videoInfo || "—";
   const history = Array.isArray(details.history) ? details.history : [];
   drawGraph(fields.latencyGraph, history.map((item) => item.latencyMs), colors.accent || "#7654d9", 120);
   drawGraph(fields.lossGraph, history.map((item) => (item.lossRatio || 0) * 100), colors.warning || "#dba13c", 2);

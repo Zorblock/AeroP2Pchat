@@ -14,8 +14,8 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 0; background: var(--surface); }
 button { color: inherit; font: inherit; }
-.health-window { display: grid; gap: 8px; min-height: 100vh; padding: 12px; }
-.window-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 9px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+.health-window { display: grid; align-content: start; gap: 7px; min-height: 100vh; padding: 10px; }
+.window-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 7px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
 .window-title { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
 .window-title i { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); }
 #close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font-size: 21px; line-height: 1; cursor: pointer; -webkit-app-region: no-drag; }
@@ -24,8 +24,10 @@ button { color: inherit; font: inherit; }
 .summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; color: var(--muted); font-size: 11px; }
 .summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quality { font-size: 14px; }.quality.good { color: var(--success); }.quality.unstable { color: var(--warning); }.quality.bad { color: var(--danger); }.quality.unknown { color: var(--muted); }
-.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-.metrics > div, .chart-card { border: 1px solid var(--line); border-radius: 9px; background: var(--raised); }
-.metrics > div { display: grid; gap: 3px; padding: 9px; }.metrics span, .chart-label span { color: var(--muted); font-size: 10px; }.metrics strong { font-size: 14px; }
-.chart-card { padding: 9px; }.chart-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }.chart-label strong { font-size: 11px; }
-canvas { display: block; width: 100%; height: 48px; }
+.metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.details { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.metrics > div, .details > div, .chart-card { border: 1px solid var(--line); border-radius: 9px; background: var(--raised); }
+.metrics > div { display: grid; gap: 2px; min-width: 0; padding: 6px; }.metrics span, .chart-label span { color: var(--muted); font-size: 9px; }.metrics strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.details > div { display: grid; gap: 1px; min-width: 0; padding: 6px; }.details span, .chart-label span { color: var(--muted); font-size: 8px; }.details strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }.chart-card { padding: 6px; }.chart-label { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; margin-bottom: 3px; }.chart-label strong { font-size: 9px; }
+canvas { display: block; width: 100%; height: 30px; }

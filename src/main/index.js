@@ -1489,6 +1489,20 @@ function normalizeCallHealthPayload(details = {}) {
     lossRatio: Math.min(1, number(details.lossRatio, 0)),
     bitrateKbps: number(details.bitrateKbps),
     outgoingBitrateKbps: number(details.outgoingBitrateKbps),
+    bytesReceived: number(details.bytesReceived, 0),
+    bytesSent: number(details.bytesSent, 0),
+    packetsReceived: number(details.packetsReceived, 0),
+    packetsSent: number(details.packetsSent, 0),
+    packetsLost: number(details.packetsLost, 0),
+    connectionState: String(details.connectionState || "Checking").slice(0, 32),
+    iceState: String(details.iceState || "Checking").slice(0, 32),
+    incomingCodec: String(details.incomingCodec || "—").slice(0, 32),
+    outgoingCodec: String(details.outgoingCodec || "—").slice(0, 32),
+    mediaKinds: Array.isArray(details.mediaKinds)
+      ? details.mediaKinds.filter((kind) => ["audio", "video"].includes(kind)).slice(0, 2)
+      : [],
+    playoutDelayMs: number(details.playoutDelayMs),
+    videoInfo: String(details.videoInfo || "—").slice(0, 48),
     state: String(details.state || "Waiting for media").slice(0, 80),
     history,
     theme: details.theme === "light" ? "light" : "dark",
@@ -1539,8 +1553,8 @@ function openCallHealthWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return { ok: false };
 
   const win = new BrowserWindow({
-    width: 454,
-    height: 716,
+    width: 560,
+    height: 450,
     title: "Call health",
     icon: windowIcon,
     parent: mainWindow,

@@ -7271,6 +7271,18 @@ function getCallHealthWindowPayload() {
     lossRatio: stats.lossRatio ?? 0,
     bitrateKbps: stats.bitrateKbps ?? null,
     outgoingBitrateKbps: stats.outgoingBitrateKbps ?? null,
+    bytesReceived: stats.bytesReceived ?? 0,
+    bytesSent: stats.bytesSent ?? 0,
+    packetsReceived: stats.packetsReceived ?? 0,
+    packetsSent: stats.packetsSent ?? 0,
+    packetsLost: stats.packetsLost ?? 0,
+    connectionState: stats.connectionState || "Checking",
+    iceState: stats.iceState || "Checking",
+    incomingCodec: stats.incomingCodec || "—",
+    outgoingCodec: stats.outgoingCodec || "—",
+    mediaKinds: Array.isArray(stats.mediaKinds) ? stats.mediaKinds : [],
+    playoutDelayMs: stats.playoutDelayMs ?? null,
+    videoInfo: stats.videoInfo || "—",
     state: getCallHealthStateText(stats),
     history: callHealthHistory.slice(-CALL_HEALTH_HISTORY_LIMIT),
     theme: document.documentElement.dataset.theme || "dark",
@@ -8282,6 +8294,7 @@ async function sampleCallHealth() {
     bytesSent: previous.bytesSent || 0,
     packetsReceived: previous.packetsReceived || 0,
     packetsLost: previous.packetsLost || 0,
+    packetsSent: previous.packetsSent || 0,
     statsFailures: 0,
     quality: previous.quality || "unknown",
     latencyMs: previous.latencyMs ?? null,
@@ -8289,6 +8302,13 @@ async function sampleCallHealth() {
     lossRatio: previous.lossRatio || 0,
     bitrateKbps: previous.bitrateKbps || 0,
     outgoingBitrateKbps: previous.outgoingBitrateKbps || 0,
+    connectionState: previous.connectionState || "Connecting",
+    iceState: previous.iceState || "Checking",
+    incomingCodec: previous.incomingCodec || "—",
+    outgoingCodec: previous.outgoingCodec || "—",
+    mediaKinds: previous.mediaKinds || [],
+    playoutDelayMs: previous.playoutDelayMs ?? null,
+    videoInfo: previous.videoInfo || "—",
   };
 
   let disconnected = false;
@@ -8296,13 +8316,24 @@ async function sampleCallHealth() {
   let outboundBytes = 0;
   let inboundPackets = 0;
   let inboundPacketsLost = 0;
+  let outboundPackets = 0;
   let latencyMs = null;
   let jitterMs = null;
+  let jitterBufferDelay = 0;
+  let jitterBufferEmitted = 0;
+  let incomingCodec = "";
+  let outgoingCodec = "";
+  const mediaKinds = new Set();
+  let videoWidth = 0;
+  let videoHeight = 0;
+  let videoFps = 0;
   let sawInboundRtp = false;
 
   try {
     for (const peerConnection of peerConnections) {
       disconnected = disconnected || isPeerConnectionDisconnected(peerConnection);
+      next.connectionState = peerConnection.connectionState || next.connectionState;
+      next.iceState = peerConnection.iceConnectionState || next.iceState;
       const stats = await peerConnection.getStats();
       for (const report of stats.values()) {
         if (
@@ -8318,6 +8349,11 @@ async function sampleCallHealth() {
           !report.isRemote &&
           ["audio", "video"].includes(report.kind)
         ) {
+          mediaKinds.add(report.kind);
+          const codecName = String(stats.get(report.codecId)?.mimeType || "")
+            .replace(/^.*\//, "")
+            .trim();
+          if (codecName && !incomingCodec) incomingCodec = codecName;
           sawInboundRtp = true;
           inboundBytes += Number(report.bytesReceived || 0);
           inboundPackets += Number(report.packetsReceived || 0);
@@ -8325,13 +8361,26 @@ async function sampleCallHealth() {
           if (typeof report.jitter === "number") {
             jitterMs = Math.max(jitterMs || 0, Math.round(report.jitter * 1000));
           }
+          jitterBufferDelay += Number(report.jitterBufferDelay || 0);
+          jitterBufferEmitted += Number(report.jitterBufferEmittedCount || 0);
+          if (report.kind === "video") {
+            videoWidth = Math.max(videoWidth, Number(report.frameWidth || 0));
+            videoHeight = Math.max(videoHeight, Number(report.frameHeight || 0));
+            videoFps = Math.max(videoFps, Math.round(Number(report.framesPerSecond || 0)));
+          }
         }
         if (
           report.type === "outbound-rtp" &&
           !report.isRemote &&
           ["audio", "video"].includes(report.kind)
         ) {
+          mediaKinds.add(report.kind);
+          const codecName = String(stats.get(report.codecId)?.mimeType || "")
+            .replace(/^.*\//, "")
+            .trim();
+          if (codecName && !outgoingCodec) outgoingCodec = codecName;
           outboundBytes += Number(report.bytesSent || 0);
+          outboundPackets += Number(report.packetsSent || 0);
         }
       }
     }
@@ -8364,9 +8413,19 @@ async function sampleCallHealth() {
   next.bytesSent = Math.max(next.bytesSent, outboundBytes);
   next.packetsReceived = Math.max(next.packetsReceived, inboundPackets);
   next.packetsLost = Math.max(next.packetsLost, inboundPacketsLost);
+  next.packetsSent = Math.max(next.packetsSent, outboundPackets);
   next.lastSampleAt = now;
   next.bitrateKbps = Math.round((bytesDelta * 8) / elapsedMs);
   next.outgoingBitrateKbps = Math.round((outgoingBytesDelta * 8) / elapsedMs);
+  next.incomingCodec = incomingCodec || next.incomingCodec;
+  next.outgoingCodec = outgoingCodec || next.outgoingCodec;
+  next.mediaKinds = Array.from(mediaKinds);
+  next.playoutDelayMs = jitterBufferEmitted > 0
+    ? Math.round((jitterBufferDelay / jitterBufferEmitted) * 1000)
+    : null;
+  next.videoInfo = videoWidth && videoHeight
+    ? `${videoWidth} × ${videoHeight}${videoFps ? ` · ${videoFps} fps` : ""}`
+    : "—";
 
   if (disconnected) {
     next.mediaDisconnectedSince = previous.mediaDisconnectedSince || now;
@@ -8417,6 +8476,7 @@ function startCallHealthMonitor() {
     bytesSent: 0,
     packetsReceived: 0,
     packetsLost: 0,
+    packetsSent: 0,
     statsFailures: 0,
     quality: "unknown",
     latencyMs: null,
@@ -8424,6 +8484,13 @@ function startCallHealthMonitor() {
     lossRatio: 0,
     bitrateKbps: 0,
     outgoingBitrateKbps: 0,
+    connectionState: "Connecting",
+    iceState: "Checking",
+    incomingCodec: "—",
+    outgoingCodec: "—",
+    mediaKinds: [],
+    playoutDelayMs: null,
+    videoInfo: "—",
   };
   callHealthHistory.length = 0;
   setCallHealthUi({ quality: "unknown", visible: callState.status === "active" });
