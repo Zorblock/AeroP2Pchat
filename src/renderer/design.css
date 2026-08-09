@@ -240,7 +240,8 @@ body.app-boot-finish .window-frame {
 /* Custom titlebar */
 .titlebar {
   position: relative;
-  z-index: 50;
+  /* Keep the native drag region reachable while any modal overlay is open. */
+  z-index: 600;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
