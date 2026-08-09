@@ -3790,10 +3790,21 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
 }
+.appearance-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .appearance-settings-heading h4 {
   margin: 0;
   color: var(--text);
   font-size: 11px;
+}
+.compact-settings-button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 10px;
 }
 .appearance-layout-options {
   display: grid;
@@ -3863,7 +3874,8 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   color: var(--text-soft);
   font-size: 11px;
 }
-.custom-sound-action-button {
+.custom-sound-action-button,
+.custom-wallpaper-action-button {
   display: inline-flex;
   min-height: 32px;
   align-items: center;
@@ -3882,21 +3894,25 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   transform: none !important;
   transition: background-color 0.12s ease, color 0.12s ease;
 }
-.custom-sound-action-button:hover:not(:disabled) {
+.custom-sound-action-button:hover:not(:disabled),
+.custom-wallpaper-action-button:hover:not(:disabled) {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   transform: none !important;
 }
-.custom-sound-action-button:active:not(:disabled) {
+.custom-sound-action-button:active:not(:disabled),
+.custom-wallpaper-action-button:active:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
   transform: none !important;
 }
-.custom-sound-action-button:focus-visible {
+.custom-sound-action-button:focus-visible,
+.custom-wallpaper-action-button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 }
-.custom-sound-action-button:disabled {
+.custom-sound-action-button:disabled,
+.custom-wallpaper-action-button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
@@ -3997,11 +4013,13 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-color: var(--line-accent);
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
-.custom-sound-list {
+.custom-sound-list,
+.custom-wallpaper-list {
   display: grid;
   gap: 7px;
 }
-.custom-sound-row {
+.custom-sound-row,
+.custom-wallpaper-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -4012,30 +4030,35 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   border-radius: var(--radius-md);
   background: var(--surface);
 }
-.custom-sound-row-info {
+.custom-sound-row-info,
+.custom-wallpaper-row-info {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
-.custom-sound-row-info strong {
+.custom-sound-row-info strong,
+.custom-wallpaper-row-info strong {
   overflow: hidden;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.custom-sound-row-info span {
+.custom-sound-row-info span,
+.custom-wallpaper-row-info span {
   overflow: hidden;
   color: var(--text-soft);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.custom-sound-row-actions {
+.custom-sound-row-actions,
+.custom-wallpaper-row-actions {
   display: flex;
   align-items: center;
   gap: 5px;
 }
-.custom-sound-row-actions .custom-sound-action-button {
+.custom-sound-row-actions .custom-sound-action-button,
+.custom-wallpaper-row-actions .custom-wallpaper-action-button {
   min-height: 30px;
   padding: 0 8px;
   font-size: 11px;
@@ -4086,7 +4109,8 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   outline: none;
   box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 }
-.custom-sound-row.is-custom {
+.custom-sound-row.is-custom,
+.custom-wallpaper-row.is-custom {
   border-color: var(--line-accent);
   background: color-mix(in srgb, var(--accent-soft) 32%, var(--surface));
 }

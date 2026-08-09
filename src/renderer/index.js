@@ -332,6 +332,14 @@ const customSoundWaveformEndHandle = document.querySelector(
 const customSoundNormalize = document.querySelector("#custom-sound-normalize");
 const customSoundStatus = document.querySelector("#custom-sound-status");
 const customSoundFileInput = document.querySelector("#custom-sound-file-input");
+const customWallpaperList = document.querySelector("#custom-wallpaper-list");
+const customWallpaperFileInput = document.querySelector("#custom-wallpaper-file-input");
+const openCustomWallpapersFolderButton = document.querySelector(
+  "#open-custom-wallpapers-folder",
+);
+const wallpaperAccentTintToggle = document.querySelector(
+  "#wallpaper-accent-tint-toggle",
+);
 const contactNicknameList = document.querySelector("#contact-nickname-list");
 const blockedList = document.querySelector("#blocked-list");
 const appMenu = document.querySelector("#app-menu");
@@ -483,6 +491,9 @@ const DEFAULT_THEME = systemThemeQuery.matches
 const appearanceAccentStyle = document.createElement("style");
 appearanceAccentStyle.id = "appearance-accent-style";
 document.head.append(appearanceAccentStyle);
+const customWallpaperStyle = document.createElement("style");
+customWallpaperStyle.id = "custom-wallpaper-style";
+document.head.append(customWallpaperStyle);
 const customThemeStyle = document.createElement("style");
 customThemeStyle.id = "custom-theme-style";
 document.head.append(customThemeStyle);
@@ -538,6 +549,11 @@ const ringtoneAudio = new Audio("sound/ringtone.ogg");
 const CUSTOM_SOUND_MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 const CUSTOM_SOUND_MAX_DURATION_SECONDS = 300;
 const CUSTOM_SOUND_BITRATE = 160_000;
+const CUSTOM_WALLPAPER_IDS = ["light", "dark", "both"];
+const CUSTOM_WALLPAPER_MAX_SOURCE_BYTES = 20 * 1024 * 1024;
+const CUSTOM_WALLPAPER_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
+const CUSTOM_WALLPAPER_MAX_PIXELS = 4_194_304;
+const CUSTOM_WALLPAPER_MAX_DIMENSION = 2560;
 const customSoundDefinitions = {
   message: { label: "Message", audio: messageAudio, source: "sound/message.ogg" },
   ringtone: { label: "Incoming call ringtone", audio: ringtoneAudio, source: "sound/ringtone.ogg" },
@@ -547,6 +563,8 @@ const customSoundDefinitions = {
 };
 const customSoundObjectUrls = new Map();
 const customSoundAvailability = new Map();
+const customWallpaperObjectUrls = new Map();
+const customWallpaperAvailability = new Map();
 let customSoundEditor = null;
 let customSoundWaveformDrag = "";
 let customSoundWaveformFrame = 0;
@@ -1266,6 +1284,7 @@ normalizeAppSettings();
 applyAppearancePreferences();
 void refreshSystemAccentColor();
 void applyAllCustomSounds();
+void applyAllCustomWallpapers();
 const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
@@ -1868,6 +1887,33 @@ function normalizeCustomSounds(customSounds) {
   );
 }
 
+function normalizeCustomWallpapers(customWallpapers) {
+  if (!customWallpapers || typeof customWallpapers !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(customWallpapers)
+      .filter(
+        ([wallpaperId, value]) =>
+          CUSTOM_WALLPAPER_IDS.includes(wallpaperId) && value && typeof value === "object",
+      )
+      .map(([wallpaperId, value]) => [
+        wallpaperId,
+        {
+          name: String(value.name || "Custom wallpaper").slice(0, 120),
+          width: Number.isFinite(value.width)
+            ? Math.max(1, Math.min(CUSTOM_WALLPAPER_MAX_DIMENSION, Math.round(value.width)))
+            : 0,
+          height: Number.isFinite(value.height)
+            ? Math.max(1, Math.min(CUSTOM_WALLPAPER_MAX_DIMENSION, Math.round(value.height)))
+            : 0,
+          sha256: /^[a-f0-9]{64}$/i.test(value.sha256 || "")
+            ? String(value.sha256).toLowerCase()
+            : "",
+          updatedAt: typeof value.updatedAt === "string" ? value.updatedAt.slice(0, 40) : "",
+        },
+      ]),
+  );
+}
+
 function normalizeAppSettings() {
   if (!appConfig.appSettings || typeof appConfig.appSettings !== "object") {
     appConfig.appSettings = {};
@@ -1972,6 +2018,10 @@ function normalizeAppSettings() {
     callEvents: appConfig.soundSettings.callEvents !== false,
     connected: appConfig.soundSettings.connected !== false,
     custom: normalizeCustomSounds(appConfig.soundSettings.custom),
+  };
+  appConfig.wallpaperSettings = {
+    tintWithAccent: appConfig.wallpaperSettings?.tintWithAccent === true,
+    custom: normalizeCustomWallpapers(appConfig.wallpaperSettings?.custom),
   };
 
   if (!appConfig.appSettings.autostart) {
@@ -2487,6 +2537,7 @@ function renderAppSettings() {
     .closest(".settings-check")
     ?.classList.toggle("disabled", ringtoneLoopToggle.disabled);
   renderCustomSoundList();
+  renderCustomWallpaperList();
 
   renderWelcomeSettings();
   syncPresenceStatusIndicator();
@@ -3514,6 +3565,259 @@ async function removeCustomSound(soundId) {
   resetCustomSoundAudio(soundId);
   await saveAppConfig();
   renderCustomSoundList();
+}
+
+function getCustomWallpaperMetadata(wallpaperId) {
+  normalizeAppSettings();
+  return appConfig.wallpaperSettings.custom[wallpaperId] || null;
+}
+
+function resetCustomWallpaper(wallpaperId) {
+  const objectUrl = customWallpaperObjectUrls.get(wallpaperId);
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+  customWallpaperObjectUrls.delete(wallpaperId);
+}
+
+async function isUsableCustomWallpaper(data) {
+  const blob = new Blob([data], { type: "image/webp" });
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+    await image.decode();
+    return image.naturalWidth > 0 && image.naturalHeight > 0;
+  } catch {
+    return false;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function applyCustomWallpaperStyle() {
+  const lightUrl =
+    customWallpaperObjectUrls.get("light") || customWallpaperObjectUrls.get("both");
+  const darkUrl =
+    customWallpaperObjectUrls.get("dark") || customWallpaperObjectUrls.get("both");
+  const tint = appConfig.wallpaperSettings?.tintWithAccent === true;
+  document.body.classList.toggle("has-custom-wallpaper-light", Boolean(lightUrl));
+  document.body.classList.toggle("has-custom-wallpaper-dark", Boolean(darkUrl));
+
+  const buildRule = (selector, imageUrl) => {
+    if (!imageUrl) return "";
+    const layers = tint
+      ? `linear-gradient(var(--accent), var(--accent)), url("${imageUrl}")`
+      : `url("${imageUrl}")`;
+    return `${selector}{background-image:${layers};background-blend-mode:${tint ? "hue,normal" : "normal"};}`;
+  };
+  customWallpaperStyle.textContent = [
+    buildRule(
+      "body.chat-wallpaper-ready.has-custom-wallpaper-light .messages",
+      lightUrl,
+    ),
+    buildRule(
+      "html[data-theme=\"dark\"] body.chat-wallpaper-ready.has-custom-wallpaper-dark .messages,body[data-theme=\"dark\"].chat-wallpaper-ready.has-custom-wallpaper-dark .messages",
+      darkUrl,
+    ),
+  ].join("");
+}
+
+async function applyCustomWallpaper(wallpaperId) {
+  const metadata = getCustomWallpaperMetadata(wallpaperId);
+  if (!platformApi.supportsCustomWallpapers || !metadata?.sha256) {
+    customWallpaperAvailability.delete(wallpaperId);
+    resetCustomWallpaper(wallpaperId);
+    return false;
+  }
+  const result = await platformApi.loadCustomWallpaper(wallpaperId);
+  if (!result?.ok || metadata.sha256 !== await getCustomSoundSha256(result.data)) {
+    customWallpaperAvailability.set(
+      wallpaperId,
+      result?.missing ? "missing" : "invalid",
+    );
+    resetCustomWallpaper(wallpaperId);
+    return false;
+  }
+  if (!(await isUsableCustomWallpaper(result.data))) {
+    customWallpaperAvailability.set(wallpaperId, "invalid");
+    resetCustomWallpaper(wallpaperId);
+    return false;
+  }
+  resetCustomWallpaper(wallpaperId);
+  customWallpaperObjectUrls.set(
+    wallpaperId,
+    URL.createObjectURL(new Blob([result.data], { type: "image/webp" })),
+  );
+  customWallpaperAvailability.set(wallpaperId, "valid");
+  return true;
+}
+
+async function applyAllCustomWallpapers() {
+  await Promise.all(
+    CUSTOM_WALLPAPER_IDS.map((wallpaperId) =>
+      applyCustomWallpaper(wallpaperId).catch(() => {
+        customWallpaperAvailability.set(wallpaperId, "invalid");
+        resetCustomWallpaper(wallpaperId);
+      }),
+    ),
+  );
+  applyCustomWallpaperStyle();
+  renderCustomWallpaperList();
+}
+
+function renderCustomWallpaperList() {
+  if (!customWallpaperList) return;
+  const supported = platformApi.supportsCustomWallpapers;
+  openCustomWallpapersFolderButton.disabled = !supported;
+  openCustomWallpapersFolderButton.classList.toggle("hidden", !supported);
+  wallpaperAccentTintToggle.checked =
+    appConfig.wallpaperSettings?.tintWithAccent === true;
+  wallpaperAccentTintToggle.disabled = !supported;
+  customWallpaperList.replaceChildren();
+
+  if (!supported) {
+    const unavailable = document.createElement("span");
+    unavailable.className = "settings-help";
+    unavailable.textContent = "Custom wallpapers are available in the desktop app.";
+    customWallpaperList.append(unavailable);
+    return;
+  }
+
+  const labels = {
+    light: "Light mode",
+    dark: "Dark mode",
+    both: "Both modes",
+  };
+  for (const wallpaperId of CUSTOM_WALLPAPER_IDS) {
+    const metadata = getCustomWallpaperMetadata(wallpaperId);
+    const availability = metadata
+      ? customWallpaperAvailability.get(wallpaperId) || "checking"
+      : "";
+    const row = document.createElement("div");
+    row.className = "custom-wallpaper-row";
+    row.classList.toggle("is-custom", availability === "valid");
+    const info = document.createElement("div");
+    info.className = "custom-wallpaper-row-info";
+    const title = document.createElement("strong");
+    title.textContent = labels[wallpaperId];
+    const detail = document.createElement("span");
+    detail.textContent = metadata
+      ? availability === "valid"
+        ? `Custom: ${metadata.name}${metadata.width && metadata.height ? ` · ${metadata.width}×${metadata.height}` : ""}`
+        : availability === "missing"
+          ? "File missing · built-in wallpaper is active"
+          : availability === "invalid"
+            ? "Integrity check failed · built-in wallpaper is active"
+            : "Checking custom wallpaper…"
+      : wallpaperId === "both"
+        ? "Used when a theme-specific wallpaper is not set"
+        : "Built-in wallpaper";
+    info.append(title, detail);
+    const actions = document.createElement("div");
+    actions.className = "custom-wallpaper-row-actions";
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "custom-wallpaper-action-button";
+    add.textContent = metadata ? "Replace" : "Add custom";
+    add.addEventListener("click", () => {
+      customWallpaperFileInput.dataset.wallpaperId = wallpaperId;
+      customWallpaperFileInput.click();
+    });
+    actions.append(add);
+    if (metadata) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "custom-wallpaper-action-button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => {
+        void removeCustomWallpaper(wallpaperId);
+      });
+      actions.append(remove);
+    }
+    row.append(info, actions);
+    customWallpaperList.append(row);
+  }
+}
+
+async function encodeCustomWallpaper(file) {
+  if (!file || file.size > CUSTOM_WALLPAPER_MAX_SOURCE_BYTES) {
+    throw new Error("Choose an image smaller than 20 MB.");
+  }
+  if (!/^image\/(png|jpeg|webp)$/i.test(file.type || "")) {
+    throw new Error("Choose a PNG, JPG, or WebP image.");
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(
+      1,
+      CUSTOM_WALLPAPER_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height),
+      Math.sqrt(CUSTOM_WALLPAPER_MAX_PIXELS / (bitmap.width * bitmap.height)),
+    );
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("Image conversion is unavailable.");
+    context.drawImage(bitmap, 0, 0, width, height);
+    const webp = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.86),
+    );
+    if (!webp || webp.size > CUSTOM_WALLPAPER_MAX_OUTPUT_BYTES) {
+      throw new Error("The optimized wallpaper is too large.");
+    }
+    return { data: new Uint8Array(await webp.arrayBuffer()), width, height };
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function saveCustomWallpaper(wallpaperId, file) {
+  if (!CUSTOM_WALLPAPER_IDS.includes(wallpaperId) || !file) return;
+  try {
+    const encoded = await encodeCustomWallpaper(file);
+    const result = await platformApi.saveCustomWallpaper(wallpaperId, encoded.data);
+    if (!result?.ok) throw new Error(result?.error || "Wallpaper could not be saved.");
+    appConfig.wallpaperSettings.custom[wallpaperId] = {
+      name: file.name || "Custom wallpaper",
+      width: encoded.width,
+      height: encoded.height,
+      sha256: await getCustomSoundSha256(encoded.data),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveAppConfig();
+    await applyCustomWallpaper(wallpaperId);
+    applyCustomWallpaperStyle();
+    renderCustomWallpaperList();
+  } catch (error) {
+    await showAppDialog({
+      title: "Wallpaper could not be added",
+      message: error?.message || "Choose another image.",
+      confirmText: "OK",
+      cancelText: "Close",
+    });
+  } finally {
+    customWallpaperFileInput.value = "";
+  }
+}
+
+async function removeCustomWallpaper(wallpaperId) {
+  const confirmed = await showAppDialog({
+    title: "Remove custom wallpaper?",
+    message: "Aero will use the built-in wallpaper again.",
+    confirmText: "Remove",
+    cancelText: "Cancel",
+    danger: true,
+  });
+  if (!confirmed) return;
+  const result = await platformApi.deleteCustomWallpaper(wallpaperId);
+  if (!result?.ok) return;
+  delete appConfig.wallpaperSettings.custom[wallpaperId];
+  customWallpaperAvailability.delete(wallpaperId);
+  resetCustomWallpaper(wallpaperId);
+  await saveAppConfig();
+  applyCustomWallpaperStyle();
+  renderCustomWallpaperList();
 }
 
 function findContact(id) {
@@ -11480,6 +11784,22 @@ connectedSoundToggle.addEventListener("change", () => {
 
 openCustomSoundsFolderButton.addEventListener("click", () => {
   platformApi.openCustomSoundsFolder().catch(() => {});
+});
+
+openCustomWallpapersFolderButton.addEventListener("click", () => {
+  platformApi.openCustomWallpapersFolder().catch(() => {});
+});
+
+wallpaperAccentTintToggle.addEventListener("change", () => {
+  appConfig.wallpaperSettings.tintWithAccent = wallpaperAccentTintToggle.checked;
+  applyCustomWallpaperStyle();
+  void saveAppConfig();
+});
+
+customWallpaperFileInput.addEventListener("change", () => {
+  const [file] = customWallpaperFileInput.files || [];
+  const wallpaperId = customWallpaperFileInput.dataset.wallpaperId || "";
+  void saveCustomWallpaper(wallpaperId, file);
 });
 
 customSoundFileInput.addEventListener("change", () => {

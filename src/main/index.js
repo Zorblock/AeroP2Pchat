@@ -87,6 +87,9 @@ const themesDirectoryName = "Themes";
 const maxThemeFileSize = 2 * 1024 * 1024;
 const customSoundDirectoryName = "Sounds";
 const maxCustomSoundBytes = 25 * 1024 * 1024;
+const customWallpaperDirectoryName = "Wallpapers";
+const maxCustomWallpaperBytes = 8 * 1024 * 1024;
+const customWallpaperIds = new Set(["light", "dark", "both"]);
 const customSoundIds = new Set([
   "message",
   "ringtone",
@@ -229,6 +232,16 @@ function getCustomSoundPath(soundId) {
     : "";
 }
 
+function getCustomWallpapersPath() {
+  return join(app.getPath("userData"), customWallpaperDirectoryName);
+}
+
+function getCustomWallpaperPath(wallpaperId) {
+  return customWallpaperIds.has(wallpaperId)
+    ? join(getCustomWallpapersPath(), `${wallpaperId}.webp`)
+    : "";
+}
+
 function isCustomSoundRequest(event) {
   return BrowserWindow.fromWebContents(event.sender) === mainWindow;
 }
@@ -247,6 +260,15 @@ function isOggOpus(buffer) {
     buffer.length >= 32 &&
     buffer.subarray(0, 4).equals(Buffer.from("OggS")) &&
     buffer.subarray(0, 128).includes(Buffer.from("OpusHead"))
+  );
+}
+
+function isWebpImage(buffer) {
+  return (
+    Buffer.isBuffer(buffer) &&
+    buffer.length >= 16 &&
+    buffer.subarray(0, 4).equals(Buffer.from("RIFF")) &&
+    buffer.subarray(8, 12).equals(Buffer.from("WEBP"))
   );
 }
 
@@ -2194,6 +2216,77 @@ app.whenReady().then(async () => {
       return error ? { ok: false, error } : { ok: true };
     } catch (error) {
       return { ok: false, error: error?.message || "Folder could not be opened." };
+    }
+  });
+  ipcMain.handle("save-custom-wallpaper", async (event, wallpaperId, data) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized wallpaper request." };
+    }
+    const targetPath = getCustomWallpaperPath(String(wallpaperId || ""));
+    const buffer = toCustomSoundBuffer(data);
+    if (
+      !targetPath ||
+      !buffer ||
+      buffer.length < 16 ||
+      buffer.length > maxCustomWallpaperBytes ||
+      !isWebpImage(buffer)
+    ) {
+      return { ok: false, error: "Wallpaper must be an optimized WebP image." };
+    }
+    try {
+      await mkdir(getCustomWallpapersPath(), { recursive: true });
+      const temporaryPath = `${targetPath}.${process.pid}.tmp`;
+      await writeFile(temporaryPath, buffer);
+      await rename(temporaryPath, targetPath);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Wallpaper could not be saved." };
+    }
+  });
+  ipcMain.handle("load-custom-wallpaper", async (event, wallpaperId) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized wallpaper request." };
+    }
+    const targetPath = getCustomWallpaperPath(String(wallpaperId || ""));
+    if (!targetPath) return { ok: false, error: "Unknown wallpaper." };
+    try {
+      const buffer = await readFile(targetPath);
+      if (
+        buffer.length < 16 ||
+        buffer.length > maxCustomWallpaperBytes ||
+        !isWebpImage(buffer)
+      ) {
+        return { ok: false, error: "Stored wallpaper is invalid." };
+      }
+      return { ok: true, data: buffer };
+    } catch {
+      return { ok: false, missing: true };
+    }
+  });
+  ipcMain.handle("delete-custom-wallpaper", async (event, wallpaperId) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized wallpaper request." };
+    }
+    const targetPath = getCustomWallpaperPath(String(wallpaperId || ""));
+    if (!targetPath) return { ok: false, error: "Unknown wallpaper." };
+    try {
+      await rm(targetPath, { force: true });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Wallpaper could not be removed." };
+    }
+  });
+  ipcMain.handle("open-custom-wallpapers-folder", async (event) => {
+    if (!isCustomSoundRequest(event)) {
+      return { ok: false, error: "Unauthorized wallpaper request." };
+    }
+    try {
+      const directory = getCustomWallpapersPath();
+      await mkdir(directory, { recursive: true });
+      const error = await shell.openPath(directory);
+      return error ? { ok: false, error } : { ok: true };
+    } catch (error) {
+      return { ok: false, error: error?.message || "Wallpaper folder could not be opened." };
     }
   });
   ipcMain.handle("fetch-online-theme", async (_event, url) => {

@@ -155,6 +155,7 @@ export function createPlatformApi() {
     supportsNativeUpdateInstall: platform === "win32" && !isWindowsStore,
     supportsDesktopScreenSources: isElectron,
     supportsCustomSounds: isElectron,
+    supportsCustomWallpapers: isElectron,
 
     async loadConfig() {
       if (electron?.loadConfig) {
@@ -243,6 +244,34 @@ export function createPlatformApi() {
         return { ok: false, unsupported: true };
       }
       return electron.openCustomSoundsFolder();
+    },
+
+    async saveCustomWallpaper(wallpaperId, data) {
+      if (!electron?.saveCustomWallpaper) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.saveCustomWallpaper(wallpaperId, data);
+    },
+
+    async loadCustomWallpaper(wallpaperId) {
+      if (!electron?.loadCustomWallpaper) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.loadCustomWallpaper(wallpaperId);
+    },
+
+    async deleteCustomWallpaper(wallpaperId) {
+      if (!electron?.deleteCustomWallpaper) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.deleteCustomWallpaper(wallpaperId);
+    },
+
+    async openCustomWallpapersFolder() {
+      if (!electron?.openCustomWallpapersFolder) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.openCustomWallpapersFolder();
     },
 
     async fetchOnlineTheme(url) {

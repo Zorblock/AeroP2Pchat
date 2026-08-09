@@ -58,6 +58,14 @@ contextBridge.exposeInMainWorld("aeroChat", {
   deleteCustomSound: (soundId) =>
     ipcRenderer.invoke("delete-custom-sound", soundId),
   openCustomSoundsFolder: () => ipcRenderer.invoke("open-custom-sounds-folder"),
+  saveCustomWallpaper: (wallpaperId, data) =>
+    ipcRenderer.invoke("save-custom-wallpaper", wallpaperId, data),
+  loadCustomWallpaper: (wallpaperId) =>
+    ipcRenderer.invoke("load-custom-wallpaper", wallpaperId),
+  deleteCustomWallpaper: (wallpaperId) =>
+    ipcRenderer.invoke("delete-custom-wallpaper", wallpaperId),
+  openCustomWallpapersFolder: () =>
+    ipcRenderer.invoke("open-custom-wallpapers-folder"),
   fetchOnlineTheme: (url) => ipcRenderer.invoke("fetch-online-theme", url),
   getScreenSources: () => ipcRenderer.invoke("get-screen-sources"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),

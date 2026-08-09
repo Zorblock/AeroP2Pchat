@@ -1185,6 +1185,12 @@
                   </div>
                 </div>
                 <div class="appearance-settings-group">
+                  <div class="appearance-settings-heading"><h4>Wallpapers</h4><button id="open-custom-wallpapers-folder" class="ghost-button compact-settings-button" type="button"><i class="fa-regular fa-folder-open" aria-hidden="true"></i>Folder</button></div>
+                  <p class="settings-help">Stored locally as optimized WebP.</p>
+                  <div id="custom-wallpaper-list" class="custom-wallpaper-list"></div>
+                  <label class="settings-check"><input id="wallpaper-accent-tint-toggle" type="checkbox" /><span>Tint custom wallpapers with accent color</span></label>
+                </div>
+                <div class="appearance-settings-group">
                   <div class="appearance-settings-heading"><h4>Accessibility</h4></div>
                   <label class="settings-check"><input id="reduce-motion-toggle" type="checkbox" /><span>Reduce animations</span></label>
                 </div>
@@ -1584,6 +1590,7 @@
       </section>
     </div>
     <input id="custom-sound-file-input" type="file" accept="audio/ogg,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/flac" hidden />
+    <input id="custom-wallpaper-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
 
     <div id="own-id-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="own-id-modal-title">
       <section class="modal-panel sidebar-action-modal">
