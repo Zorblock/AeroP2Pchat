@@ -23,6 +23,7 @@ const ownIdPrivacyToggle = document.querySelector("#toggle-own-id-privacy");
 const copyId = document.querySelector("#copy-id");
 const connectForm = document.querySelector("#connect-form");
 const remoteIdInput = document.querySelector("#remote-id");
+const remoteIdPrivacyToggle = document.querySelector("#toggle-remote-id-privacy");
 const connectButton = document.querySelector("#connect-button");
 const ownIdModal = document.querySelector("#own-id-modal");
 const connectModal = document.querySelector("#connect-modal");
@@ -31,6 +32,7 @@ const connectModalMount = document.querySelector("#connect-modal-mount");
 const openOwnIdModalButton = document.querySelector("#open-own-id-modal");
 const openConnectModalButton = document.querySelector("#open-connect-modal");
 let isOwnIdBlurred = true;
+let isRemoteIdBlurred = true;
 const sidebarIdCard = document.querySelector(".connection-panel .id-card");
 const sidebarConnectForm = document.querySelector(".connection-panel .connect-form");
 if (ownIdModalMount && sidebarIdCard) ownIdModalMount.append(sidebarIdCard);
@@ -2459,6 +2461,16 @@ function renderOwnIdPrivacy() {
   ownIdPrivacyToggle.setAttribute("aria-label", toggleLabel);
   ownIdPrivacyToggle.title = toggleLabel;
   ownIdPrivacyToggle.querySelector("i").className = isOwnIdBlurred
+    ? "fa-regular fa-eye-slash"
+    : "fa-regular fa-eye";
+}
+
+function renderRemoteIdPrivacy() {
+  remoteIdInput.classList.toggle("is-private", isRemoteIdBlurred);
+  const label = isRemoteIdBlurred ? "Show Aero ID" : "Blur Aero ID";
+  remoteIdPrivacyToggle.setAttribute("aria-label", label);
+  remoteIdPrivacyToggle.title = label;
+  remoteIdPrivacyToggle.querySelector("i").className = isRemoteIdBlurred
     ? "fa-regular fa-eye-slash"
     : "fa-regular fa-eye";
 }
@@ -11778,6 +11790,11 @@ ownIdPrivacyToggle.addEventListener("click", () => {
   renderOwnIdPrivacy();
 });
 
+remoteIdPrivacyToggle.addEventListener("click", () => {
+  isRemoteIdBlurred = !isRemoteIdBlurred;
+  renderRemoteIdPrivacy();
+});
+
 connectForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (
@@ -13025,6 +13042,8 @@ openOwnIdModalButton?.addEventListener("click", () => {
   ownIdModal?.classList.remove("hidden");
 });
 openConnectModalButton?.addEventListener("click", () => {
+  isRemoteIdBlurred = true;
+  renderRemoteIdPrivacy();
   connectModal?.classList.remove("hidden");
   document.querySelector("#remote-id")?.focus();
 });
