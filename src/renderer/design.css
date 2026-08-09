@@ -4172,6 +4172,13 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   flex-wrap: wrap;
   gap: 8px 10px;
 }
+#check-updates-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
+}
 .update-settings-check-row .settings-help {
   margin: 0;
 }
