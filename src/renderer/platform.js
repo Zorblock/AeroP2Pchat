@@ -192,6 +192,10 @@ export function createPlatformApi() {
       return { color: "" };
     },
 
+    onSystemAccentColorChanged(callback) {
+      return electron?.onSystemAccentColorChanged?.(callback) || null;
+    },
+
     async listThemes() {
       if (electron?.listThemes) {
         return electron.listThemes();

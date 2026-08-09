@@ -42,6 +42,13 @@ contextBridge.exposeInMainWorld("aeroChat", {
   saveConfig: (config) => ipcRenderer.invoke("save-config", config),
   getConfigPath: () => ipcRenderer.invoke("get-config-path"),
   getSystemAccentColor: () => ipcRenderer.invoke("get-system-accent-color"),
+  onSystemAccentColorChanged: (callback) => {
+    const listener = (_event, color) => callback(color);
+    ipcRenderer.on("system-accent-color-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("system-accent-color-changed", listener);
+    };
+  },
   listThemes: () => ipcRenderer.invoke("list-themes"),
   openThemesFolder: () => ipcRenderer.invoke("open-themes-folder"),
   loadTheme: (fileName) => ipcRenderer.invoke("load-theme", fileName),

@@ -135,6 +135,13 @@ let delayedQuitTimer = null;
 const activeNotifications = new Map();
 let lastSystemDndCheck = { checkedAt: 0, enabled: false };
 
+function normalizeAccentColor(value) {
+  const color = String(value || "").trim().replace(/^#/, "");
+  return /^[0-9a-f]{6,8}$/i.test(color)
+    ? `#${color.slice(0, 6).toLowerCase()}`
+    : "";
+}
+
 function writeRuntimeLog(level, args) {
   if (!runtimeLogPath) return;
   try {
@@ -1949,10 +1956,8 @@ function createWindow({ hidden = false } = {}) {
     initialAccent = appConfig.appSettings.customAccentColor;
   } else if (savedAccent === "system") {
     try {
-      const systemAccent = systemPreferences.getAccentColor();
-      if (/^[0-9a-f]{6,8}$/i.test(systemAccent)) {
-        initialAccent = `#${systemAccent.slice(0, 6)}`;
-      }
+      const systemAccent = normalizeAccentColor(systemPreferences.getAccentColor());
+      if (systemAccent) initialAccent = systemAccent;
     } catch {
       // Some Linux desktop environments do not expose an accent color.
     }
@@ -2111,12 +2116,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("get-config-path", () => getConfigPath());
   ipcMain.handle("get-system-accent-color", () => {
     try {
-      const accent = systemPreferences.getAccentColor();
-      return {
-        color: /^[0-9a-f]{6,8}$/i.test(accent)
-          ? `#${accent.slice(0, 6)}`
-          : "",
-      };
+      return { color: normalizeAccentColor(systemPreferences.getAccentColor()) };
     } catch {
       return { color: "" };
     }
@@ -2298,6 +2298,12 @@ app.whenReady().then(async () => {
   });
   ipcMain.on("console-log", (event, msg) => {
     console.log("[Renderer Log]:", msg);
+  });
+  systemPreferences.on("accent-color-changed", (_event, color) => {
+    const accent = normalizeAccentColor(color);
+    if (accent && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("system-accent-color-changed", accent);
+    }
   });
   createWindow({ hidden: shouldStartHidden() });
 

@@ -2065,6 +2065,14 @@ if (typeof systemThemeQuery.addEventListener === "function") {
   systemThemeQuery.addListener(handleSystemThemeChange);
 }
 
+platformApi.onSystemAccentColorChanged?.((color) => {
+  if (!/^#[0-9a-f]{6}$/i.test(String(color || ""))) return;
+  systemAccentColor = color;
+  if (appConfig.appSettings?.accentColor === "system") {
+    applyAccentColor("system");
+  }
+});
+
 function renderCustomThemePicker() {
   if (!customThemeSelect || !customThemeDetails) return;
   openThemesFolderButton?.classList.toggle("hidden", !platformApi.isElectron);
