@@ -30,6 +30,7 @@ const ownIdModalMount = document.querySelector("#own-id-modal-mount");
 const connectModalMount = document.querySelector("#connect-modal-mount");
 const openOwnIdModalButton = document.querySelector("#open-own-id-modal");
 const openConnectModalButton = document.querySelector("#open-connect-modal");
+let isOwnIdBlurred = true;
 const sidebarIdCard = document.querySelector(".connection-panel .id-card");
 const sidebarConnectForm = document.querySelector(".connection-panel .connect-form");
 if (ownIdModalMount && sidebarIdCard) ownIdModalMount.append(sidebarIdCard);
@@ -1315,7 +1316,7 @@ setBootProgress(50, "Wallpaper ready");
 const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
-ownId.textContent = identity.id;
+setAeroIdText(ownId, identity.id);
   updateTitlebarLogo();
   normalizeAudioConfig();
 applySidebarWidth(appConfig.appSettings.sidebarWidth);
@@ -1946,6 +1947,10 @@ function normalizeAppSettings() {
     appConfig.appSettings = {};
   }
 
+  // The Aero ID is always blurred when its dialog opens. Older builds saved
+  // this transient display state, so drop it once it is encountered.
+  delete appConfig.appSettings.hideOwnId;
+
   appConfig.appSettings = {
     ...appConfig.appSettings,
     welcomeScreen: appConfig.appSettings.welcomeScreen !== false,
@@ -1978,7 +1983,6 @@ function normalizeAppSettings() {
     customAccentColor: /^#[0-9a-f]{6}$/i.test(appConfig.appSettings.customAccentColor)
       ? appConfig.appSettings.customAccentColor
       : "#147fa6",
-    hideOwnId: appConfig.appSettings.hideOwnId !== false,
     compactLayout: Boolean(appConfig.appSettings.compactLayout),
     messageDensity: ["comfortable", "compact"].includes(
       appConfig.appSettings.messageDensity,
@@ -2445,6 +2449,20 @@ async function detectWelcomeDevices() {
   }
 }
 
+function renderOwnIdPrivacy() {
+  ownId.classList.toggle("is-private", isOwnIdBlurred);
+  ownId.setAttribute(
+    "aria-label",
+    isOwnIdBlurred ? "Aero ID blurred" : "Your Aero ID",
+  );
+  const toggleLabel = isOwnIdBlurred ? "Show Aero ID" : "Blur Aero ID";
+  ownIdPrivacyToggle.setAttribute("aria-label", toggleLabel);
+  ownIdPrivacyToggle.title = toggleLabel;
+  ownIdPrivacyToggle.querySelector("i").className = isOwnIdBlurred
+    ? "fa-regular fa-eye-slash"
+    : "fa-regular fa-eye";
+}
+
 function renderAppSettings() {
   normalizeAppSettings();
   if (!platformApi.supportsAutostart) {
@@ -2455,17 +2473,7 @@ function renderAppSettings() {
     appConfig.appSettings.closeToTray = false;
   }
   applyAppearancePreferences();
-  const ownIdHidden = Boolean(appConfig.appSettings.hideOwnId);
-  ownId.classList.toggle("is-private", ownIdHidden);
-  ownId.setAttribute("aria-label", ownIdHidden ? "Aero ID hidden" : "Your Aero ID");
-  ownIdPrivacyToggle.setAttribute(
-    "aria-label",
-    ownIdHidden ? "Show Aero ID" : "Hide Aero ID",
-  );
-  ownIdPrivacyToggle.title = ownIdPrivacyToggle.getAttribute("aria-label");
-  ownIdPrivacyToggle.querySelector("i").className = ownIdHidden
-    ? "fa-regular fa-eye-slash"
-    : "fa-regular fa-eye";
+  renderOwnIdPrivacy();
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
   updateTitlebarPresenceIndicator();
@@ -4121,6 +4129,61 @@ function renderIcon(className) {
   return icon;
 }
 
+function setAeroIdText(element, value) {
+  const text = element?.querySelector(".aero-id-text");
+  if (text) {
+    text.textContent = value;
+  } else if (element) {
+    element.textContent = value;
+  }
+}
+
+function createAeroIdReveal(
+  value,
+  { compact = false, inlineToggle = false } = {},
+) {
+  const display = document.createElement("span");
+  display.className = `aero-id-reveal${compact ? " compact" : ""}`;
+
+  const id = document.createElement("code");
+  id.className = "aero-id-value is-private";
+  id.setAttribute("aria-label", "Aero ID blurred");
+  const text = document.createElement("span");
+  text.className = "aero-id-text";
+  text.textContent = value;
+  id.append(text);
+
+  const toggle = document.createElement(inlineToggle ? "span" : "button");
+  if (!inlineToggle) toggle.type = "button";
+  toggle.className = "aero-id-privacy-toggle";
+  toggle.title = "Show Aero ID";
+  toggle.setAttribute("aria-label", "Show Aero ID");
+  toggle.append(renderIcon("fa-regular fa-eye-slash"));
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const blurred = id.classList.toggle("is-private");
+    const label = blurred ? "Show Aero ID" : "Blur Aero ID";
+    id.setAttribute("aria-label", blurred ? "Aero ID blurred" : "Aero ID");
+    toggle.title = label;
+    toggle.setAttribute("aria-label", label);
+    toggle.querySelector("i").className = blurred
+      ? "fa-regular fa-eye-slash"
+      : "fa-regular fa-eye";
+  });
+
+  display.append(id, toggle);
+  return display;
+}
+
+function setAeroIdOrLabel(element, value) {
+  if (isValidAeroId(value)) {
+    element.replaceChildren(createAeroIdReveal(value));
+  } else {
+    element.textContent = value;
+  }
+}
+
 function createBadge(iconClass, title, state = "") {
   const badge = document.createElement("span");
   badge.className = `contact-badge ${state}`.trim();
@@ -4145,13 +4208,21 @@ function applyNameAppearance(element, style) {
   }
 }
 
-function createContactIdentityLabel(labelText, style) {
+function createContactIdentityLabel(labelText, style, suffix = "") {
   const identityLabel = document.createElement("span");
   identityLabel.className = "contact-identity";
 
+  if (isValidAeroId(labelText)) {
+    identityLabel.append(
+      createAeroIdReveal(labelText, { compact: true, inlineToggle: true }),
+    );
+    if (suffix) identityLabel.append(document.createTextNode(suffix));
+    return identityLabel;
+  }
+
   const label = document.createElement("span");
   label.className = "contact-label";
-  label.textContent = labelText;
+  label.textContent = `${labelText}${suffix}`;
   if (style) {
     applyNameAppearance(label, style);
   }
@@ -7451,7 +7522,7 @@ function refreshCallUi() {
   if (callState.status === "incoming" && incomingCallName) {
     const identityId = getPeerIdentityId(callState.peerId);
     const label = getActiveCallLabel() || "Peer";
-    incomingCallName.textContent = label;
+    setAeroIdOrLabel(incomingCallName, label);
     applyNameAppearance(
       incomingCallName,
       getPeerNameStyle(callState.peerId, identityId),
@@ -7473,7 +7544,10 @@ function refreshCallUi() {
 
   callBanner.classList.remove("hidden");
   const label = getActiveCallLabel() || "Peer";
-  callPeerName.textContent = callState.status === "active" ? "" : label;
+  setAeroIdOrLabel(
+    callPeerName,
+    callState.status === "active" ? "" : label,
+  );
   applyNameAppearance(
     callPeerName,
     getPeerNameStyle(callState.peerId, getPeerIdentityId(callState.peerId)),
@@ -10570,11 +10644,12 @@ function refreshPeers() {
           waiting: true,
         }),
       );
-    const label = document.createElement("span");
-    label.className = "contact-label";
-    label.textContent = peerLabel;
-    applyNameAppearance(label, getPeerNameStyle(peerId, identityId));
-    waiting.append(label);
+    waiting.append(
+      createContactIdentityLabel(
+        peerLabel,
+        getPeerNameStyle(peerId, identityId),
+      ),
+    );
     waiting.setAttribute("aria-disabled", "true");
     waiting.addEventListener("contextmenu", (event) => {
       openContactMenu(event, getPeerIdentityId(peerId, entry.conn));
@@ -10606,8 +10681,9 @@ function refreshPeers() {
     );
     button.append(
       createContactIdentityLabel(
-        conn.open ? peerLabel : `${peerLabel} ...`,
+        peerLabel,
         getPeerNameStyle(peerId, identityId),
+        conn.open ? "" : " ...",
       ),
     );
     const unread = unreadCounts.get(peerId) || 0;
@@ -10650,9 +10726,10 @@ function refreshPeers() {
 
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
   const canChat = Boolean(activeConn?.open && !isNetworkOffline());
-  chatTitle.textContent = activePeerId
-    ? getPeerLabel(activePeerId, activeConn)
-    : "No active chat";
+  setAeroIdOrLabel(
+    chatTitle,
+    activePeerId ? getPeerLabel(activePeerId, activeConn) : "No active chat",
+  );
   applyNameAppearance(
     chatTitle,
     activePeerId
@@ -11187,9 +11264,7 @@ function renderBlockedList() {
     details.className = "contact-nickname-details";
     const name = document.createElement("strong");
     name.textContent = contact.label;
-    const id = document.createElement("code");
-    id.textContent = contact.id;
-    details.append(name, id);
+    details.append(name, createAeroIdReveal(contact.id, { compact: true }));
 
     const unblock = document.createElement("button");
     unblock.type = "button";
@@ -11232,10 +11307,10 @@ function renderContactNicknameList() {
     const currentName = document.createElement("strong");
     currentName.textContent = contact.label;
 
-    const id = document.createElement("code");
-    id.textContent = contact.id;
-
-    details.append(currentName, id);
+    details.append(
+      currentName,
+      createAeroIdReveal(contact.id, { compact: true }),
+    );
 
     const editor = document.createElement("div");
     editor.className = "contact-nickname-editor";
@@ -11586,7 +11661,7 @@ function openSettings(focusContactId = "") {
 
 function createPeer() {
   if (!isSupportedDataChannel()) {
-    ownId.textContent = "unsupported";
+    setAeroIdText(ownId, "unsupported");
     setStatus("offline", "WebRTC DataChannels are not supported here.");
     addSystemMessage(`Unsupported WebRTC runtime: ${util.browser}`);
     return null;
@@ -11606,7 +11681,7 @@ function createPeer() {
       return;
     }
     myPeerId = id;
-    ownId.textContent = identity.id;
+    setAeroIdText(ownId, identity.id);
     setStatus("pending", "Aero ID ready. Share it with your chat partner.");
     updateConnectButton();
     if (isPresenceOffline()) {
@@ -11699,7 +11774,8 @@ copyId.addEventListener("click", async () => {
 });
 
 ownIdPrivacyToggle.addEventListener("click", () => {
-  saveAppSettings({ hideOwnId: !appConfig.appSettings.hideOwnId });
+  isOwnIdBlurred = !isOwnIdBlurred;
+  renderOwnIdPrivacy();
 });
 
 connectForm.addEventListener("submit", (event) => {
@@ -12943,7 +13019,11 @@ copyUpdateCommands.forEach((button) => {
 
 titlebarLogo.addEventListener("contextmenu", openAppMenu);
 
-openOwnIdModalButton?.addEventListener("click", () => ownIdModal?.classList.remove("hidden"));
+openOwnIdModalButton?.addEventListener("click", () => {
+  isOwnIdBlurred = true;
+  renderOwnIdPrivacy();
+  ownIdModal?.classList.remove("hidden");
+});
 openConnectModalButton?.addEventListener("click", () => {
   connectModal?.classList.remove("hidden");
   document.querySelector("#remote-id")?.focus();
@@ -12978,7 +13058,7 @@ function populateProfileSettings() {
   renderProfileNamePreviews();
   syncEnhancedSelect(profileAvatarDecoration);
   syncEnhancedSelect(profileNameFont);
-  profileId.textContent = identity.id;
+  profileId.replaceChildren(createAeroIdReveal(identity.id));
   renderProfileAvatarPreview();
 }
 

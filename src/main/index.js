@@ -488,7 +488,6 @@ function getDefaultAppSettings() {
     autoDownloadUpdates: false,
     showUpdateModal: true,
     readReceipts: true,
-    hideOwnId: true,
     sidebarWidth: defaultSidebarWidth,
     theme: "system",
     customTheme: "",
@@ -532,7 +531,6 @@ function normalizeConfig(config = {}) {
     autoDownloadUpdates: Boolean(settings.autoDownloadUpdates),
     showUpdateModal: settings.showUpdateModal !== false,
     readReceipts: settings.readReceipts !== false,
-    hideOwnId: Boolean(settings.hideOwnId),
     presenceStatus: ["online", "dnd", "offline"].includes(
       settings.presenceStatus,
     )
@@ -557,6 +555,10 @@ function normalizeConfig(config = {}) {
         )
       : defaultSidebarWidth,
   };
+
+  // This is a temporary dialog state, not a user preference. Remove the
+  // legacy persisted value when an existing configuration is next saved.
+  delete config.appSettings.hideOwnId;
 
   if (!config.appSettings.autostart) {
     config.appSettings.startHidden = false;

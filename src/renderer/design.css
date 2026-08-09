@@ -725,10 +725,53 @@ select.native-select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.id-row code.is-private {
-  color: transparent;
-  text-shadow: 0 0 7px color-mix(in srgb, var(--text-soft) 82%, transparent);
+.aero-id-text {
+  display: inline-block;
+}
+.is-private .aero-id-text {
+  filter: blur(4px);
+  opacity: 0.9;
+  transform: scaleX(1.04);
   user-select: none;
+}
+.aero-id-reveal {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+.aero-id-reveal.compact {
+  width: 100%;
+}
+.aero-id-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aero-id-reveal.compact .aero-id-value {
+  flex: 1 1 auto;
+}
+.aero-id-privacy-toggle {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 11px;
+}
+.aero-id-privacy-toggle:hover,
+.aero-id-privacy-toggle:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .aero-select-toggle > i {
   flex: 0 0 auto;
@@ -1332,6 +1375,12 @@ select.native-select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.profile-identity-copy .aero-id-reveal {
+  width: 100%;
+}
+.profile-identity-copy .aero-id-value {
+  flex: 1;
+}
 .profile-identity-copy span {
   color: var(--muted);
   font-size: 11px;
@@ -1616,6 +1665,12 @@ select.native-select {
 .contact-identity .contact-label {
   flex: 0 1 auto;
   grid-area: auto;
+}
+.contact-identity .aero-id-reveal {
+  flex: 1 1 auto;
+}
+.contact-identity .aero-id-privacy-toggle {
+  cursor: pointer;
 }
 .contact-menu-button,
 .contact-remove {
@@ -4896,6 +4951,18 @@ input[type="range"]:active::-webkit-slider-thumb {
   color: var(--muted);
   font-size: 9px;
 }
+.contact-nickname-details .aero-id-reveal {
+  max-width: 100%;
+}
+.contact-nickname-details .aero-id-value {
+  font-size: 9px;
+}
+.contact-nickname-details .aero-id-privacy-toggle {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 9px;
+}
 .contact-nickname-editor {
   display: flex;
   align-items: center;
@@ -5860,7 +5927,7 @@ body.platform-android .incoming-call-screen {
   color: var(--accent);
 }
 .sidebar-action-modal {
-  width: min(390px, calc(100vw - 32px));
+  width: min(620px, calc(100vw - 32px));
   padding: 16px;
 }
 .sidebar-action-modal .id-card,
@@ -5877,14 +5944,16 @@ body.platform-android .incoming-call-screen {
 }
 .sidebar-action-modal .id-row code {
   min-width: 0;
+  height: 44px;
   padding: 0 10px;
   overflow: hidden;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .sidebar-action-modal .id-row .icon-button {
   width: 34px;
-  height: 34px;
+  height: 44px;
 }
 .sidebar-action-modal .connect-row {
   display: grid;
