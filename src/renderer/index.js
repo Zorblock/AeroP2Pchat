@@ -367,6 +367,7 @@ const openCustomWallpapersFolderButton = document.querySelector(
 const wallpaperAccentTintToggle = document.querySelector(
   "#wallpaper-accent-tint-toggle",
 );
+const wallpaperEnabledToggle = document.querySelector("#wallpaper-enabled-toggle");
 const wallpaperBootToggle = document.querySelector("#wallpaper-boot-toggle");
 const contactNicknameList = document.querySelector("#contact-nickname-list");
 const blockedList = document.querySelector("#blocked-list");
@@ -2060,6 +2061,7 @@ function normalizeAppSettings() {
     custom: normalizeCustomSounds(appConfig.soundSettings.custom),
   };
   appConfig.wallpaperSettings = {
+    enabled: appConfig.wallpaperSettings?.enabled !== false,
     tintWithAccent: appConfig.wallpaperSettings?.tintWithAccent === true,
     useCustomDuringBoot: appConfig.wallpaperSettings?.useCustomDuringBoot !== false,
     custom: normalizeCustomWallpapers(appConfig.wallpaperSettings?.custom),
@@ -3688,13 +3690,17 @@ async function isUsableCustomWallpaper(data) {
 }
 
 function applyCustomWallpaperStyle() {
-  const lightUrl =
-    customWallpaperObjectUrls.get("light") || customWallpaperObjectUrls.get("both");
-  const darkUrl =
-    customWallpaperObjectUrls.get("dark") || customWallpaperObjectUrls.get("both");
+  const enabled = appConfig.wallpaperSettings?.enabled !== false;
+  const lightUrl = enabled
+    ? customWallpaperObjectUrls.get("light") || customWallpaperObjectUrls.get("both")
+    : "";
+  const darkUrl = enabled
+    ? customWallpaperObjectUrls.get("dark") || customWallpaperObjectUrls.get("both")
+    : "";
   const tint = appConfig.wallpaperSettings?.tintWithAccent === true;
   const useCustomDuringBoot =
     appConfig.wallpaperSettings?.useCustomDuringBoot !== false;
+  document.body.classList.toggle("wallpapers-disabled", !enabled);
   document.body.classList.toggle("has-custom-wallpaper-light", Boolean(lightUrl));
   document.body.classList.toggle("has-custom-wallpaper-dark", Boolean(darkUrl));
 
@@ -3777,6 +3783,7 @@ function renderCustomWallpaperList() {
   const supported = platformApi.supportsCustomWallpapers;
   openCustomWallpapersFolderButton.disabled = !supported;
   openCustomWallpapersFolderButton.classList.toggle("hidden", !supported);
+  wallpaperEnabledToggle.checked = appConfig.wallpaperSettings?.enabled !== false;
   wallpaperAccentTintToggle.checked =
     appConfig.wallpaperSettings?.tintWithAccent === true;
   wallpaperAccentTintToggle.disabled = !supported;
@@ -12631,6 +12638,12 @@ openCustomWallpapersFolderButton.addEventListener("click", () => {
 
 wallpaperAccentTintToggle.addEventListener("change", () => {
   appConfig.wallpaperSettings.tintWithAccent = wallpaperAccentTintToggle.checked;
+  applyCustomWallpaperStyle();
+  void saveAppConfig();
+});
+
+wallpaperEnabledToggle.addEventListener("change", () => {
+  appConfig.wallpaperSettings.enabled = wallpaperEnabledToggle.checked;
   applyCustomWallpaperStyle();
   void saveAppConfig();
 });

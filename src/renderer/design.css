@@ -2238,6 +2238,11 @@ body.chat-wallpaper-ready .messages {
   /* The white difference layer inverts only the wallpaper for the light theme. */
   background-blend-mode: normal, hue, difference, normal;
 }
+body.wallpapers-disabled .messages,
+body.wallpapers-disabled .boot-screen {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+}
 .messages.empty {
   align-items: center;
   justify-content: center;
