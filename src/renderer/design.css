@@ -2494,22 +2494,26 @@ body.reduce-motion *::after {
   flex: 0 0 auto;
   font-size: 12px;
 }
-.settings-search input {
+#settings-modal .settings-search > input[type="search"],
+#settings-modal .settings-search > input[type="search"]:focus,
+#settings-modal .settings-search > input[type="search"]:focus-visible {
   width: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
+  height: auto;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
   background: transparent;
-  box-shadow: none;
+  box-shadow: none !important;
   color: var(--text);
   font: inherit;
   font-size: 12px;
+  -webkit-appearance: none;
+  appearance: none;
 }
-.settings-search input:focus {
-  border-color: transparent;
-  outline: 0;
+#settings-modal .settings-search:focus-within {
+  border-color: var(--accent);
   box-shadow: none;
 }
 .settings-search input::placeholder {
