@@ -488,6 +488,7 @@ function getDefaultAppSettings() {
     autoDownloadUpdates: false,
     showUpdateModal: true,
     readReceipts: true,
+    feedbackEnabled: true,
     sidebarWidth: defaultSidebarWidth,
     theme: "system",
     customTheme: "",
@@ -531,6 +532,7 @@ function normalizeConfig(config = {}) {
     autoDownloadUpdates: Boolean(settings.autoDownloadUpdates),
     showUpdateModal: settings.showUpdateModal !== false,
     readReceipts: settings.readReceipts !== false,
+    feedbackEnabled: settings.feedbackEnabled !== false,
     presenceStatus: ["online", "dnd", "offline"].includes(
       settings.presenceStatus,
     )

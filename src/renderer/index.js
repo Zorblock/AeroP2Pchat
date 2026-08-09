@@ -47,6 +47,7 @@ const contactSearchInput = document.querySelector("#contact-search");
 const peerList = document.querySelector("#peer-list");
 const feedbackButton = document.querySelector("#feedback-button");
 const mobileFeedbackButton = document.querySelector("#feedback-button-mobile");
+const feedbackEnabledToggle = document.querySelector("#feedback-enabled-toggle");
 const chatTitle = document.querySelector("#chat-title");
 const chatActions = document.querySelector(".chat-actions");
 const callChat = document.querySelector("#call-chat");
@@ -977,6 +978,7 @@ const peerConnectionConfig = {
 };
 let appConfig = {};
 let configSaveQueue = Promise.resolve();
+let userJotLoadPromise = null;
 const enhancedSelects = new Map();
 
 async function loadAppConfig() {
@@ -1302,6 +1304,7 @@ if (stripRetiredIdentityData(appConfig)) {
 }
 normalizeAppSettings();
 applyAppearancePreferences();
+void syncFeedbackWidget();
 await refreshCustomThemes();
 setBootProgress(42, "Loading settings");
 migrateLocalStorageConfig();
@@ -1310,6 +1313,7 @@ if (stripRetiredIdentityData(appConfig)) {
 }
 normalizeAppSettings();
 applyAppearancePreferences();
+void syncFeedbackWidget();
 void refreshSystemAccentColor();
 void applyAllCustomSounds();
 setBootProgress(46, "Loading wallpaper");
@@ -1964,6 +1968,7 @@ function normalizeAppSettings() {
     voiceWaveform: appConfig.appSettings.voiceWaveform !== false,
     autoDownloadUpdates: Boolean(appConfig.appSettings.autoDownloadUpdates),
     showUpdateModal: appConfig.appSettings.showUpdateModal !== false,
+    feedbackEnabled: appConfig.appSettings.feedbackEnabled !== false,
     trustedLinkDomains: Array.isArray(appConfig.appSettings.trustedLinkDomains)
       ? [...new Set(appConfig.appSettings.trustedLinkDomains
           .map(normalizeTrustedLinkDomain)
@@ -2488,6 +2493,7 @@ function renderAppSettings() {
     appConfig.appSettings.closeToTray = false;
   }
   applyAppearancePreferences();
+  void syncFeedbackWidget();
   renderOwnIdPrivacy();
   applySidebarWidth(appConfig.appSettings.sidebarWidth);
   updatePresenceMenuState();
@@ -2522,6 +2528,7 @@ function renderAppSettings() {
     !appConfig.appSettings.autostart,
   );
   closeToTrayToggle.checked = appConfig.appSettings.closeToTray;
+  feedbackEnabledToggle.checked = appConfig.appSettings.feedbackEnabled;
   const updateChecksSupported = platformApi.supportsUpdateChecks;
   const updateModalSupported = updateChecksSupported && !platformApi.isWindowsStore;
   const updatePlatformMessage = platformApi.isWindowsStore
@@ -13291,7 +13298,97 @@ mobileTabSettings?.addEventListener("click", () => {
   setMobileTab("settings");
 });
 
-function openFeedbackWidget() {
+function isFeedbackEnabled() {
+  return appConfig.appSettings?.feedbackEnabled !== false;
+}
+
+function updateFeedbackControls(enabled = isFeedbackEnabled()) {
+  feedbackButton?.classList.toggle("hidden", !enabled);
+  mobileFeedbackButton?.classList.toggle("hidden", !enabled);
+  document.querySelectorAll('[data-settings-nav="feedback"]').forEach((item) => {
+    item.classList.toggle("hidden", !enabled);
+  });
+}
+
+function getUserJotTheme() {
+  return appConfig.appSettings?.theme === "system"
+    ? "auto"
+    : document.documentElement.dataset.theme === "dark"
+      ? "dark"
+      : "light";
+}
+
+function ensureUserJotProxy() {
+  if (window.uj) return;
+  window.$ujq = window.$ujq || [];
+  window.uj = new Proxy({}, {
+    get: (_, property) => (...args) => window.$ujq.push([property, ...args]),
+  });
+}
+
+function loadUserJotWidget() {
+  if (window.__ujInitialized) return Promise.resolve();
+  if (
+    document.querySelector("#userjot-sdk") &&
+    typeof window.uj?.init === "function"
+  ) {
+    window.uj.init("cmryo30j804kx0ipd9tt8xk2d", {
+      widget: true,
+      trigger: "custom",
+      position: "left",
+      theme: getUserJotTheme(),
+    });
+    return Promise.resolve();
+  }
+  if (userJotLoadPromise) return userJotLoadPromise;
+
+  ensureUserJotProxy();
+  window.uj.init("cmryo30j804kx0ipd9tt8xk2d", {
+    widget: true,
+    trigger: "custom",
+    position: "left",
+    theme: getUserJotTheme(),
+  });
+
+  userJotLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.id = "userjot-sdk";
+    script.type = "module";
+    script.async = true;
+    script.src = "https://cdn.userjot.com/sdk/v2/uj.js";
+    script.addEventListener("load", () => {
+      if (!isFeedbackEnabled()) window.uj?.destroy?.();
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => {
+      userJotLoadPromise = null;
+      script.remove();
+      reject(new Error("UserJot could not be loaded."));
+    }, { once: true });
+    document.head.append(script);
+  });
+  return userJotLoadPromise;
+}
+
+async function syncFeedbackWidget() {
+  const enabled = isFeedbackEnabled();
+  updateFeedbackControls(enabled);
+  if (!enabled) {
+    if (window.__ujInitialized) window.uj?.destroy?.();
+    userJotLoadPromise = null;
+    return;
+  }
+  if (platformApi.isChromeExtension) return;
+  try {
+    await loadUserJotWidget();
+  } catch {
+    // The feedback buttons keep the website fallback available if the SDK is unavailable.
+  }
+}
+
+async function openFeedbackWidget() {
+  if (!isFeedbackEnabled()) return;
+  await syncFeedbackWidget();
   if (typeof window.uj?.showWidget === "function") {
     window.uj.showWidget({ section: "feedback" });
     return;
@@ -13304,6 +13401,10 @@ function openFeedbackWidget() {
 
 feedbackButton?.addEventListener("click", openFeedbackWidget);
 mobileFeedbackButton?.addEventListener("click", openFeedbackWidget);
+feedbackEnabledToggle.addEventListener("change", () => {
+  saveAppSettings({ feedbackEnabled: feedbackEnabledToggle.checked });
+  void syncFeedbackWidget();
+});
 
 for (const item of settingsNavItems) {
   item.addEventListener("click", () => {
