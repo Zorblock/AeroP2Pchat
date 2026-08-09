@@ -185,6 +185,9 @@ const welcomeBack = document.querySelector("#welcome-back");
 const welcomeNext = document.querySelector("#welcome-next");
 const settingsModal = document.querySelector("#settings-modal");
 const settingsClose = document.querySelector("#settings-close");
+const settingsSearchInput = document.querySelector("#settings-search-input");
+const settingsSearchClear = document.querySelector("#settings-search-clear");
+const settingsSearchResults = document.querySelector("#settings-search-results");
 const settingsNavItems = Array.from(
   document.querySelectorAll("[data-settings-nav]"),
 );
@@ -193,6 +196,7 @@ const settingsPages = Array.from(
 );
 const settingsContent = document.querySelector(".settings-grid");
 let activeSettingsPage = "";
+let settingsSearchResultsCache = [];
 const resetAllSettingsButton = document.querySelector("#reset-all-settings");
 const profileModal = document.querySelector("#profile-modal");
 const profileClose = document.querySelector("#profile-close");
@@ -10862,6 +10866,239 @@ function selectSettingsPage(page = "appearance") {
   settingsContent?.scrollTo({ top: 0, behavior: "auto" });
 }
 
+const SETTINGS_SEARCH_ENTRIES = [
+  { page: "profile", target: "#profile-nickname", title: "Display name", description: "Name shown to chat partners.", terms: "profile account identity name nickname benutzername profil anzeigename" },
+  { page: "profile", target: "#profile-template-toggle", title: "Avatar design", description: "Choose the look of your generated avatar.", terms: "profile avatar picture image profilbild design farben" },
+  { page: "profile", target: "#profile-avatar-color", title: "Profile accent color", description: "Color used for supported avatar designs.", terms: "profile avatar color colour accent farbe akzent" },
+  { page: "profile", target: "#profile-reset", title: "Reset profile", description: "Restore the default profile appearance.", terms: "profile reset restore default profil zurücksetzen" },
+  { page: "appearance", target: "#theme-system", title: "App theme", description: "Use the system, light or dark appearance.", terms: "theme design dark light system hell dunkel modus aussehen" },
+  { page: "appearance", target: "#accent-color-select", title: "Accent color", description: "Choose the app accent or use your system color.", terms: "accent colour color custom windows system akzent farbe benutzerdefiniert" },
+  { page: "appearance", target: "#message-density-select", title: "Message density", description: "Make chat messages compact or comfortable.", terms: "chat layout density compact comfortable spacing nachrichten abstand kompakt" },
+  { page: "appearance", target: "#chat-font-size-select", title: "Chat text size", description: "Change the message text size.", terms: "chat font text size schriftgröße schrift text größe" },
+  { page: "appearance", target: "#compact-layout-toggle", title: "Compact layout", description: "Use a more space-efficient app layout.", terms: "compact layout sidebar platz sparsam kompakt" },
+  { page: "appearance", target: "#custom-wallpaper-list", title: "Chat wallpaper", description: "Add a local wallpaper for light, dark or both modes.", terms: "wallpaper background chat image picture hintergrund bild hell dunkel custom" },
+  { page: "appearance", target: "#wallpaper-accent-tint-toggle", title: "Wallpaper accent tint", description: "Optionally tint custom wallpapers with your accent color.", terms: "wallpaper background accent tint color einfärben akzent hintergrund" },
+  { page: "appearance", target: "#reduce-motion-toggle", title: "Reduce animations", description: "Limit motion effects throughout the app.", terms: "accessibility animation motion bewegung barrierefrei reduzieren" },
+  { page: "themes", target: "#local-theme-list", title: "Installed themes", description: "Select and manage local CSS themes.", terms: "theme themes installed local css design installiert" },
+  { page: "themes", target: "#open-themes-folder", title: "Theme folder", description: "Open the folder for local themes.", terms: "theme folder file ordner css local" },
+  { page: "themes", target: "#online-theme-urls", title: "Online themes", description: "Add trusted HTTPS CSS theme links.", terms: "theme online css url link internet extern remote", themeTab: "online" },
+  { page: "general", target: "#autostart-toggle", title: "Start at sign in", description: "Start Aero automatically when you sign in.", terms: "startup autostart boot launch login sign in windows start anmeldung" },
+  { page: "general", target: "#autostart-mode-group", title: "Startup mode", description: "Start opened or minimized to the system tray.", terms: "startup autostart tray minimized hidden background start offen minimiert" },
+  { page: "general", target: "#close-to-tray-toggle", title: "Close to tray", description: "Send Aero to the tray when closing the window.", terms: "tray close quit window background schließen taskbar system tray" },
+  { page: "notifications", target: "#notifications-toggle", title: "Desktop notifications", description: "Enable or disable desktop notifications.", terms: "notification notifications desktop toast benachrichtigung popup" },
+  { page: "notifications", target: "#message-notifications-toggle", title: "Message notifications", description: "Receive alerts for new messages.", terms: "notification message chat toast nachricht benachrichtigung" },
+  { page: "notifications", target: "#message-preview-toggle", title: "Message preview", description: "Show message text in notification toasts.", terms: "notification preview toast message text content vorschau nachricht" },
+  { page: "notifications", target: "#call-notifications-toggle", title: "Call notifications", description: "Receive alerts for incoming calls.", terms: "notification call ringtone voice anruf benachrichtigung" },
+  { page: "notifications", target: "#focused-notifications-toggle", title: "Notifications while focused", description: "Show notifications while Aero is active.", terms: "notification focused active foreground open benachrichtigung fokussiert" },
+  { page: "notifications", target: "#read-receipts-toggle", title: "Read receipts", description: "Send and show message read status.", terms: "privacy read receipt seen gelesen lesebestätigung datenschutz" },
+  { page: "sounds", target: "#sounds-toggle", title: "Enable sounds", description: "Turn all app sounds on or off.", terms: "sound audio sounds mute silence ton klang stumm" },
+  { page: "sounds", target: "#message-sound-toggle", title: "Message sound", description: "Play a sound for incoming messages.", terms: "sound audio message chat nachricht ton" },
+  { page: "sounds", target: "#ringtone-sound-toggle", title: "Incoming call ringtone", description: "Play a ringtone for incoming calls.", terms: "ringtone call incoming anruf klingelton sound audio" },
+  { page: "sounds", target: "#ringtone-loop-toggle", title: "Loop ringtone", description: "Repeat the ringtone until the call ends.", terms: "ringtone loop repeat repeatieren klingelton wiederholen" },
+  { page: "sounds", target: "#custom-sound-list", title: "Custom sounds", description: "Add, replace or remove locally stored sounds.", terms: "sound audio custom upload replace own eigenen sound mp3 ogg wav" },
+  { page: "chat", target: "#voice-auto-download-toggle", title: "Voice message download", description: "Choose whether voice messages download automatically.", terms: "voice message audio download automatic auto sprachnachricht herunterladen" },
+  { page: "chat", target: "#voice-waveform-toggle", title: "Voice message waveform", description: "Show the lightweight waveform in voice messages.", terms: "voice message waveform audio sound wave sprachnachricht welle" },
+  { page: "chat", target: ".trusted-domains-details", title: "Trusted domains", description: "Review domains that open without a link confirmation.", terms: "link links domain trusted safe security privacy vertrauen externe seite" },
+  { page: "chat", target: "#clear-trusted-domains", title: "Clear trusted domains", description: "Remove only domains you personally trusted.", terms: "link domain trusted clear remove reset löschen vertrauen" },
+  { page: "contacts", target: "#contact-nickname-list", title: "Contact nicknames", description: "Manage names that are visible only to you.", terms: "contact contacts nickname friend name kontakt spitzname" },
+  { page: "contacts", target: "#blocked-list", title: "Blocked users", description: "Review people blocked from connecting to you.", terms: "blocked block user contact security sperren blockiert benutzer" },
+  { page: "voice", target: "#microphone-select", title: "Microphone device", description: "Choose the microphone for calls and voice messages.", terms: "microphone mic input device audio mikrofon eingabe gerät" },
+  { page: "voice", target: "#camera-select", title: "Camera device", description: "Choose the camera for video calls.", terms: "camera video webcam device kamera gerät" },
+  { page: "voice", target: "#speaker-select", title: "Audio output", description: "Choose the speaker or headset for calls.", terms: "speaker output headset headphones audio lautsprecher ausgabe gerät" },
+  { page: "voice", target: "#mic-profile-select", title: "Voice profile", description: "Select voice isolation, studio or custom processing.", terms: "voice microphone profile isolation studio noise audio stimme mikrofon" },
+  { page: "voice", target: "#mic-sensitivity-slider", title: "Mic sensitivity", description: "Tune microphone sensitivity in custom mode.", terms: "microphone mic sensitivity threshold input empfindlichkeit mikrofon" },
+  { page: "voice", target: ".voice-eq-details", title: "Microphone EQ", description: "Adjust low, mid and high frequencies.", terms: "microphone mic eq equalizer bass treble low mid high mikrofon" },
+  { page: "voice", target: "#remote-volume-slider", title: "Call volume", description: "Set the volume of the other caller.", terms: "call volume audio speaker sound anruf lautstärke" },
+  { page: "reset", target: "#reset-all-settings", title: "Reset all settings", description: "Restore settings without removing chats or contacts.", terms: "reset restore defaults factory zurücksetzen standard" },
+];
+
+const SETTINGS_SEARCH_PAGE_LABELS = {
+  profile: "Profile",
+  appearance: "Appearance",
+  themes: "Themes",
+  general: "System",
+  notifications: "Notifications",
+  sounds: "Sounds",
+  chat: "Chat",
+  contacts: "Contacts",
+  voice: "Voice & Video",
+  reset: "Reset",
+};
+
+const SETTINGS_SEARCH_ALIASES = {
+  hintergrund: "wallpaper background",
+  bild: "wallpaper background avatar",
+  farbe: "color accent wallpaper",
+  akzent: "accent color",
+  benachrichtigung: "notification toast",
+  nachricht: "message chat preview",
+  anruf: "call ringtone voice",
+  klingelton: "ringtone call sound",
+  sprachnachricht: "voice message waveform download",
+  mikrofon: "microphone mic",
+  lautsprecher: "speaker output volume",
+  kopfhorer: "speaker output headset",
+  kopfhörer: "speaker output headset",
+  datenschutz: "privacy trusted read receipt",
+  sicherheit: "trusted domain privacy download",
+  autostart: "startup sign in",
+  anmeldung: "startup sign in",
+  kontakt: "contacts nickname blocked",
+  profil: "profile avatar display name",
+  aussehen: "appearance theme accent",
+  dunkel: "dark theme wallpaper",
+  hell: "light theme wallpaper",
+};
+
+function normalizeSettingsSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getSettingsSearchResults(query) {
+  const normalizedQuery = normalizeSettingsSearchText(query);
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+  const expandedTokens = new Set(queryTokens);
+  for (const token of queryTokens) {
+    for (const alias of (SETTINGS_SEARCH_ALIASES[token] || "").split(" ")) {
+      if (alias) {
+        expandedTokens.add(alias);
+      }
+    }
+  }
+
+  return SETTINGS_SEARCH_ENTRIES
+    .map((entry) => {
+      const title = normalizeSettingsSearchText(entry.title);
+      const description = normalizeSettingsSearchText(entry.description);
+      const haystack = `${title} ${description} ${normalizeSettingsSearchText(entry.terms)} ${normalizeSettingsSearchText(SETTINGS_SEARCH_PAGE_LABELS[entry.page])}`;
+      let score = haystack.includes(normalizedQuery) ? 80 : 0;
+      if (title.startsWith(normalizedQuery)) {
+        score += 40;
+      }
+      for (const token of queryTokens) {
+        if (title.includes(token)) {
+          score += 20;
+        } else if (haystack.includes(token)) {
+          score += 9;
+        }
+      }
+      for (const token of expandedTokens) {
+        if (!queryTokens.includes(token) && haystack.includes(token)) {
+          score += 5;
+        }
+      }
+      return { ...entry, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .slice(0, 12);
+}
+
+function clearSettingsSearch({ focus = false } = {}) {
+  if (!settingsSearchInput) {
+    return;
+  }
+  settingsSearchInput.value = "";
+  renderSettingsSearchResults();
+  if (focus) {
+    settingsSearchInput.focus();
+  }
+}
+
+function renderSettingsSearchResults() {
+  if (!settingsSearchInput || !settingsSearchResults) {
+    return;
+  }
+  const query = settingsSearchInput.value.trim();
+  const isSearching = Boolean(query);
+  settingsSearchResultsCache = isSearching ? getSettingsSearchResults(query) : [];
+  settingsModal.classList.toggle("settings-searching", isSearching);
+  settingsSearchResults.classList.toggle("hidden", !isSearching);
+  settingsSearchClear?.classList.toggle("hidden", !isSearching);
+  settingsSearchResults.replaceChildren();
+  if (!isSearching) {
+    return;
+  }
+
+  const heading = document.createElement("div");
+  heading.className = "settings-search-results-heading";
+  const resultCount = settingsSearchResultsCache.length;
+  heading.textContent = resultCount
+    ? `${resultCount} ${resultCount === 1 ? "result" : "results"}`
+    : "No matching settings";
+  settingsSearchResults.append(heading);
+
+  if (!resultCount) {
+    const empty = document.createElement("p");
+    empty.className = "settings-search-empty";
+    empty.textContent = "Try a setting, feature or category name.";
+    settingsSearchResults.append(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "settings-search-result-list";
+  for (const result of settingsSearchResultsCache) {
+    const button = document.createElement("button");
+    button.className = "settings-search-result";
+    button.type = "button";
+    button.dataset.settingsSearchTarget = result.target;
+    const copy = document.createElement("span");
+    copy.className = "settings-search-result-copy";
+    const title = document.createElement("strong");
+    title.textContent = result.title;
+    const description = document.createElement("small");
+    description.textContent = result.description;
+    copy.append(title, description);
+    const page = document.createElement("span");
+    page.className = "settings-search-result-page";
+    page.textContent = SETTINGS_SEARCH_PAGE_LABELS[result.page];
+    const icon = document.createElement("i");
+    icon.className = "fa-solid fa-arrow-right";
+    icon.setAttribute("aria-hidden", "true");
+    button.append(copy, page, icon);
+    button.addEventListener("click", () => openSettingsSearchResult(result));
+    list.append(button);
+  }
+  settingsSearchResults.append(list);
+}
+
+function openSettingsSearchResult(result) {
+  clearSettingsSearch();
+  selectSettingsPage(result.page);
+  if (result.themeTab) {
+    selectThemeTab(result.themeTab);
+  }
+  requestAnimationFrame(() => {
+    const section = settingsPages.find(
+      (page) => page.dataset.settingsPage === result.page,
+    );
+    const target = section?.querySelector(result.target);
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({
+      block: "center",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+    target.classList.remove("settings-search-focus");
+    void target.offsetWidth;
+    target.classList.add("settings-search-focus");
+    window.setTimeout(() => target.classList.remove("settings-search-focus"), 1500);
+  });
+}
+
 function openSettings(focusContactId = "") {
   refreshAudioDevices();
   renderAppSettings();
@@ -10869,6 +11106,7 @@ function openSettings(focusContactId = "") {
   renderAudioSettings();
   renderContactNicknameList(focusContactId);
   renderBlockedList();
+  clearSettingsSearch();
   selectSettingsPage(focusContactId ? "contacts" : "appearance");
   settingsModal.classList.remove("hidden");
   if (focusContactId) {
@@ -12476,8 +12714,37 @@ feedbackButton?.addEventListener("click", openFeedbackWidget);
 mobileFeedbackButton?.addEventListener("click", openFeedbackWidget);
 
 for (const item of settingsNavItems) {
-  item.addEventListener("click", () => selectSettingsPage(item.dataset.settingsNav));
+  item.addEventListener("click", () => {
+    clearSettingsSearch();
+    selectSettingsPage(item.dataset.settingsNav);
+  });
 }
+
+settingsSearchInput?.addEventListener("input", renderSettingsSearchResults);
+settingsSearchClear?.addEventListener("click", () => clearSettingsSearch({ focus: true }));
+settingsSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && settingsSearchInput.value) {
+    event.preventDefault();
+    clearSettingsSearch({ focus: true });
+    return;
+  }
+  if (event.key === "Enter" && settingsSearchResultsCache[0]) {
+    event.preventDefault();
+    openSettingsSearchResult(settingsSearchResultsCache[0]);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "k" &&
+    !settingsModal.classList.contains("hidden")
+  ) {
+    event.preventDefault();
+    settingsSearchInput?.focus();
+    settingsSearchInput?.select();
+  }
+});
 
 settingsClose.addEventListener("click", () => {
   settingsModal.classList.add("hidden");

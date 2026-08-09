@@ -1091,6 +1091,21 @@
       <section class="modal-panel">
         <header class="modal-header">
           <h2 id="settings-title">Settings</h2>
+          <div class="settings-search" role="search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              id="settings-search-input"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Search settings"
+              aria-label="Search settings"
+              aria-controls="settings-search-results"
+            />
+            <button id="settings-search-clear" class="settings-search-clear hidden" type="button" aria-label="Clear settings search">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
           <button id="settings-close" class="ghost-button" type="button">
             Close
           </button>
@@ -1146,6 +1161,7 @@
             </button>
           </nav>
         <div class="settings-grid">
+          <section id="settings-search-results" class="settings-search-results hidden" aria-live="polite" aria-label="Settings search results"></section>
           <div class="settings-column">
             <section class="settings-section" data-settings-page="profile">
               <h3>Profile</h3>
