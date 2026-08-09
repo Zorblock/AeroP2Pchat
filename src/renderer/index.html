@@ -98,7 +98,30 @@
         z-index: 9999;
         display: grid;
         place-items: center;
-        background: var(--boot-bg);
+        background-color: var(--boot-bg);
+        background-image:
+          linear-gradient(
+            color-mix(in srgb, var(--boot-bg) 24%, transparent),
+            color-mix(in srgb, var(--boot-bg) 24%, transparent)
+          ),
+          linear-gradient(var(--boot-fill), var(--boot-fill)),
+          linear-gradient(#ffffff, #ffffff),
+          url("../../assets/chat/background.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-blend-mode: normal, hue, difference, normal;
+      }
+
+      html[data-theme="dark"] .boot-screen {
+        background-image:
+          linear-gradient(
+            color-mix(in srgb, var(--boot-bg) 32%, transparent),
+            color-mix(in srgb, var(--boot-bg) 32%, transparent)
+          ),
+          linear-gradient(var(--boot-fill), var(--boot-fill)),
+          url("../../assets/chat/background.png");
+        background-blend-mode: normal, hue, normal;
       }
 
       .boot-panel {
@@ -1212,6 +1235,8 @@
                   <p class="settings-help">Stored locally as optimized WebP.</p>
                   <div id="custom-wallpaper-list" class="custom-wallpaper-list"></div>
                   <label class="settings-check"><input id="wallpaper-accent-tint-toggle" type="checkbox" /><span>Tint custom wallpapers with accent color</span></label>
+                  <label class="settings-check"><input id="wallpaper-boot-toggle" type="checkbox" /><span>Use custom wallpaper during startup</span></label>
+                  <p class="settings-help">Uses the matching theme wallpaper; the built-in wallpaper stays as fallback.</p>
                 </div>
                 <div class="appearance-settings-group">
                   <div class="appearance-settings-heading"><h4>Accessibility</h4></div>

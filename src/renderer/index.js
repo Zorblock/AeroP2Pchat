@@ -353,6 +353,7 @@ const openCustomWallpapersFolderButton = document.querySelector(
 const wallpaperAccentTintToggle = document.querySelector(
   "#wallpaper-accent-tint-toggle",
 );
+const wallpaperBootToggle = document.querySelector("#wallpaper-boot-toggle");
 const contactNicknameList = document.querySelector("#contact-nickname-list");
 const blockedList = document.querySelector("#blocked-list");
 const appMenu = document.querySelector("#app-menu");
@@ -1298,7 +1299,9 @@ normalizeAppSettings();
 applyAppearancePreferences();
 void refreshSystemAccentColor();
 void applyAllCustomSounds();
-void applyAllCustomWallpapers();
+setBootProgress(46, "Loading wallpaper");
+await applyAllCustomWallpapers();
+setBootProgress(50, "Wallpaper ready");
 const identity = loadIdentity();
 setBootProgress(55, "Loading identity");
 
@@ -2037,6 +2040,7 @@ function normalizeAppSettings() {
   };
   appConfig.wallpaperSettings = {
     tintWithAccent: appConfig.wallpaperSettings?.tintWithAccent === true,
+    useCustomDuringBoot: appConfig.wallpaperSettings?.useCustomDuringBoot !== false,
     custom: normalizeCustomWallpapers(appConfig.wallpaperSettings?.custom),
   };
 
@@ -3649,6 +3653,8 @@ function applyCustomWallpaperStyle() {
   const darkUrl =
     customWallpaperObjectUrls.get("dark") || customWallpaperObjectUrls.get("both");
   const tint = appConfig.wallpaperSettings?.tintWithAccent === true;
+  const useCustomDuringBoot =
+    appConfig.wallpaperSettings?.useCustomDuringBoot !== false;
   document.body.classList.toggle("has-custom-wallpaper-light", Boolean(lightUrl));
   document.body.classList.toggle("has-custom-wallpaper-dark", Boolean(darkUrl));
 
@@ -3668,6 +3674,18 @@ function applyCustomWallpaperStyle() {
       "html[data-theme=\"dark\"] body.chat-wallpaper-ready.has-custom-wallpaper-dark .messages,body[data-theme=\"dark\"].chat-wallpaper-ready.has-custom-wallpaper-dark .messages",
       darkUrl,
     ),
+    ...(useCustomDuringBoot
+      ? [
+          buildRule(
+            "body.app-loading.has-custom-wallpaper-light .boot-screen",
+            lightUrl,
+          ),
+          buildRule(
+            "html[data-theme=\"dark\"] body.app-loading.has-custom-wallpaper-dark .boot-screen,body[data-theme=\"dark\"].app-loading.has-custom-wallpaper-dark .boot-screen",
+            darkUrl,
+          ),
+        ]
+      : []),
   ].join("");
 }
 
@@ -3722,6 +3740,9 @@ function renderCustomWallpaperList() {
   wallpaperAccentTintToggle.checked =
     appConfig.wallpaperSettings?.tintWithAccent === true;
   wallpaperAccentTintToggle.disabled = !supported;
+  wallpaperBootToggle.checked =
+    appConfig.wallpaperSettings?.useCustomDuringBoot !== false;
+  wallpaperBootToggle.disabled = !supported;
   customWallpaperList.replaceChildren();
 
   if (!supported) {
@@ -12190,6 +12211,12 @@ openCustomWallpapersFolderButton.addEventListener("click", () => {
 
 wallpaperAccentTintToggle.addEventListener("change", () => {
   appConfig.wallpaperSettings.tintWithAccent = wallpaperAccentTintToggle.checked;
+  applyCustomWallpaperStyle();
+  void saveAppConfig();
+});
+
+wallpaperBootToggle.addEventListener("change", () => {
+  appConfig.wallpaperSettings.useCustomDuringBoot = wallpaperBootToggle.checked;
   applyCustomWallpaperStyle();
   void saveAppConfig();
 });

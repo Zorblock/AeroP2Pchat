@@ -159,12 +159,28 @@ p {
 
 /* Boot and app transition */
 .boot-screen {
-  background: radial-gradient(
-      circle at 50% 46%,
-      color-mix(in srgb, var(--boot-fill) 7%, transparent) 0,
-      transparent 28%
+  background-color: var(--canvas);
+  background-image: linear-gradient(
+      color-mix(in srgb, var(--surface) 24%, transparent),
+      color-mix(in srgb, var(--surface) 24%, transparent)
     ),
-    var(--canvas);
+    linear-gradient(var(--boot-fill), var(--boot-fill)),
+    linear-gradient(#ffffff, #ffffff),
+    url("../../assets/chat/background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-blend-mode: normal, hue, difference, normal;
+}
+html[data-theme="dark"] .boot-screen,
+body[data-theme="dark"] .boot-screen {
+  background-image: linear-gradient(
+      color-mix(in srgb, var(--surface) 32%, transparent),
+      color-mix(in srgb, var(--surface) 32%, transparent)
+    ),
+    linear-gradient(var(--boot-fill), var(--boot-fill)),
+    url("../../assets/chat/background.png");
+  background-blend-mode: normal, hue, normal;
 }
 .boot-panel {
   display: grid;
@@ -3970,9 +3986,14 @@ body:not(.platform-android) [data-settings-nav="feedback"] {
   font-size: 11px;
 }
 .compact-settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-height: 28px;
   padding: 0 8px;
   font-size: 10px;
+  white-space: nowrap;
 }
 .appearance-layout-options {
   display: grid;
