@@ -2050,14 +2050,17 @@ select.native-select {
   overflow-x: hidden;
   overflow-y: auto;
   background-color: var(--surface);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  /* Only recolor the existing hue; black, white and the image contrast stay neutral. */
   background-image: linear-gradient(
       color-mix(in srgb, var(--surface) 18%, transparent),
       color-mix(in srgb, var(--surface) 18%, transparent)
     ),
+    linear-gradient(var(--accent), var(--accent)),
     url("../../assets/chat/background-light.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-blend-mode: normal, hue, normal;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
@@ -2135,6 +2138,7 @@ body[data-theme="dark"] .messages {
       color-mix(in srgb, var(--surface) 28%, transparent),
       color-mix(in srgb, var(--surface) 28%, transparent)
     ),
+    linear-gradient(var(--accent), var(--accent)),
     url("../../assets/chat/background-dark.png");
 }
 .message-link {
