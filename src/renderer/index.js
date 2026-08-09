@@ -488,6 +488,13 @@ customThemeStyle.id = "custom-theme-style";
 document.head.append(customThemeStyle);
 let availableCustomThemes = [];
 let customThemesPath = "";
+const accentColors = {
+  aero: "#147fa6",
+  violet: "#7654d9",
+  green: "#21875a",
+  rose: "#c44d6d",
+  amber: "#ad721c",
+};
 let systemAccentColor = "#147fa6";
 const MIN_SIDEBAR_WIDTH = 190;
 const MAX_SIDEBAR_WIDTH = 360;
@@ -1990,14 +1997,6 @@ function applyAppTheme(theme = "system") {
   }
   void platformApi.setSystemTheme(nextTheme);
 }
-
-const accentColors = {
-  aero: "#147fa6",
-  violet: "#7654d9",
-  green: "#21875a",
-  rose: "#c44d6d",
-  amber: "#ad721c",
-};
 
 function getAccentForeground(color) {
   const channels = String(color || "")
@@ -12472,6 +12471,14 @@ async function finishBootScreen() {
     window.setTimeout(() => {
       if (debugBootSimulation) return;
       document.body.classList.remove("app-loading", "app-boot-finish");
+      const enableWallpaper = () => {
+        document.body.classList.add("chat-wallpaper-ready");
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(enableWallpaper, { timeout: 450 });
+      } else {
+        window.setTimeout(enableWallpaper, 80);
+      }
     }, 280);
   });
 }
