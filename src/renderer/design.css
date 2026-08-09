@@ -2496,12 +2496,20 @@ body.reduce-motion *::after {
 .settings-search input {
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  padding: 0;
   border: 0;
   outline: 0;
   background: transparent;
+  box-shadow: none;
   color: var(--text);
   font: inherit;
   font-size: 12px;
+}
+.settings-search input:focus {
+  border-color: transparent;
+  outline: 0;
+  box-shadow: none;
 }
 .settings-search input::placeholder {
   color: var(--muted);
