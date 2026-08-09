@@ -13238,6 +13238,9 @@ platformApi.onTrayAction(({ action, value }) => {
 async function finishBootScreen() {
   await waitForVisualReady();
   if (debugBootSimulation) return;
+  // The boot screen already preloads the same wallpaper, so enable the chat
+  // layer before the transition instead of waiting for an idle callback.
+  document.body.classList.add("chat-wallpaper-ready");
   setBootProgress(100, "Ready");
 
   requestAnimationFrame(() => {
@@ -13247,14 +13250,6 @@ async function finishBootScreen() {
     window.setTimeout(() => {
       if (debugBootSimulation) return;
       document.body.classList.remove("app-loading", "app-boot-finish");
-      const enableWallpaper = () => {
-        document.body.classList.add("chat-wallpaper-ready");
-      };
-      if (typeof window.requestIdleCallback === "function") {
-        window.requestIdleCallback(enableWallpaper, { timeout: 450 });
-      } else {
-        window.setTimeout(enableWallpaper, 80);
-      }
     }, 280);
   });
 }
