@@ -6,9 +6,8 @@
 #define MyAppUserModelId GetEnv("AERO_APP_ID")
 #define MyAppVersion GetEnv("npm_package_version")
 #define MyAppPublisher GetEnv("AERO_APP_AUTHOR")
-#define MyAppURL "https://zorblock.github.io/AeroP2Pchat"
+#define MyAppURL "https://popipo.de/app/aero"
 #define MyAppExeName GetEnv("AERO_APP_EXE_NAME")
-#define MyCliName GetEnv("AERO_CLI_COMMAND_NAME")
 #define MySetupBaseName GetEnv("AERO_WINDOWS_SETUP_BASE_NAME")
 #define MySetupOutputDir GetEnv("AERO_WINDOWS_SETUP_OUTPUT_DIR")
 #ifndef WinUnpackedDir
@@ -75,8 +74,6 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 
 [Files]
 Source: "{#WinUnpackedDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; Excludes: "*.pdb,*.map,Thumbs.db,desktop.ini"
-Source: "dist\build\windows\cli\{#MyCliName}.cmd"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\build\windows\cli\{#MyCliName}.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\online-installer\Aero-P2P-Chat-Online-Installer.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
@@ -86,66 +83,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName} now"; Flags: nowait postinstall
 
-[UninstallDelete]
-Type: files; Name: "{app}\{#MyCliName}.cmd"
-Type: files; Name: "{app}\{#MyCliName}.ps1"
-
 [Code]
-function PathContains(PathValue, Entry: string): Boolean;
-var
-  NormalizedPath: string;
-  NormalizedEntry: string;
-begin
-  NormalizedPath := ';' + Lowercase(PathValue) + ';';
-  NormalizedEntry := ';' + Lowercase(Entry) + ';';
-  Result := Pos(NormalizedEntry, NormalizedPath) > 0;
-end;
-
-procedure AddAppDirToUserPath;
-var
-  PathValue: string;
-  AppDir: string;
-begin
-  AppDir := ExpandConstant('{app}');
-  if not RegQueryStringValue(HKCU, 'Environment', 'Path', PathValue) then begin
-    PathValue := '';
-  end;
-
-  if not PathContains(PathValue, AppDir) then begin
-    if PathValue = '' then begin
-      PathValue := AppDir;
-    end else begin
-      PathValue := PathValue + ';' + AppDir;
-    end;
-    RegWriteStringValue(HKCU, 'Environment', 'Path', PathValue);
-  end;
-end;
-
-procedure RemoveAppDirFromUserPath;
-var
-  PathValue: string;
-  AppDir: string;
-begin
-  AppDir := ExpandConstant('{app}');
-  if not RegQueryStringValue(HKCU, 'Environment', 'Path', PathValue) then begin
-    Exit;
-  end;
-
-  PathValue := ';' + PathValue + ';';
-  StringChangeEx(PathValue, ';' + AppDir + ';', ';', True);
-  while Pos(';;', PathValue) > 0 do begin
-    StringChangeEx(PathValue, ';;', ';', True);
-  end;
-  if (Length(PathValue) > 0) and (Copy(PathValue, 1, 1) = ';') then begin
-    Delete(PathValue, 1, 1);
-  end;
-  if (Length(PathValue) > 0) and (Copy(PathValue, Length(PathValue), 1) = ';') then begin
-    Delete(PathValue, Length(PathValue), 1);
-  end;
-
-  RegWriteStringValue(HKCU, 'Environment', 'Path', PathValue);
-end;
-
 procedure CleanPreviousInstallation;
 var
   UninstallerPath: string;
@@ -179,15 +117,5 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then begin
     CleanPreviousInstallation;
-  end;
-  if CurStep = ssPostInstall then begin
-    AddAppDirToUserPath;
-  end;
-end;
-
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-begin
-  if CurUninstallStep = usPostUninstall then begin
-    RemoveAppDirFromUserPath;
   end;
 end;

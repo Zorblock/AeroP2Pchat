@@ -120,6 +120,7 @@ const startupUpdateTitle = document.querySelector("#startup-update-title");
 const startupUpdateText = document.querySelector("#startup-update-text");
 const startupUpdateClose = document.querySelector("#startup-update-close");
 const startupUpdateIgnoreButton = document.querySelector("#startup-update-ignore-button");
+const startupUpdateFallbackButton = document.querySelector("#startup-update-fallback");
 const startupUpdateButton = document.querySelector("#startup-update-button");
 const checkUpdatesButton = document.querySelector("#check-updates-button");
 const updateCheckStatus = document.querySelector("#update-check-status");
@@ -822,12 +823,13 @@ const linuxTerminalCommandName =
   projectConfig.linux.commandName ||
   "aerop2p";
 const githubRepoUrl = `https://github.com/${githubRepo}`;
+const githubRawBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/${projectConfig.branch || "main"}`;
 const latestReleaseUrl = `${githubRepoUrl}/releases/latest`;
 const latestManifestUrl = `${latestReleaseUrl}/download/latest.yml`;
 const newsPageUrl = "https://zorblock.de/feedback";
 const linuxInstallCommand = `${linuxTerminalCommandName} update`;
 const linuxWebsiteUpdateCommand =
-  "bash <(curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh) update";
+  `bash <(curl -fsSL ${githubRawBaseUrl}/install.sh) update`;
 const linuxUpdateCommands = {
   installed: linuxInstallCommand,
   website: linuxWebsiteUpdateCommand,
@@ -5235,6 +5237,7 @@ function syncAvailableUpdateUi() {
   }
   startupUpdateClose.classList.toggle("hidden", isMandatory);
   startupUpdateIgnoreButton.classList.toggle("hidden", isMandatory);
+  startupUpdateFallbackButton.classList.add("hidden");
   titlebarLogo.title = isIgnored
     ? `Update ${availableUpdate.version} available`
     : `Update ${availableUpdate.version} available`;
@@ -5283,6 +5286,22 @@ function ignoreAvailableUpdateHint() {
 
   ignoredUpdateVersion = availableUpdate.version;
   syncAvailableUpdateUi();
+}
+
+function openManualUpdateFallback() {
+  if (!availableUpdate) {
+    window.open(latestReleaseUrl, "_blank", "noopener");
+    return;
+  }
+
+  const androidUrl = platformApi.isAndroid
+    ? `${githubRepoUrl}/releases/download/v${availableUpdate.version}/${projectConfig.release?.androidApkAsset || "Aero-P2P-Chat-Android.apk"}`
+    : "";
+  window.open(
+    platformApi.isAndroid ? androidUrl : availableUpdate.windowsUrl || latestReleaseUrl,
+    "_blank",
+    "noopener",
+  );
 }
 
 function getAvailableUpdateDownloadDetails() {
@@ -12430,6 +12449,7 @@ async function installAvailableUpdate() {
         startupUpdateClose.classList.remove("hidden");
       }
       startupUpdateButton.textContent = "Retry update";
+      startupUpdateFallbackButton.classList.remove("hidden");
       setStatus("offline", error.message || "Update failed.");
     }
     return;
@@ -12600,6 +12620,7 @@ openConnectModalButton?.addEventListener("click", () => {
   connectModal?.classList.remove("hidden");
   document.querySelector("#remote-id")?.focus();
 });
+startupUpdateFallbackButton.addEventListener("click", openManualUpdateFallback);
 document.querySelectorAll("[data-close-sidebar-modal]").forEach((button) => {
   button.addEventListener("click", () => button.closest(".modal-layer")?.classList.add("hidden"));
 });

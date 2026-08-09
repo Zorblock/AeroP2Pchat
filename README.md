@@ -10,7 +10,7 @@ Download the latest version from the
 [SourceForge download page](https://sourceforge.net/projects/aerop2pchat/files/).
 
 You can also find the app and more information on the
-[official website](https://zorblock.github.io/AeroP2Pchat).
+[official website](https://popipo.de/app/aero).
 
 ## Installation
 
@@ -24,13 +24,11 @@ For a normal desktop installation (application-menu entry, icon, update
 command, and AppImage dependencies), run:
 
 ```sh
-curl -fsSL https://zorblock.github.io/AeroP2Pchat/install.sh | sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/Zorblock/AeroP2Pchat/main/install.sh | sh -s -- install
 ```
 
 The installer places the app in your user account, so no application files are
-written into the system installation directory. It installs the FUSE 2 runtime
-when the distribution supports it; if FUSE is unavailable, the launcher uses
-the AppImage extraction fallback instead. To update later, run
+written into the system installation directory. To update later, run
 `aerop2p update`.
 
 ### Android

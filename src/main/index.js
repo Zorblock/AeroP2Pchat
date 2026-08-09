@@ -1644,7 +1644,11 @@ async function stageWindowsUpdateInstaller(
       receivedBytes: 0,
       totalBytes: null,
     });
-    await downloadFile(onlineInstallerUrl, downloadedInstallerPath, onProgress);
+    await downloadFileWithRetry(
+      onlineInstallerUrl,
+      downloadedInstallerPath,
+      onProgress,
+    );
     onProgress({ phase: "verify", percent: 100 });
     verifyUpdateDownload(
       downloadedInstallerPath,
@@ -1748,6 +1752,28 @@ async function fetchTextWithRetry(url, attempts = 2) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       return await fetchText(url);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await wait(updateManifestRetryDelayMs);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+async function downloadFileWithRetry(
+  url,
+  targetPath,
+  onProgress = () => {},
+  attempts = 2,
+) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await downloadFile(url, targetPath, onProgress);
+      return;
     } catch (error) {
       lastError = error;
       if (attempt < attempts) {
@@ -1924,7 +1950,22 @@ async function installWindowsUpdate(
   let onlineInstallerPath = installedOnlineInstallerPath;
 
   try {
-    if (!(await hasInstalledOnlineInstaller(installedOnlineInstallerPath))) {
+    let useInstalledOnlineInstaller =
+      await hasInstalledOnlineInstaller(installedOnlineInstallerPath);
+    if (useInstalledOnlineInstaller) {
+      try {
+        verifyUpdateDownload(
+          installedOnlineInstallerPath,
+          expectedOnlineInstallerSha256,
+          expectedOnlineInstallerSha512,
+        );
+      } catch {
+        // An older bundled updater must never bypass the current release hashes.
+        useInstalledOnlineInstaller = false;
+      }
+    }
+
+    if (!useInstalledOnlineInstaller) {
       const stagedInstaller = await stageWindowsUpdateInstaller(
         rawOnlineInstallerUrl,
         expectedOnlineInstallerSha256,

@@ -709,10 +709,6 @@ function main() {
     }
 
     run("git", ["push", "-u", "origin", branch]);
-    // The website workflow checks out the remote branch, so trigger it only
-    // after the release commit is available on origin.
-    run("npm", ["run", "pages"]);
-
     // 7. Publish the finished desktop and mobile downloads before the Store submission.
     run("git", ["tag", tag]);
     run("git", ["push", "origin", tag]);
