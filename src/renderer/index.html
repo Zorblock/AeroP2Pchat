@@ -1226,18 +1226,16 @@
                       <span>Chat text size</span>
                       <select id="chat-font-size-select"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select>
                     </label>
-                    <label class="settings-check"><input id="compact-layout-toggle" type="checkbox" /><span>Use compact layout</span></label>
-                    <button id="reset-sidebar-width" class="ghost-button appearance-reset-button" type="button"><i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>Reset sidebar width</button>
+                    <label class="settings-check"><input id="compact-layout-toggle" type="checkbox" /><span>Compact layout</span></label>
+                    <button id="reset-sidebar-width" class="ghost-button appearance-reset-button" type="button"><i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i>Reset width</button>
                   </div>
                 </div>
                 <div class="appearance-settings-group">
                   <div class="appearance-settings-heading"><h4>Wallpapers</h4><button id="open-custom-wallpapers-folder" class="ghost-button compact-settings-button" type="button"><i class="fa-regular fa-folder-open" aria-hidden="true"></i>Folder</button></div>
-                  <p class="settings-help">Stored locally as optimized WebP.</p>
                   <label class="settings-check"><input id="wallpaper-enabled-toggle" type="checkbox" /><span>Show wallpapers</span></label>
                   <div id="custom-wallpaper-list" class="custom-wallpaper-list"></div>
-                  <label class="settings-check"><input id="wallpaper-accent-tint-toggle" type="checkbox" /><span>Tint custom wallpapers with accent color</span></label>
-                  <label class="settings-check"><input id="wallpaper-boot-toggle" type="checkbox" /><span>Use custom wallpaper during startup</span></label>
-                  <p class="settings-help">Uses the matching theme wallpaper; the built-in wallpaper stays as fallback.</p>
+                  <label class="settings-check"><input id="wallpaper-accent-tint-toggle" type="checkbox" /><span>Accent tint</span></label>
+                  <label class="settings-check"><input id="wallpaper-boot-toggle" type="checkbox" /><span>Show at startup</span></label>
                 </div>
                 <div class="appearance-settings-group">
                   <div class="appearance-settings-heading"><h4>Accessibility</h4></div>
@@ -1258,7 +1256,7 @@
                   <div class="themes-manager-actions">
                     <button id="open-themes-folder" class="ghost-button theme-action-button" type="button">
                       <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                      <span>Open theme folder</span>
+                      <span>Folder</span>
                     </button>
                     <button id="reload-themes" class="ghost-button theme-action-button" type="button">
                       <i class="fa-solid fa-rotate" aria-hidden="true"></i>
@@ -1283,11 +1281,11 @@
                 <div class="online-theme-actions">
                   <button id="apply-online-themes" class="ghost-button theme-action-button" type="button">
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
-                    Apply online themes
+                    Apply
                   </button>
                   <span id="online-theme-status" class="settings-description" aria-live="polite"></span>
                 </div>
-                <p class="theme-inline-note">Only add CSS links from sources you trust.</p>
+                <p class="theme-inline-note">Trusted sources only.</p>
               </div>
             </section>
 
@@ -1298,16 +1296,16 @@
                   <div class="general-settings-heading"><h4>Startup</h4></div>
                   <label class="settings-check general-autostart-toggle">
                     <input id="autostart-toggle" type="checkbox" />
-                    <span data-app-template="Start {name} when I sign in">Start Aero when I sign in</span>
+                    <span data-app-template="Start {name} with the system">Start Aero with the system</span>
                   </label>
                   <div class="settings-choice general-startup-options" id="autostart-mode-group">
                     <label>
                       <input id="autostart-open" type="radio" name="autostart-mode" value="open" />
-                      <span>Start opened</span>
+                      <span>Open window</span>
                     </label>
                     <label>
                       <input id="autostart-hidden" type="radio" name="autostart-mode" value="hidden" />
-                      <span>Start minimized to tray</span>
+                      <span>Minimized</span>
                     </label>
                   </div>
                 </div>
@@ -1315,16 +1313,15 @@
                   <div class="general-settings-heading"><h4>System tray</h4></div>
                   <label class="settings-check">
                     <input id="close-to-tray-toggle" type="checkbox" />
-                    <span>Close button sends Aero to tray</span>
+                    <span>Close to tray</span>
                   </label>
                 </div>
                 <div class="general-settings-group">
                   <div class="general-settings-heading"><h4>Feedback</h4></div>
                   <label class="settings-check">
                     <input id="feedback-enabled-toggle" type="checkbox" />
-                    <span>Enable feedback</span>
+                    <span>Feedback</span>
                   </label>
-                  <p class="settings-help">Loads the UserJot feedback widget and shows the feedback button.</p>
                 </div>
               </div>
             </section>
@@ -1347,15 +1344,15 @@
                   <div class="update-settings-heading"><h4>Download</h4></div>
                   <label class="settings-check">
                     <input id="auto-download-updates-toggle" type="checkbox" />
-                    <span>Automatically download available updates</span>
+                    <span>Download updates automatically</span>
                   </label>
-                  <p class="settings-help">Downloads are verified. Installation always needs confirmation.</p>
+                  <p class="settings-help">Confirmation is still required to install.</p>
                 </div>
                 <div class="update-settings-group">
                   <div class="update-settings-heading"><h4>Prompt</h4></div>
                   <label class="settings-check">
                     <input id="update-modal-toggle" type="checkbox" />
-                    <span>Open the update modal when an update is found</span>
+                    <span>Show update window</span>
                   </label>
                 </div>
               </div>
@@ -1368,7 +1365,7 @@
                   <div class="notification-settings-heading"><h4>Desktop notifications</h4></div>
                   <label class="settings-check notification-master-toggle">
                     <input id="notifications-toggle" type="checkbox" />
-                    <span>Enable notifications</span>
+                    <span>Notifications</span>
                   </label>
                   <div class="notification-event-options">
                     <label class="settings-check">
@@ -1385,7 +1382,7 @@
                     </label>
                     <label class="settings-check notification-suboption">
                       <input id="focused-notifications-toggle" type="checkbox" />
-                      <span>Also while Aero is focused</span>
+                      <span>When app is open</span>
                     </label>
                   </div>
                 </div>
@@ -1406,7 +1403,7 @@
                   <div class="sound-settings-heading"><h4>Playback</h4></div>
                   <label class="settings-check sound-master-toggle">
                     <input id="sounds-toggle" type="checkbox" />
-                    <span>Enable sounds</span>
+                    <span>Sounds</span>
                   </label>
                   <div class="sound-event-options">
                     <label class="settings-check">
@@ -1416,7 +1413,7 @@
                     <div class="sound-ringtone-options">
                       <label class="settings-check">
                         <input id="ringtone-sound-toggle" type="checkbox" />
-                        <span>Incoming call ringtone</span>
+                        <span>Call ringtone</span>
                       </label>
                       <label class="settings-check sound-suboption">
                         <input id="ringtone-loop-toggle" type="checkbox" />
@@ -1425,11 +1422,11 @@
                     </div>
                     <label class="settings-check">
                       <input id="call-event-sound-toggle" type="checkbox" />
-                      <span>Call join/leave sounds</span>
+                      <span>Call events</span>
                     </label>
                     <label class="settings-check">
                       <input id="connected-sound-toggle" type="checkbox" />
-                      <span>Peer connected sound</span>
+                      <span>Connection sound</span>
                     </label>
                   </div>
                 </div>
@@ -1437,7 +1434,6 @@
                   <div class="custom-sounds-heading">
                     <div>
                       <strong>Custom sounds</strong>
-                      <span>OGG/Opus · 160 kbps</span>
                     </div>
                     <button id="open-custom-sounds-folder" class="custom-sound-action-button" type="button">
                       <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
@@ -1450,7 +1446,7 @@
               <template>
                 <label class="settings-check">
                   <input id="sounds-toggle" type="checkbox" />
-                  <span>Enable sounds</span>
+                  <span>Sounds</span>
                 </label>
                 <label class="settings-check">
                   <input id="message-sound-toggle" type="checkbox" />
@@ -1458,7 +1454,7 @@
                 </label>
                 <label class="settings-check">
                   <input id="ringtone-sound-toggle" type="checkbox" />
-                  <span>Incoming call ringtone</span>
+                  <span>Call ringtone</span>
                 </label>
                 <label class="settings-check">
                   <input id="ringtone-loop-toggle" type="checkbox" />
@@ -1466,16 +1462,15 @@
                 </label>
                 <label class="settings-check">
                   <input id="call-event-sound-toggle" type="checkbox" />
-                  <span>Call join/leave sounds</span>
+                  <span>Call events</span>
                 </label>
                 <label class="settings-check">
                   <input id="connected-sound-toggle" type="checkbox" />
-                  <span>Connected sound</span>
+                  <span>Connection sound</span>
                 </label>
                 <div class="custom-sounds-heading">
                   <div>
                     <strong>Custom sounds</strong>
-                    <span>Converted locally to OGG/Opus · 160 kbps</span>
                   </div>
                   <button id="open-custom-sounds-folder" class="custom-sound-action-button" type="button">
                     <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
@@ -1495,7 +1490,6 @@
                     <input id="voice-auto-download-toggle" type="checkbox" />
                     <span>Automatically download</span>
                   </label>
-                  <p class="chat-inline-note">Format, size and SHA-256 are verified before playback.</p>
                   <label class="settings-check">
                     <input id="voice-waveform-toggle" type="checkbox" />
                     <span>Show waveform</span>
@@ -1587,7 +1581,6 @@
               <div class="contacts-settings-heading">
                 <div>
                   <h4>Nicknames</h4>
-                  <p>Names shown only in your app.</p>
                 </div>
               </div>
               <div id="contact-nickname-list" class="contact-nickname-list"></div>
@@ -1596,7 +1589,6 @@
               <div class="contacts-settings-heading">
                 <div>
                   <h4>Blocked users</h4>
-                  <p>Blocked contacts cannot connect to you.</p>
                 </div>
               </div>
               <div id="blocked-list" class="blocked-list"></div>
