@@ -59,6 +59,16 @@ const screenCallIgnore = document.querySelector("#screen-call-ignore");
 const callText = document.querySelector("#call-text");
 const callPeerName = document.querySelector("#call-peer-name");
 const callHealth = document.querySelector("#call-health");
+const callHealthPopover = document.querySelector("#call-health-popover");
+const callHealthPopoverClose = document.querySelector("#call-health-popover-close");
+const callHealthDetailQuality = document.querySelector("#call-health-detail-quality");
+const callHealthDetailState = document.querySelector("#call-health-detail-state");
+const callHealthDetailLatency = document.querySelector("#call-health-detail-latency");
+const callHealthDetailLoss = document.querySelector("#call-health-detail-loss");
+const callHealthDetailBitrate = document.querySelector("#call-health-detail-bitrate");
+const callHealthDetailJitter = document.querySelector("#call-health-detail-jitter");
+const callHealthLatencyGraph = document.querySelector("#call-health-latency-graph");
+const callHealthLossGraph = document.querySelector("#call-health-loss-graph");
 const callAccept = document.querySelector("#call-accept");
 const callDecline = document.querySelector("#call-decline");
 const callMute = document.querySelector("#call-mute");
@@ -7166,6 +7176,133 @@ function isCallBusy() {
   return callState.status !== "idle";
 }
 
+const callHealthHistory = [];
+const CALL_HEALTH_HISTORY_LIMIT = 30;
+
+function formatCallHealthPercent(value) {
+  return Number.isFinite(value) ? `${(value * 100).toFixed(value >= 0.1 ? 0 : 1)}%` : "—";
+}
+
+function drawCallHealthGraph(canvas, values, { color, ceiling = 1 } = {}) {
+  const context = canvas?.getContext?.("2d");
+  if (!context) return;
+
+  const bounds = canvas.getBoundingClientRect();
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1, Math.round(bounds.width * pixelRatio));
+  const height = Math.max(1, Math.round(bounds.height * pixelRatio));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  context.clearRect(0, 0, bounds.width, bounds.height);
+  context.strokeStyle = getComputedStyle(document.documentElement)
+    .getPropertyValue("--line")
+    .trim();
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(0, bounds.height - 0.5);
+  context.lineTo(bounds.width, bounds.height - 0.5);
+  context.stroke();
+
+  const points = values.filter((value) => Number.isFinite(value));
+  if (!points.length) return;
+  const maxValue = Math.max(ceiling, ...points);
+  const gap = points.length > 1 ? bounds.width / (points.length - 1) : 0;
+  context.strokeStyle = color;
+  context.lineWidth = 2;
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  context.beginPath();
+  points.forEach((value, index) => {
+    const x = index * gap;
+    const y = bounds.height - 3 - (Math.min(value, maxValue) / maxValue) * (bounds.height - 8);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  });
+  context.stroke();
+}
+
+function renderCallHealthDetails() {
+  if (!callHealthPopover || callHealthPopover.classList.contains("hidden")) return;
+  const stats = callState.healthLastStats || {};
+  const quality = stats.quality || "unknown";
+  callHealthDetailQuality.textContent = formatCallHealthLabel(quality, stats.latencyMs);
+  callHealthDetailQuality.className = `call-health-detail-quality ${quality}`;
+  callHealthDetailState.textContent = getCallHealthStateText(stats);
+  callHealthDetailLatency.textContent =
+    stats.latencyMs == null ? "—" : `${stats.latencyMs} ms`;
+  callHealthDetailLoss.textContent = formatCallHealthPercent(stats.lossRatio);
+  callHealthDetailBitrate.textContent = Number.isFinite(stats.bitrateKbps)
+    ? `${Math.round(stats.bitrateKbps)} kbps`
+    : "—";
+  callHealthDetailJitter.textContent =
+    stats.jitterMs == null ? "—" : `${stats.jitterMs} ms`;
+
+  const styles = getComputedStyle(document.documentElement);
+  drawCallHealthGraph(
+    callHealthLatencyGraph,
+    callHealthHistory.map((entry) => entry.latencyMs),
+    { color: styles.getPropertyValue("--accent").trim(), ceiling: 120 },
+  );
+  drawCallHealthGraph(
+    callHealthLossGraph,
+    callHealthHistory.map((entry) => entry.lossRatio * 100),
+    { color: styles.getPropertyValue("--warning").trim(), ceiling: 2 },
+  );
+}
+
+function getCallHealthStateText(stats = {}) {
+  const staleFor = Math.max(0, Date.now() - (stats.lastMediaProgressAt || Date.now()));
+  if (stats.quality === "bad") return "Media connection needs attention";
+  return staleFor >= CALL_HEALTH_POLL_MS * 2 ? "Waiting for media" : "Live connection";
+}
+
+function getCallHealthWindowPayload() {
+  const stats = callState.healthLastStats || {};
+  const styles = getComputedStyle(document.documentElement);
+  const color = (name) => styles.getPropertyValue(name).trim();
+  return {
+    quality: stats.quality || "unknown",
+    latencyMs: stats.latencyMs ?? null,
+    jitterMs: stats.jitterMs ?? null,
+    lossRatio: stats.lossRatio ?? 0,
+    bitrateKbps: stats.bitrateKbps ?? null,
+    outgoingBitrateKbps: stats.outgoingBitrateKbps ?? null,
+    state: getCallHealthStateText(stats),
+    history: callHealthHistory.slice(-CALL_HEALTH_HISTORY_LIMIT),
+    theme: document.documentElement.dataset.theme || "dark",
+    colors: {
+      accent: color("--accent"), text: color("--text"), muted: color("--muted"),
+      surface: color("--surface"), raised: color("--surface-raised"), line: color("--line"),
+      success: color("--success"), warning: color("--warning"), danger: color("--danger"),
+    },
+  };
+}
+
+function publishCallHealthWindowUpdate() {
+  window.aeroChat?.updateCallHealthWindow?.(getCallHealthWindowPayload());
+}
+
+function recordCallHealthSample(stats = {}) {
+  callHealthHistory.push({
+    latencyMs: Number.isFinite(stats.latencyMs) ? stats.latencyMs : null,
+    lossRatio: Number.isFinite(stats.lossRatio) ? stats.lossRatio : 0,
+    incomingBitrateKbps: Number.isFinite(stats.bitrateKbps) ? stats.bitrateKbps : null,
+    outgoingBitrateKbps: Number.isFinite(stats.outgoingBitrateKbps)
+      ? stats.outgoingBitrateKbps
+      : null,
+    jitterMs: Number.isFinite(stats.jitterMs) ? stats.jitterMs : null,
+  });
+  if (callHealthHistory.length > CALL_HEALTH_HISTORY_LIMIT) {
+    callHealthHistory.splice(0, callHealthHistory.length - CALL_HEALTH_HISTORY_LIMIT);
+  }
+  renderCallHealthDetails();
+  publishCallHealthWindowUpdate();
+}
+
 function formatCallHealthLabel(quality = "unknown", latencyMs = null) {
   const label =
     quality === "good"
@@ -7191,9 +7328,63 @@ function setCallHealthUi({
   callHealth.classList.remove("good", "unstable", "bad", "unknown");
   callHealth.classList.add(quality);
   const label = `Call health: ${formatCallHealthLabel(quality, latencyMs)}`;
-  callHealth.title = label;
+  callHealth.dataset.tooltip = label;
   callHealth.setAttribute("aria-label", label);
+  if (!visible) {
+    callHealthPopover?.classList.add("hidden");
+    window.aeroChat?.closeCallHealthWindow?.();
+    callHealth.setAttribute("aria-expanded", "false");
+  }
 }
+
+function positionCallHealthPopover() {
+  if (!callHealth || !callHealthPopover) return;
+  const anchor = callHealth.getBoundingClientRect();
+  const popover = callHealthPopover.getBoundingClientRect();
+  let top = anchor.bottom + 8;
+  let left = anchor.right - popover.width;
+  if (top + popover.height > window.innerHeight - 8) {
+    top = anchor.top - popover.height - 8;
+  }
+  callHealthPopover.style.top = `${Math.max(8, Math.min(top, window.innerHeight - popover.height - 8))}px`;
+  callHealthPopover.style.left = `${Math.max(8, Math.min(left, window.innerWidth - popover.width - 8))}px`;
+}
+
+callHealth.addEventListener("click", () => {
+  if (callHealth.classList.contains("hidden")) return;
+  if (window.aeroChat?.openCallHealthWindow) {
+    publishCallHealthWindowUpdate();
+    void window.aeroChat.openCallHealthWindow();
+    return;
+  }
+  callHealthPopover.classList.remove("hidden");
+  callHealth.setAttribute("aria-expanded", "true");
+  positionCallHealthPopover();
+  renderCallHealthDetails();
+});
+
+callHealthPopoverClose.addEventListener("click", () => {
+  callHealthPopover.classList.add("hidden");
+  callHealth.setAttribute("aria-expanded", "false");
+  callHealth.focus();
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (
+    !callHealthPopover.classList.contains("hidden") &&
+    !callHealthPopover.contains(event.target) &&
+    !callHealth.contains(event.target)
+  ) {
+    callHealthPopover.classList.add("hidden");
+    callHealth.setAttribute("aria-expanded", "false");
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (!callHealthPopover.classList.contains("hidden")) {
+    positionCallHealthPopover();
+  }
+});
 
 function refreshCallUi() {
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
@@ -8036,6 +8227,9 @@ function stopCallHealthMonitor() {
     callState.healthMonitor = null;
   }
   callState.healthLastStats = null;
+  callHealthHistory.length = 0;
+  callHealthPopover?.classList.add("hidden");
+  window.aeroChat?.closeCallHealthWindow?.();
 }
 
 function endCallFromHealthMonitor(message = "Voice connection lost.") {
@@ -8082,19 +8276,28 @@ async function sampleCallHealth() {
   const previous = callState.healthLastStats || {};
   const next = {
     lastMediaProgressAt: previous.lastMediaProgressAt || now,
+    lastSampleAt: previous.lastSampleAt || now,
     mediaDisconnectedSince: null,
     bytesReceived: previous.bytesReceived || 0,
+    bytesSent: previous.bytesSent || 0,
     packetsReceived: previous.packetsReceived || 0,
+    packetsLost: previous.packetsLost || 0,
     statsFailures: 0,
     quality: previous.quality || "unknown",
     latencyMs: previous.latencyMs ?? null,
+    jitterMs: previous.jitterMs ?? null,
+    lossRatio: previous.lossRatio || 0,
+    bitrateKbps: previous.bitrateKbps || 0,
+    outgoingBitrateKbps: previous.outgoingBitrateKbps || 0,
   };
 
   let disconnected = false;
   let inboundBytes = 0;
+  let outboundBytes = 0;
   let inboundPackets = 0;
   let inboundPacketsLost = 0;
   let latencyMs = null;
+  let jitterMs = null;
   let sawInboundRtp = false;
 
   try {
@@ -8119,6 +8322,16 @@ async function sampleCallHealth() {
           inboundBytes += Number(report.bytesReceived || 0);
           inboundPackets += Number(report.packetsReceived || 0);
           inboundPacketsLost += Number(report.packetsLost || 0);
+          if (typeof report.jitter === "number") {
+            jitterMs = Math.max(jitterMs || 0, Math.round(report.jitter * 1000));
+          }
+        }
+        if (
+          report.type === "outbound-rtp" &&
+          !report.isRemote &&
+          ["audio", "video"].includes(report.kind)
+        ) {
+          outboundBytes += Number(report.bytesSent || 0);
         }
       }
     }
@@ -8130,6 +8343,7 @@ async function sampleCallHealth() {
       latencyMs: next.latencyMs,
       visible: callState.status === "active",
     });
+    recordCallHealthSample(next);
     if (next.statsFailures >= CALL_STATS_FAILURE_LIMIT) {
       endCallFromHealthMonitor();
     }
@@ -8143,8 +8357,16 @@ async function sampleCallHealth() {
     next.lastMediaProgressAt = now;
   }
 
+  const elapsedMs = Math.max(1, now - (previous.lastSampleAt || now));
+  const bytesDelta = Math.max(0, inboundBytes - (previous.bytesReceived || 0));
+  const outgoingBytesDelta = Math.max(0, outboundBytes - (previous.bytesSent || 0));
   next.bytesReceived = Math.max(next.bytesReceived, inboundBytes);
+  next.bytesSent = Math.max(next.bytesSent, outboundBytes);
   next.packetsReceived = Math.max(next.packetsReceived, inboundPackets);
+  next.packetsLost = Math.max(next.packetsLost, inboundPacketsLost);
+  next.lastSampleAt = now;
+  next.bitrateKbps = Math.round((bytesDelta * 8) / elapsedMs);
+  next.outgoingBitrateKbps = Math.round((outgoingBytesDelta * 8) / elapsedMs);
 
   if (disconnected) {
     next.mediaDisconnectedSince = previous.mediaDisconnectedSince || now;
@@ -8159,6 +8381,8 @@ async function sampleCallHealth() {
   const lossRatio =
     totalInboundPackets > 0 ? inboundPacketsLost / totalInboundPackets : 0;
   next.latencyMs = latencyMs;
+  next.jitterMs = jitterMs;
+  next.lossRatio = lossRatio;
   next.quality = chooseCallHealthQuality({
     disconnected,
     latencyMs,
@@ -8171,6 +8395,7 @@ async function sampleCallHealth() {
     latencyMs: next.latencyMs,
     visible: callState.status === "active",
   });
+  recordCallHealthSample(next);
 
   if (disconnectedFor >= CALL_MEDIA_DISCONNECTED_TIMEOUT_MS) {
     endCallFromHealthMonitor();
@@ -8186,14 +8411,23 @@ function startCallHealthMonitor() {
   stopCallHealthMonitor();
   callState.healthLastStats = {
     lastMediaProgressAt: Date.now(),
+    lastSampleAt: Date.now(),
     mediaDisconnectedSince: null,
     bytesReceived: 0,
+    bytesSent: 0,
     packetsReceived: 0,
+    packetsLost: 0,
     statsFailures: 0,
     quality: "unknown",
     latencyMs: null,
+    jitterMs: null,
+    lossRatio: 0,
+    bitrateKbps: 0,
+    outgoingBitrateKbps: 0,
   };
+  callHealthHistory.length = 0;
   setCallHealthUi({ quality: "unknown", visible: callState.status === "active" });
+  publishCallHealthWindowUpdate();
   callState.healthMonitor = setInterval(() => {
     sampleCallHealth().catch(() => {});
   }, CALL_HEALTH_POLL_MS);
@@ -13093,6 +13327,7 @@ document.addEventListener("keydown", (event) => {
     if (!availableUpdate?.mandatory) {
       updateModal.classList.add("hidden");
     }
+    callHealthPopover.classList.add("hidden");
     settingsModal.classList.add("hidden");
     closeStreamSetup();
   }

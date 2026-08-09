@@ -127,6 +127,8 @@ const bootAccentPresets = {
 };
 let mainWindow = null;
 let toastWindow = null;
+let callHealthWindow = null;
+let callHealthPayload = null;
 let tray = null;
 let connectedTrayIcon = null;
 let connectionOverlayIcon = null;
@@ -1460,6 +1462,135 @@ function createToastWindow() {
   return toastWindow;
 }
 
+function normalizeCallHealthPayload(details = {}) {
+  const number = (value, fallback = null) =>
+    Number.isFinite(value) ? Math.max(0, value) : fallback;
+  const quality = ["good", "unstable", "bad", "unknown"].includes(
+    details.quality,
+  )
+    ? details.quality
+    : "unknown";
+  const color = (value, fallback) =>
+    /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
+  const history = Array.isArray(details.history)
+    ? details.history.slice(-30).map((entry) => ({
+        latencyMs: number(entry?.latencyMs),
+        lossRatio: Math.min(1, number(entry?.lossRatio, 0)),
+        incomingBitrateKbps: number(entry?.incomingBitrateKbps),
+        outgoingBitrateKbps: number(entry?.outgoingBitrateKbps),
+        jitterMs: number(entry?.jitterMs),
+      }))
+    : [];
+
+  return {
+    quality,
+    latencyMs: number(details.latencyMs),
+    jitterMs: number(details.jitterMs),
+    lossRatio: Math.min(1, number(details.lossRatio, 0)),
+    bitrateKbps: number(details.bitrateKbps),
+    outgoingBitrateKbps: number(details.outgoingBitrateKbps),
+    state: String(details.state || "Waiting for media").slice(0, 80),
+    history,
+    theme: details.theme === "light" ? "light" : "dark",
+    colors: {
+      accent: color(details.colors?.accent, "#7654d9"),
+      text: color(details.colors?.text, "#f5f5f5"),
+      muted: color(details.colors?.muted, "#a6a6a6"),
+      surface: color(details.colors?.surface, "#111111"),
+      raised: color(details.colors?.raised, "#171717"),
+      line: color(details.colors?.line, "#303030"),
+      success: color(details.colors?.success, "#39b97d"),
+      warning: color(details.colors?.warning, "#dba13c"),
+      danger: color(details.colors?.danger, "#e25871"),
+    },
+  };
+}
+
+function sendCallHealthPayload() {
+  if (
+    callHealthPayload &&
+    callHealthWindow &&
+    !callHealthWindow.isDestroyed()
+  ) {
+    callHealthWindow.webContents.send("call-health-update", callHealthPayload);
+  }
+}
+
+function positionCallHealthWindow(win = callHealthWindow) {
+  if (!win || win.isDestroyed() || !mainWindow || mainWindow.isDestroyed()) return;
+  const parentBounds = mainWindow.getBounds();
+  const display = screen.getDisplayMatching(parentBounds);
+  const workArea = display.workArea;
+  const [width, height] = win.getSize();
+  win.setPosition(
+    Math.max(workArea.x + 8, Math.min(parentBounds.x + parentBounds.width - width - 20, workArea.x + workArea.width - width - 8)),
+    Math.max(workArea.y + 8, Math.min(parentBounds.y + 76, workArea.y + workArea.height - height - 8)),
+  );
+}
+
+function openCallHealthWindow() {
+  if (callHealthWindow && !callHealthWindow.isDestroyed()) {
+    positionCallHealthWindow();
+    callHealthWindow.show();
+    callHealthWindow.focus();
+    sendCallHealthPayload();
+    return { ok: true };
+  }
+  if (!mainWindow || mainWindow.isDestroyed()) return { ok: false };
+
+  const win = new BrowserWindow({
+    width: 454,
+    height: 716,
+    title: "Call health",
+    icon: windowIcon,
+    parent: mainWindow,
+    modal: false,
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    show: false,
+    backgroundColor: callHealthPayload?.theme === "light" ? "#f7fafc" : "#111111",
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+    },
+  });
+  win.setIcon(windowIcon);
+  win.setMenuBarVisibility(false);
+  callHealthWindow = win;
+  positionCallHealthWindow(win);
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+  win.webContents.once("did-finish-load", () => {
+    if (callHealthWindow !== win || win.isDestroyed()) return;
+    sendCallHealthPayload();
+    win.show();
+    win.focus();
+  });
+  if (process.env.ELECTRON_RENDERER_URL) {
+    win.loadURL(new URL("call-health.html", process.env.ELECTRON_RENDERER_URL).toString());
+  } else {
+    win.loadFile(join(__dirname, "../renderer/call-health.html"));
+  }
+  win.on("closed", () => {
+    if (callHealthWindow === win) callHealthWindow = null;
+  });
+  return { ok: true };
+}
+
+function closeCallHealthWindow() {
+  if (callHealthWindow && !callHealthWindow.isDestroyed()) {
+    callHealthWindow.close();
+  }
+}
+
 function sendNotificationAction(action) {
   if (action?.openWindow) {
     showMainWindow();
@@ -2222,6 +2353,24 @@ app.whenReady().then(async () => {
   ipcMain.handle("load-config", () => loadConfig());
   ipcMain.handle("save-config", (_event, config) => saveConfig(config));
   ipcMain.handle("get-config-path", () => getConfigPath());
+  ipcMain.handle("open-call-health-window", (event) => {
+    if (!isCustomSoundRequest(event)) return { ok: false };
+    return openCallHealthWindow();
+  });
+  ipcMain.handle("get-call-health-window-data", (event) =>
+    BrowserWindow.fromWebContents(event.sender) === callHealthWindow
+      ? callHealthPayload
+      : null,
+  );
+  ipcMain.on("update-call-health-window", (event, details) => {
+    if (!isCustomSoundRequest(event)) return;
+    callHealthPayload = normalizeCallHealthPayload(details);
+    sendCallHealthPayload();
+  });
+  ipcMain.on("close-call-health-window", (event) => {
+    if (!isCustomSoundRequest(event)) return;
+    closeCallHealthWindow();
+  });
   ipcMain.handle("get-system-accent-color", () => {
     try {
       return { color: normalizeAccentColor(systemPreferences.getAccentColor()) };

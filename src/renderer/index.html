@@ -557,15 +557,18 @@
           <div id="call-banner" class="call-banner hidden" aria-live="polite">
             <span id="call-text" class="call-state">Voice</span>
             <span id="call-peer-name" class="call-peer-name">Peer</span>
-            <span
+            <button
               id="call-health"
-              class="call-health hidden"
-              title="Call health"
+              class="call-health icon-only-button hidden"
+              type="button"
+              data-tooltip="Call health"
               aria-label="Call health"
-              role="img"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="call-health-popover"
             >
               <i class="fa-solid fa-signal" aria-hidden="true"></i>
-            </span>
+            </button>
             <div class="call-banner-actions">
               <button
                 id="call-accept"
@@ -816,6 +819,7 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="incoming-call-name"
+      tabindex="-1"
     >
       <div class="incoming-call-content">
         <div class="incoming-call-avatar-wrap" aria-hidden="true">
@@ -907,8 +911,8 @@
         </section>
       </div>
 
-      <div
-        id="update-modal"
+    <div
+      id="update-modal"
       class="modal-layer hidden"
       role="dialog"
       aria-modal="true"
@@ -1667,6 +1671,38 @@
         </div>
       </section>
     </div>
+
+    <aside
+      id="call-health-popover"
+      class="call-health-popover hidden"
+      role="dialog"
+      aria-labelledby="call-health-popover-title"
+    >
+      <header class="call-health-popover-header">
+        <h2 id="call-health-popover-title">Call health</h2>
+        <button id="call-health-popover-close" class="ghost-button icon-only-button" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+        <div class="call-health-detail-summary">
+          <span id="call-health-detail-quality" class="call-health-detail-quality unknown">Checking</span>
+          <span id="call-health-detail-state">Waiting for media</span>
+        </div>
+        <div class="call-health-detail-grid">
+          <div><span>Latency</span><strong id="call-health-detail-latency">—</strong></div>
+          <div><span>Packet loss</span><strong id="call-health-detail-loss">—</strong></div>
+          <div><span>Incoming</span><strong id="call-health-detail-bitrate">—</strong></div>
+          <div><span>Jitter</span><strong id="call-health-detail-jitter">—</strong></div>
+        </div>
+        <section class="call-health-graph-card">
+          <div><strong>Latency</strong><span>last 90 seconds</span></div>
+          <canvas id="call-health-latency-graph" width="520" height="84" aria-label="Latency history"></canvas>
+        </section>
+        <section class="call-health-graph-card">
+          <div><strong>Packet loss</strong><span>last 90 seconds</span></div>
+          <canvas id="call-health-loss-graph" width="520" height="84" aria-label="Packet loss history"></canvas>
+        </section>
+    </aside>
     <input id="custom-sound-file-input" type="file" accept="audio/ogg,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/flac" hidden />
     <input id="custom-wallpaper-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
 

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Call health</title>
+    <link rel="stylesheet" href="/call-health.css" />
+  </head>
+  <body>
+    <main class="health-window">
+      <header class="window-header">
+        <div class="window-title"><i></i><strong>Call health</strong></div>
+        <button id="close" type="button" aria-label="Close">×</button>
+      </header>
+      <section class="summary">
+        <strong id="quality" class="quality unknown">Checking</strong>
+        <span id="state">Waiting for media</span>
+      </section>
+      <section class="metrics" aria-label="Call statistics">
+        <div><span>Latency</span><strong id="latency">—</strong></div>
+        <div><span>Packet loss</span><strong id="loss">—</strong></div>
+        <div><span>Incoming</span><strong id="bitrate">—</strong></div>
+        <div><span>Outgoing</span><strong id="outgoing-bitrate">—</strong></div>
+        <div><span>Jitter</span><strong id="jitter">—</strong></div>
+      </section>
+      <section class="chart-card">
+        <div class="chart-label"><strong>Latency</strong><span>last 90 seconds</span></div>
+        <canvas id="latency-graph" aria-label="Latency history"></canvas>
+      </section>
+      <section class="chart-card">
+        <div class="chart-label"><strong>Packet loss</strong><span>last 90 seconds</span></div>
+        <canvas id="loss-graph" aria-label="Packet loss history"></canvas>
+      </section>
+      <section class="chart-card">
+        <div class="chart-label"><strong>Incoming</strong><span>kbps · last 90 seconds</span></div>
+        <canvas id="incoming-graph" aria-label="Incoming bitrate history"></canvas>
+      </section>
+      <section class="chart-card">
+        <div class="chart-label"><strong>Outgoing</strong><span>kbps · last 90 seconds</span></div>
+        <canvas id="outgoing-graph" aria-label="Outgoing bitrate history"></canvas>
+      </section>
+      <section class="chart-card">
+        <div class="chart-label"><strong>Jitter</strong><span>ms · last 90 seconds</span></div>
+        <canvas id="jitter-graph" aria-label="Jitter history"></canvas>
+      </section>
+    </main>
+    <script type="module" src="/call-health.js"></script>
+  </body>
+</html>

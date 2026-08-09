@@ -1829,6 +1829,8 @@ select.native-select {
   background: var(--success-soft);
   color: var(--success);
   font-size: 10px;
+  cursor: pointer;
+  box-shadow: none;
 }
 .call-health.unknown {
   border-color: var(--line);
@@ -1844,6 +1846,97 @@ select.native-select {
   border-color: color-mix(in srgb, var(--danger) 38%, var(--line));
   background: var(--danger-soft);
   color: var(--danger);
+}
+.call-health-popover {
+  position: fixed;
+  z-index: 700;
+  display: grid;
+  width: min(440px, calc(100vw - 36px));
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  isolation: isolate;
+}
+.call-health-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.call-health-popover-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+}
+.call-health-detail-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.call-health-detail-quality {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+}
+.call-health-detail-quality.good {
+  color: var(--success);
+}
+.call-health-detail-quality.unstable {
+  color: var(--warning);
+}
+.call-health-detail-quality.bad {
+  color: var(--danger);
+}
+.call-health-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.call-health-detail-grid > div,
+.call-health-graph-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+.call-health-detail-grid > div {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+.call-health-detail-grid span,
+.call-health-graph-card span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.call-health-detail-grid strong {
+  color: var(--text);
+  font-size: 14px;
+}
+.call-health-graph-card {
+  padding: 9px;
+}
+.call-health-graph-card > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.call-health-graph-card strong {
+  color: var(--text);
+  font-size: 11px;
+}
+.call-health-graph-card canvas {
+  display: block;
+  width: 100%;
+  height: 84px;
 }
 .call-stage {
   grid-row: 4;

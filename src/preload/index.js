@@ -90,6 +90,17 @@ contextBridge.exposeInMainWorld("aeroChat", {
       ipcRenderer.removeListener("system-shutdown", listener);
     };
   },
+  openCallHealthWindow: () => ipcRenderer.invoke("open-call-health-window"),
+  getCallHealthWindowData: () =>
+    ipcRenderer.invoke("get-call-health-window-data"),
+  updateCallHealthWindow: (details) =>
+    ipcRenderer.send("update-call-health-window", details),
+  closeCallHealthWindow: () => ipcRenderer.send("close-call-health-window"),
+  onCallHealthUpdate: (callback) => {
+    const listener = (_event, details) => callback(details);
+    ipcRenderer.on("call-health-update", listener);
+    return () => ipcRenderer.removeListener("call-health-update", listener);
+  },
   realtimeCleanupComplete: () => ipcRenderer.send("realtime-cleanup-complete"),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
   log: (msg) => ipcRenderer.send("console-log", msg),
