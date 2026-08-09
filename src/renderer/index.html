@@ -1839,9 +1839,9 @@
       </section>
     </div>
 
-    <div id="app-menu" class="context-menu hidden" role="menu">
+    <div id="app-menu" class="context-menu app-menu hidden" role="menu" aria-label="Presence status">
       <div class="context-menu-group" aria-label="Presence status">
-        <span class="context-menu-label">Status</span>
+        <span class="context-menu-label">Set your status</span>
         <button
           id="app-menu-online"
           class="presence-option"
@@ -1851,6 +1851,7 @@
         >
           <span class="presence-dot online"></span>
           <span>Online</span>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
         </button>
         <button
           id="app-menu-dnd"
@@ -1861,6 +1862,7 @@
         >
           <span class="presence-dot dnd"></span>
           <span>DND</span>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
         </button>
         <button
           id="app-menu-offline"
@@ -1871,6 +1873,7 @@
         >
           <span class="presence-dot offline"></span>
           <span>Offline</span>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
         </button>
       </div>
       <button

@@ -10034,15 +10034,31 @@ function closeContactMenu() {
 
 function openAppMenu(event) {
   event.preventDefault();
+  if (!appMenu.classList.contains("hidden")) {
+    closeAppMenu();
+    return;
+  }
   closeContactMenu();
   closeMessageMenu();
   closeParticipantMenu();
   closeStreamMenu();
 
   const rect = titlebarLogo.getBoundingClientRect();
-  appMenu.style.left = `${Math.min(rect.left, window.innerWidth - 164)}px`;
-  appMenu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 44)}px`;
   appMenu.classList.remove("hidden");
+  const viewportPadding = 10;
+  const left = Math.max(
+    viewportPadding,
+    Math.min(rect.left, window.innerWidth - appMenu.offsetWidth - viewportPadding),
+  );
+  const top = Math.max(
+    viewportPadding,
+    Math.min(
+      rect.bottom + 8,
+      window.innerHeight - appMenu.offsetHeight - viewportPadding,
+    ),
+  );
+  appMenu.style.left = `${left}px`;
+  appMenu.style.top = `${top}px`;
   titlebarLogo.setAttribute("aria-expanded", "true");
 }
 
