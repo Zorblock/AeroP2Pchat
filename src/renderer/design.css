@@ -2059,8 +2059,10 @@ select.native-select {
       color-mix(in srgb, var(--surface) 18%, transparent)
     ),
     linear-gradient(var(--accent), var(--accent)),
-    url("../../assets/chat/background-light.png");
-  background-blend-mode: normal, hue, normal;
+    linear-gradient(#ffffff, #ffffff),
+    url("../../assets/chat/background.png");
+  /* The white difference layer inverts only the wallpaper for the light theme. */
+  background-blend-mode: normal, hue, difference, normal;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
@@ -2139,7 +2141,8 @@ body[data-theme="dark"] .messages {
       color-mix(in srgb, var(--surface) 28%, transparent)
     ),
     linear-gradient(var(--accent), var(--accent)),
-    url("../../assets/chat/background-dark.png");
+    url("../../assets/chat/background.png");
+  background-blend-mode: normal, hue, normal;
 }
 .message-link {
   color: var(--accent);
