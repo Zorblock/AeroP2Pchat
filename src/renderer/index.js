@@ -2076,6 +2076,9 @@ function applyAppTheme(theme = "system") {
   const nextTheme = resolveAppTheme(theme);
   document.documentElement.dataset.theme = nextTheme;
   document.body.dataset.theme = nextTheme;
+  // Keep UserJot on the same setting: system follows the OS, while explicit
+  // Aero themes override it.
+  window.uj?.setTheme?.(theme === "system" ? "auto" : nextTheme);
   try {
     localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   } catch {
