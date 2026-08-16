@@ -5051,8 +5051,13 @@ function updateTypingIndicator() {
       wave.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
       visual.append(microphone, wave);
     } else {
-      visual.className = "chat-typing-dots";
-      visual.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+      visual.className = "chat-typing-indicator";
+      const speechBubble = document.createElement("i");
+      speechBubble.className = "fa-regular fa-comment";
+      const dots = document.createElement("span");
+      dots.className = "chat-typing-dots";
+      dots.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+      visual.append(speechBubble, dots);
     }
     const announcement = document.createElement("span");
     announcement.className = "chat-live-announcement";
@@ -5973,11 +5978,13 @@ function syncAvailableUpdateUi() {
   updateText.textContent = isMandatory
     ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
     : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
-  updateButton.textContent = platformApi.supportsNativeUpdateInstall
-    ? "Install update"
-    : platform === "linux"
-      ? "Show command"
-      : "Open release";
+  updateButton.textContent = platformApi.isAndroid
+    ? "Download update"
+    : platformApi.supportsNativeUpdateInstall
+      ? "Install update"
+      : platform === "linux"
+        ? "Show command"
+        : "Open release";
   updateIgnoreButton.textContent = isIgnored ? "Ignored" : "Ignore";
   updateIgnoreButton.disabled = isIgnored;
   updateIgnoreButton.classList.toggle("hidden", isMandatory);
@@ -5996,11 +6003,13 @@ function syncAvailableUpdateUi() {
     startupUpdateText.textContent = isMandatory
       ? `Version ${availableUpdate.minimumVersion} or later is required to continue.`
       : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
-    startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
-      ? "Install update"
-      : platform === "linux"
-        ? "Show command"
-        : "Open release";
+    startupUpdateButton.textContent = platformApi.isAndroid
+      ? "Download update"
+      : platformApi.supportsNativeUpdateInstall
+        ? "Install update"
+        : platform === "linux"
+          ? "Show command"
+          : "Open release";
     startupUpdateModal.classList.remove("hidden");
   }
   startupUpdateClose.classList.toggle("hidden", isMandatory);
@@ -6012,7 +6021,7 @@ function syncAvailableUpdateUi() {
   appMenuUpdate.classList.remove("hidden");
   appMenuUpdate.disabled = false;
   appMenuUpdate.querySelector("i").className =
-    platformApi.supportsNativeUpdateInstall
+    platformApi.supportsNativeUpdateInstall || platformApi.isAndroid
       ? "fa-solid fa-download"
       : platform === "linux"
         ? "fa-solid fa-terminal"
@@ -6020,9 +6029,11 @@ function syncAvailableUpdateUi() {
   appMenuUpdateIgnore.classList.toggle("hidden", isMandatory);
   setTitlebarActionLabel(
     appMenuUpdate,
-    platformApi.supportsNativeUpdateInstall
-      ? `Install ${availableUpdate.version}`
-      : `Update ${availableUpdate.version}`,
+    platformApi.isAndroid
+      ? `Download ${availableUpdate.version}`
+      : platformApi.supportsNativeUpdateInstall
+        ? `Install ${availableUpdate.version}`
+        : `Update ${availableUpdate.version}`,
   );
   appMenuUpdateIgnore.querySelector("span").textContent = isIgnored
     ? `Ignored ${availableUpdate.version}`
@@ -14639,7 +14650,7 @@ async function installAvailableUpdate() {
       stopUpdateProgressListener();
       updateButton.disabled = false;
       headerUpdateButton.disabled = false;
-      updateButton.textContent = "Install update";
+      updateButton.textContent = platformApi.isAndroid ? "Download update" : "Install update";
       headerUpdateButton.textContent = "Update";
       startupUpdateButton.disabled = false;
       if (!availableUpdate?.mandatory) {
@@ -14711,11 +14722,13 @@ appMenuUpdate.addEventListener("click", () => {
         : `Version ${availableUpdate.version} is ready. You are using ${currentVersion}.`;
       startupUpdateIgnoreButton.classList.toggle("hidden", availableUpdate.mandatory);
       startupUpdateClose.classList.toggle("hidden", availableUpdate.mandatory);
-      startupUpdateButton.textContent = platformApi.supportsNativeUpdateInstall
-        ? "Install update"
-        : platform === "linux"
-          ? "Show command"
-          : "Open release";
+      startupUpdateButton.textContent = platformApi.isAndroid
+        ? "Download update"
+        : platformApi.supportsNativeUpdateInstall
+          ? "Install update"
+          : platform === "linux"
+            ? "Show command"
+            : "Open release";
       startupUpdateModal.classList.remove("hidden");
     } else if (!platformApi.supportsUpdateChecks) {
     window.open(latestReleaseUrl, "_blank", "noopener");

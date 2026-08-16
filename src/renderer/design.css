@@ -1774,13 +1774,6 @@ select.native-select {
   box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 9%, transparent);
   animation: chat-live-status-in 160ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
-.chat-live-status[data-activity="typing"] {
-  min-width: 0;
-  padding-inline: 2px;
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
 .chat-live-announcement {
   position: absolute;
   width: 1px;
@@ -1789,6 +1782,15 @@ select.native-select {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
+}
+.chat-typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 14px;
+}
+.chat-typing-indicator > i {
+  font-size: 10px;
 }
 .chat-typing-dots {
   display: inline-flex;
