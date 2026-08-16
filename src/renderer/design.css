@@ -1739,6 +1739,20 @@ select.native-select {
 .chat-heading {
   min-width: 0;
 }
+.chat-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.chat-identity .chat-heading {
+  flex: 1 1 auto;
+}
+.contact-avatar.chat-header-avatar {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+}
 .chat-title-row {
   display: flex;
   align-items: center;

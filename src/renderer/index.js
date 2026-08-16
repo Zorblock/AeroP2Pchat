@@ -56,6 +56,7 @@ const peerList = document.querySelector("#peer-list");
 const feedbackButton = document.querySelector("#feedback-button");
 const mobileFeedbackButton = document.querySelector("#feedback-button-mobile");
 const feedbackEnabledToggle = document.querySelector("#feedback-enabled-toggle");
+const chatAvatar = document.querySelector("#chat-avatar");
 const chatTitle = document.querySelector("#chat-title");
 const chatActions = document.querySelector(".chat-actions");
 const callChat = document.querySelector("#call-chat");
@@ -12028,16 +12029,34 @@ function refreshPeers() {
 
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
   const canChat = Boolean(activeConn?.open && !isNetworkOffline());
+  const activeLabel = activePeerId
+    ? getPeerLabel(activePeerId, activeConn)
+    : "No active chat";
+  const activeIdentityId = activePeerId
+    ? getPeerIdentityId(activePeerId, activeConn)
+    : "";
   setAeroIdOrLabel(
     chatTitle,
-    activePeerId ? getPeerLabel(activePeerId, activeConn) : "No active chat",
+    activeLabel,
   );
   applyNameAppearance(
     chatTitle,
     activePeerId
-      ? getPeerNameStyle(activePeerId, getPeerIdentityId(activePeerId, activeConn))
+      ? getPeerNameStyle(activePeerId, activeIdentityId)
       : null,
   );
+  if (chatAvatar) {
+    chatAvatar.classList.toggle("hidden", !activePeerId);
+    if (activePeerId) {
+      const avatar = getPeerAvatar(activePeerId, activeIdentityId);
+      applyAvatarAppearance(chatAvatar, activeIdentityId, avatar);
+      chatAvatar.textContent = normalizeAvatarConfig(avatar).showInitial
+        ? (activeLabel || activeIdentityId || "?").charAt(0).toUpperCase()
+        : "";
+    } else {
+      chatAvatar.textContent = "";
+    }
+  }
 
   messageInput.disabled = !canChat;
   sendButton.disabled = !canChat;
