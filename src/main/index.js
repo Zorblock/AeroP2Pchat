@@ -2610,7 +2610,7 @@ async function installWindowsUpdate(
           {
             detached: true,
             stdio: "ignore",
-            windowsHide: false,
+            windowsHide: true,
           },
         );
         break;

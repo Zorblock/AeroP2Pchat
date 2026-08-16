@@ -711,8 +711,11 @@ fn wait_for_process_exit(pid: u32, timeout: Duration) -> Result<(), Box<dyn std:
 }
 
 fn process_is_running(pid: u32) -> bool {
-    Command::new("tasklist")
-        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+    let mut process = Command::new("tasklist.exe");
+    process.args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"]);
+    #[cfg(windows)]
+    process.creation_flags(CREATE_NO_WINDOW);
+    process
         .output()
         .map(|output| String::from_utf8_lossy(&output.stdout).contains(&format!("\"{pid}\"")))
         .unwrap_or(false)
