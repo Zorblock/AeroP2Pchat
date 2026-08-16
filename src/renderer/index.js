@@ -4775,18 +4775,44 @@ function updateTypingIndicator() {
     return;
   }
 
-  if (
-    !activePeerId ||
-    (!typingStates.get(activePeerId) && !voiceRecordingStates.get(activePeerId))
-  ) {
+  const recording = Boolean(activePeerId && voiceRecordingStates.get(activePeerId));
+  const typing = Boolean(activePeerId && typingStates.get(activePeerId));
+  if (!activePeerId || (!typing && !recording)) {
     typingIndicator.classList.add("hidden");
-    typingIndicator.textContent = "";
+    typingIndicator.replaceChildren();
+    typingIndicator.removeAttribute("aria-label");
+    delete typingIndicator.dataset.activity;
+    delete typingIndicator.dataset.tooltip;
     return;
   }
 
-  typingIndicator.textContent = voiceRecordingStates.get(activePeerId)
-    ? `${getPeerLabel(activePeerId, connections.get(activePeerId))} recording a voice message...`
-    : `${getPeerLabel(activePeerId, connections.get(activePeerId))} typing...`;
+  const activity = recording ? "recording" : "typing";
+  const label = `${getPeerLabel(activePeerId, connections.get(activePeerId))} is ${
+    recording ? "recording a voice message" : "typing"
+  }`;
+  if (typingIndicator.dataset.activity !== activity) {
+    const visual = document.createElement("span");
+    visual.setAttribute("aria-hidden", "true");
+    if (recording) {
+      visual.className = "chat-recording-indicator";
+      const microphone = document.createElement("i");
+      microphone.className = "fa-solid fa-microphone-lines";
+      const wave = document.createElement("span");
+      wave.className = "chat-recording-wave";
+      wave.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+      visual.append(microphone, wave);
+    } else {
+      visual.className = "chat-typing-dots";
+      visual.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+    }
+    const announcement = document.createElement("span");
+    announcement.className = "chat-live-announcement";
+    typingIndicator.replaceChildren(visual, announcement);
+    typingIndicator.dataset.activity = activity;
+  }
+  typingIndicator.querySelector(".chat-live-announcement").textContent = label;
+  typingIndicator.dataset.tooltip = label;
+  typingIndicator.setAttribute("aria-label", label);
   typingIndicator.classList.remove("hidden");
 }
 
@@ -15370,6 +15396,7 @@ const tooltipTargetSelector = [
   "button.stream-close-button[aria-label]",
   "button.stream-fullscreen-button[aria-label]",
   ".file-security-badge[data-tooltip]",
+  ".chat-live-status[data-tooltip]",
 ].join(",");
 
 function getTooltipTarget(element) {

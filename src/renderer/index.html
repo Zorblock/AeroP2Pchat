@@ -507,6 +507,13 @@
                 >
                   No active chat
                 </h2>
+                <span
+                  id="typing-indicator"
+                  class="chat-live-status hidden"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></span>
               </div>
             </div>
             <div class="chat-actions">
@@ -749,12 +756,6 @@
             aria-relevant="additions text"
             aria-atomic="false"
             data-empty="Share your Aero ID or connect to a contact."
-          ></div>
-
-          <div
-            id="typing-indicator"
-            class="typing-indicator hidden"
-            aria-live="polite"
           ></div>
 
           <form id="message-form" class="message-form">
