@@ -521,9 +521,11 @@ const SCREEN_STREAM_PROFILES = {
 const SCREEN_STREAM_FPS_OPTIONS = [15, 30, 60];
 const MAX_CHAT_HISTORY_ITEMS = 500;
 const MESSAGE_SEND_INTERVAL_MS = 180;
+const MESSAGE_TRANSITION_MS = 190;
 const MAX_QUEUED_OUTGOING_MESSAGES = 20;
 const INCOMING_MESSAGE_WINDOW_MS = 5000;
 const MAX_INCOMING_MESSAGES_PER_WINDOW = 35;
+const deletingMessageKeys = new Set();
 const CONNECTION_HEARTBEAT_INTERVAL_MS = 5000;
 const CONNECTION_HEARTBEAT_TIMEOUT_MS = 16000;
 const CONNECT_ACTION_COOLDOWN_MS = 1200;
@@ -5589,7 +5591,18 @@ function setMessageDeliveryState(peerId, messageId, status) {
   refreshMessageDeliveryState(peerId, messageId);
 }
 
-function appendMessageRow(row) {
+function shouldReduceMessageMotion() {
+  return (
+    document.body.classList.contains("reduce-motion") ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function appendMessageRow(row, { animate = false } = {}) {
+  if (animate && !shouldReduceMessageMotion()) {
+    row.classList.add("message-entering");
+    setTimeout(() => row.classList.remove("message-entering"), MESSAGE_TRANSITION_MS + 80);
+  }
   messages.append(row);
   messages.scrollTop = messages.scrollHeight;
   updateEmptyChatState();
@@ -6055,7 +6068,7 @@ function addChatMessage({ id, text, sender, peerId, time, voice, file }) {
       renderChatHistory();
       return;
     }
-    appendMessageRow(createChatMessage(item));
+    appendMessageRow(createChatMessage(item), { animate: true });
     return;
   }
 
@@ -11491,16 +11504,62 @@ function closeStreamSetup() {
   availableScreenSources = [];
 }
 
-function deleteMessageLocally(peerId, messageId) {
+function findRenderedMessageRow(messageId) {
+  return Array.from(messages.children).find(
+    (element) => element.dataset?.messageId === messageId,
+  ) || null;
+}
+
+function waitForMessageExit(peerId, messageId) {
+  if (activePeerId !== peerId || shouldReduceMessageMotion()) {
+    return Promise.resolve();
+  }
+  const row = findRenderedMessageRow(messageId);
+  if (!row) return Promise.resolve();
+
+  const rowHeight = Math.max(1, Math.ceil(row.getBoundingClientRect().height));
+  const listGap = Number.parseFloat(getComputedStyle(messages).rowGap) || 0;
+  row.style.setProperty("--message-row-height", `${rowHeight}px`);
+  row.style.setProperty("--message-list-gap", `${listGap}px`);
+  row.classList.remove("message-entering");
+  row.classList.add("message-exiting");
+
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(fallbackTimer);
+      row.removeEventListener("animationend", handleAnimationEnd);
+      resolve();
+    };
+    const handleAnimationEnd = (event) => {
+      if (event.target === row && event.animationName === "message-row-out") finish();
+    };
+    const fallbackTimer = setTimeout(finish, MESSAGE_TRANSITION_MS + 100);
+    row.addEventListener("animationend", handleAnimationEnd);
+  });
+}
+
+async function deleteMessageLocally(peerId, messageId) {
+  const deletionKey = `${peerId}:${messageId}`;
+  if (deletingMessageKeys.has(deletionKey)) return;
   const history = ensureChatHistory(peerId);
-  const index = history.findIndex((msg) => msg.id === messageId);
-  if (index !== -1) {
+  if (!history.some((msg) => msg.id === messageId)) return;
+
+  deletingMessageKeys.add(deletionKey);
+  try {
+    await waitForMessageExit(peerId, messageId);
+    const index = history.findIndex((msg) => msg.id === messageId);
+    if (index === -1) return;
     const item = history[index];
     disposeMessageAssets(item);
     history.splice(index, 1);
     if (activePeerId === peerId) {
       renderChatHistory();
     }
+  } finally {
+    deletingMessageKeys.delete(deletionKey);
   }
 }
 
@@ -12265,7 +12324,7 @@ function attachConnectionHandlers(conn, peerId, direction) {
         (entry) => entry.id === data.messageId,
       );
       if (item?.sender === "them") {
-        deleteMessageLocally(peerId, data.messageId);
+        void deleteMessageLocally(peerId, data.messageId);
       }
       return;
     }
@@ -14974,7 +15033,7 @@ menuDelete.addEventListener("click", () => {
     return;
   }
 
-  deleteMessageLocally(contextMessage.peerId, contextMessage.id);
+  void deleteMessageLocally(contextMessage.peerId, contextMessage.id);
   closeMessageMenu();
 });
 
@@ -14989,7 +15048,7 @@ menuDeleteEveryone.addEventListener("click", () => {
     return;
   }
 
-  deleteMessageLocally(peerId, id);
+  void deleteMessageLocally(peerId, id);
   closeMessageMenu();
 });
 
