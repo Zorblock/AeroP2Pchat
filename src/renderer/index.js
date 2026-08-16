@@ -58,6 +58,8 @@ let qrScannerContext = null;
 let qrScannerDecoder = null;
 let qrEncoderPromise = null;
 let qrDecoderPromise = null;
+let ownIdQrBlob = null;
+let ownIdQrSha256 = "";
 const sidebarIdCard = document.querySelector(".connection-panel .id-card");
 const sidebarConnectForm = document.querySelector(".connection-panel .connect-form");
 if (ownIdModalMount && sidebarIdCard) ownIdModalMount.append(sidebarIdCard);
@@ -430,6 +432,9 @@ const menuSaveFile = document.querySelector("#menu-save-file");
 const menuScanFile = document.querySelector("#menu-scan-file");
 const menuDelete = document.querySelector("#menu-delete");
 const menuDeleteEveryone = document.querySelector("#menu-delete-everyone");
+const qrCodeMenu = document.querySelector("#qr-code-menu");
+const qrMenuSave = document.querySelector("#qr-menu-save");
+const qrMenuCopyId = document.querySelector("#qr-menu-copy-id");
 const participantMenu = document.querySelector("#participant-menu");
 const participantVolumeSlider = document.querySelector(
   "#participant-volume-slider",
@@ -1420,6 +1425,11 @@ async function showOwnIdQrCode() {
       errorCorrectionLevel: "M",
       color: { dark: "#101114", light: "#ffffff" },
     });
+    ownIdQrBlob = await new Promise((resolve) =>
+      ownIdQrCanvas.toBlob(resolve, "image/png"),
+    );
+    if (!ownIdQrBlob) throw new Error("QR image export is unavailable.");
+    ownIdQrSha256 = await sha256Hex(ownIdQrBlob);
     ownIdQrPanel.classList.remove("hidden");
     showOwnIdQrButton.setAttribute("aria-expanded", "true");
     showOwnIdQrButton.setAttribute("aria-label", "Hide QR code");
@@ -1431,9 +1441,65 @@ async function showOwnIdQrCode() {
 }
 
 function hideOwnIdQrCode() {
+  closeQrCodeMenu();
   ownIdQrPanel?.classList.add("hidden");
   showOwnIdQrButton?.setAttribute("aria-expanded", "false");
   showOwnIdQrButton?.setAttribute("aria-label", "Show QR code");
+}
+
+function closeQrCodeMenu() {
+  qrCodeMenu?.classList.add("hidden");
+}
+
+function openQrCodeMenu(event) {
+  if (!ownIdQrBlob || ownIdQrPanel?.classList.contains("hidden")) return;
+  event.preventDefault();
+  event.stopPropagation();
+  closeContactMenu();
+  closeAppMenu();
+  closeMessageMenu();
+  closeParticipantMenu();
+  closeStreamMenu();
+
+  qrCodeMenu.classList.remove("hidden");
+  const viewportPadding = 10;
+  const rect = event.currentTarget.getBoundingClientRect();
+  const anchorX = event.clientX || rect.right;
+  const anchorY = event.clientY || rect.bottom;
+  qrCodeMenu.style.left = `${Math.max(
+    viewportPadding,
+    Math.min(anchorX, window.innerWidth - qrCodeMenu.offsetWidth - viewportPadding),
+  )}px`;
+  qrCodeMenu.style.top = `${Math.max(
+    viewportPadding,
+    Math.min(anchorY, window.innerHeight - qrCodeMenu.offsetHeight - viewportPadding),
+  )}px`;
+}
+
+async function saveOwnIdQrCode() {
+  if (!ownIdQrBlob || !ownIdQrSha256) {
+    setStatus("offline", "The QR code image is not ready yet.");
+    return;
+  }
+  const result = await platformApi.saveReceivedFile({
+    blob: ownIdQrBlob,
+    name: "aero-id-qr.png",
+    mimeType: "image/png",
+    sha256: ownIdQrSha256,
+    mode: "ask",
+    directory: "",
+  }).catch((error) => ({ ok: false, error: error?.message || "The QR code could not be saved." }));
+  if (result?.canceled) return;
+  if (!result?.ok) {
+    await showAppDialog({
+      title: "QR code was not saved",
+      message: result?.error || "The selected destination is unavailable.",
+      confirmText: "OK",
+      cancelText: "Close",
+    });
+    return;
+  }
+  setStatus("online", "Aero ID QR code saved.");
 }
 
 function stopAeroIdQrScanner({ hidePanel = true, status = "" } = {}) {
@@ -11318,6 +11384,7 @@ function getPeerNameStyle(peerId, identityId) {
 function openContactMenu(event, id) {
   event.preventDefault();
   event.stopPropagation?.();
+  closeQrCodeMenu();
   closeMessageMenu();
   closeAppMenu();
   closeParticipantMenu();
@@ -11367,6 +11434,7 @@ function openAppMenu(event) {
     closeAppMenu();
     return;
   }
+  closeQrCodeMenu();
   closeContactMenu();
   closeMessageMenu();
   closeParticipantMenu();
@@ -11398,6 +11466,7 @@ function closeAppMenu() {
 
 function openMessageMenu(event, messageItem) {
   event.preventDefault();
+  closeQrCodeMenu();
   closeContactMenu();
   closeAppMenu();
   closeParticipantMenu();
@@ -11463,6 +11532,7 @@ function openParticipantMenu(event, target) {
   }
 
   event.preventDefault();
+  closeQrCodeMenu();
   closeContactMenu();
   closeAppMenu();
   closeMessageMenu();
@@ -11507,6 +11577,7 @@ function openStreamMenu(event, target) {
     return;
   }
 
+  closeQrCodeMenu();
   closeContactMenu();
   closeAppMenu();
   closeMessageMenu();
@@ -14758,6 +14829,17 @@ openConnectModalButton?.addEventListener("click", () => {
 showOwnIdQrButton?.addEventListener("click", () => {
   void showOwnIdQrCode();
 });
+ownIdQrCanvas?.addEventListener("contextmenu", openQrCodeMenu);
+qrMenuSave?.addEventListener("click", () => {
+  closeQrCodeMenu();
+  void saveOwnIdQrCode();
+});
+qrMenuCopyId?.addEventListener("click", () => {
+  closeQrCodeMenu();
+  void writeClipboardText(identity.id)
+    .then(() => setStatus("online", "Aero ID copied."))
+    .catch(() => setStatus("offline", "Aero ID could not be copied."));
+});
 scanAeroIdButton?.addEventListener("click", () => {
   if (!qrScannerPanel?.classList.contains("hidden")) {
     stopAeroIdQrScanner();
@@ -15302,6 +15384,9 @@ menuDeleteEveryone.addEventListener("click", () => {
 });
 
 document.addEventListener("click", (event) => {
+  if (!qrCodeMenu?.contains(event.target)) {
+    closeQrCodeMenu();
+  }
   if (!contactMenu.contains(event.target)) {
     closeContactMenu();
   }
@@ -15321,6 +15406,7 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    closeQrCodeMenu();
     closeAppMenu();
     closeContactMenu();
     closeMessageMenu();
