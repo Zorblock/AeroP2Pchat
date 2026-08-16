@@ -1,7 +1,8 @@
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const readline = require("node:readline/promises");
 
 const root = path.join(__dirname, "..");
 const packagePath = path.join(root, "package.json");
@@ -10,6 +11,112 @@ const updatePolicyPath = path.join(root, "update-policy.json");
 const config = require("../config.json");
 const buildArtifactsDir = path.join(root, "dist", "build", "artifacts");
 const releaseDir = path.join(root, "dist", "release");
+const DOCKER_START_TIMEOUT_MS = 180000;
+const DOCKER_READY_POLL_MS = 2000;
+
+function isDockerReady() {
+  const result = spawnSync("docker", ["info"], {
+    cwd: root,
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  return result.status === 0;
+}
+
+function findDockerDesktopExecutable() {
+  if (process.platform !== "win32") return "";
+
+  const candidates = [
+    process.env.ProgramW6432,
+    process.env.ProgramFiles,
+    process.env["ProgramFiles(x86)"],
+  ]
+    .filter(Boolean)
+    .map((directory) =>
+      path.join(directory, "Docker", "Docker", "Docker Desktop.exe"),
+    );
+
+  if (process.env.LOCALAPPDATA) {
+    candidates.push(
+      path.join(
+        process.env.LOCALAPPDATA,
+        "Programs",
+        "Docker",
+        "Docker",
+        "Docker Desktop.exe",
+      ),
+    );
+  }
+
+  return (
+    [...new Set(candidates)].find((candidate) => fs.existsSync(candidate)) || ""
+  );
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function askToStartDockerDesktop() {
+  const prompt = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const answer = await prompt.question(
+      "Docker Desktop needs to be running. Start it now? (y/n): ",
+    );
+    return ["y", "yes"].includes(answer.trim().toLowerCase());
+  } finally {
+    prompt.close();
+  }
+}
+
+async function ensureDockerReady() {
+  if (isDockerReady()) {
+    console.log("Docker Desktop is running.");
+    return;
+  }
+
+  if (process.platform !== "win32") {
+    throw new Error(
+      "Docker needs to be running. Start the Docker daemon and run the release again.",
+    );
+  }
+
+  if (!(await askToStartDockerDesktop())) {
+    throw new Error("Release cancelled because Docker Desktop is not running.");
+  }
+
+  const executable = findDockerDesktopExecutable();
+  if (!executable) {
+    throw new Error(
+      "Docker Desktop could not be found. Start it manually and run the release again.",
+    );
+  }
+
+  console.log("Starting Docker Desktop and waiting for the Docker engine...");
+  const dockerDesktop = spawn(executable, [], {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: false,
+  });
+  dockerDesktop.unref();
+
+  const deadline = Date.now() + DOCKER_START_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await delay(DOCKER_READY_POLL_MS);
+    if (isDockerReady()) {
+      console.log("Docker Desktop is ready. Continuing the release.");
+      return;
+    }
+  }
+
+  throw new Error(
+    "Docker Desktop did not become ready within 3 minutes. Check Docker Desktop and run the release again.",
+  );
+}
 
 function isWindowsBuildLock(error) {
   return (
@@ -601,8 +708,9 @@ function notifyReleaseComplete(tag) {
   }
 }
 
-function main() {
+async function main() {
   const options = parseArgs();
+  await ensureDockerReady();
   const branch = ensureGitRepository();
   ensureGhCli();
   const pkgBefore = readJson(packagePath);
@@ -774,10 +882,8 @@ function main() {
   }
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error("");
   console.error(`Release failed: ${error.message || error}`);
   process.exit(1);
-}
+});
