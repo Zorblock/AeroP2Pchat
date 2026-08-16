@@ -5353,6 +5353,20 @@ function createFileMessageBody(item) {
   iconGlyph.setAttribute("aria-hidden", "true");
   icon.append(iconGlyph);
 
+  const securityLevel = file.security?.level || "warning";
+  if (securityLevel === "safe") {
+    const securityBadge = document.createElement("span");
+    const securityLabel =
+      file.security?.scanLabel || "Security check passed";
+    securityBadge.className = "file-security-badge";
+    securityBadge.title = securityLabel;
+    securityBadge.setAttribute("role", "img");
+    securityBadge.setAttribute("aria-label", securityLabel);
+    securityBadge.innerHTML =
+      '<i class="fa-solid fa-shield-halved" aria-hidden="true"></i>';
+    icon.append(securityBadge);
+  }
+
   const meta = document.createElement("span");
   meta.className = "file-message-meta";
   const name = document.createElement("strong");
@@ -5360,11 +5374,17 @@ function createFileMessageBody(item) {
   name.title = file.name;
   const details = document.createElement("small");
   details.textContent = `${formatFileSize(file.size)} · ${file.detectedMime || file.mimeType || "Unknown type"}`;
-  const security = document.createElement("span");
-  security.className = `file-security-status ${file.security?.level || "warning"}`;
-  security.textContent = file.security?.scanLabel || getFileSecurityLabel(file.security?.level);
-  security.title = file.security?.reasons?.join(" ") || "Aero performed local structural checks.";
-  meta.append(name, details, security);
+  meta.append(name, details);
+  if (securityLevel !== "safe") {
+    const security = document.createElement("span");
+    security.className = `file-security-status ${securityLevel}`;
+    security.textContent =
+      file.security?.scanLabel || getFileSecurityLabel(securityLevel);
+    security.title =
+      file.security?.reasons?.join(" ") ||
+      "Aero could not fully verify this file.";
+    meta.append(security);
+  }
 
   const actions = document.createElement("span");
   actions.className = "file-message-actions";

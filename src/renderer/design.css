@@ -3218,6 +3218,7 @@ body.reduce-motion *::after {
   gap: 8px;
 }
 .file-message-icon {
+  position: relative;
   display: grid;
   width: 34px;
   height: 34px;
@@ -3226,6 +3227,22 @@ body.reduce-motion *::after {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
   font-size: 14px;
+}
+.file-security-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 2px solid var(--surface-raised);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: #279568;
+  cursor: help;
+  font-size: 8px;
+  line-height: 1;
 }
 .file-message-meta {
   display: grid;

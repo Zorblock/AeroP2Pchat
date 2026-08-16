@@ -417,5 +417,5 @@ export async function inspectFileBlob(blob, metadata = {}) {
 export function getFileSecurityLabel(level) {
   if (level === "blocked") return "Blocked";
   if (level === "warning") return "Needs caution";
-  return "Basic checks passed";
+  return "Security check passed";
 }
