@@ -7,8 +7,9 @@ import {
 
 assert.equal(sanitizeTransferFileName("../../report?.pdf"), "report_.pdf");
 assert.equal(inspectFileMetadata({ name: "notes.txt", size: 12, mimeType: "text/plain" }).level, "safe");
-assert.equal(inspectFileMetadata({ name: "photo.jpg.exe", size: 12, mimeType: "application/octet-stream" }).level, "blocked");
+assert.equal(inspectFileMetadata({ name: "photo.jpg.exe", size: 12, mimeType: "application/octet-stream" }).level, "unsafe");
 assert.equal(inspectFileMetadata({ name: "invoice.exe.pdf", size: 12, mimeType: "application/pdf" }).level, "blocked");
+assert.equal(inspectFileMetadata({ name: "installer.exe", size: 12, mimeType: "application/x-msdownload" }).level, "unsafe");
 assert.equal(inspectFileMetadata({ name: "bundle.zip", size: 12, mimeType: "application/zip" }).level, "warning");
 assert.equal(inspectFileMetadata({ name: "large.txt", size: 500 * 1024 * 1024 * 1024, mimeType: "text/plain" }).level, "safe");
 
@@ -23,6 +24,12 @@ const executableResult = await inspectFileBlob(
   { name: "renamed.dat", mimeType: "application/octet-stream" },
 );
 assert.equal(executableResult.level, "blocked");
+
+const explicitExecutableResult = await inspectFileBlob(
+  new Blob([new Uint8Array([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00])]),
+  { name: "installer.exe", mimeType: "application/x-msdownload" },
+);
+assert.equal(explicitExecutableResult.level, "unsafe");
 
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",

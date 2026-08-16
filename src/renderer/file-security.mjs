@@ -4,10 +4,11 @@ export const FILE_NAME_MAX_LENGTH = 180;
 
 const BLOCKED_EXTENSIONS = new Set([
   "apk", "app", "appimage", "bat", "bin", "cmd", "com", "command",
-  "cpl", "deb", "desktop", "dll", "dmg", "exe", "gadget", "hta",
+  "cpl", "deb", "desktop", "dll", "dmg", "dylib", "elf", "exe", "gadget", "hta",
   "img", "iso", "jar", "jse", "js", "lnk", "msi", "msp", "mst",
-  "pkg", "ps1", "psd1", "psm1", "reg", "rpm", "scr", "sh", "sys",
-  "url", "vb", "vbe", "vbs", "wsf", "wsh",
+  "php", "pkg", "pl", "ps1", "psd1", "psm1", "py", "pyw", "rb",
+  "reg", "rpm", "scr", "sh", "so", "sys", "url", "vb", "vbe", "vbs",
+  "wsf", "wsh",
 ]);
 
 const WARNING_EXTENSIONS = new Set([
@@ -85,6 +86,11 @@ const ARCHIVE_MIME_TYPES = new Set([
 
 const BIDI_OR_CONTROL_PATTERN = /[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u;
 const PATH_SEPARATOR_PATTERN = /[\\/]/u;
+const RISK_LEVELS = { safe: 0, warning: 1, unsafe: 2, blocked: 3 };
+
+function raiseRiskLevel(current, next) {
+  return RISK_LEVELS[next] > RISK_LEVELS[current] ? next : current;
+}
 
 export function getFileExtension(name) {
   const normalized = String(name || "").trim().toLowerCase();
@@ -127,13 +133,13 @@ function getNameAssessment(name) {
     addUnique(reasons, "The file name contains hidden or control characters.");
   }
   if (BLOCKED_EXTENSIONS.has(extension)) {
-    level = "blocked";
-    addUnique(reasons, `.${extension} files can execute code and are blocked.`);
+    level = raiseRiskLevel(level, "unsafe");
+    addUnique(reasons, `.${extension} files can execute code.`);
   } else if (WARNING_EXTENSIONS.has(extension)) {
-    level = "warning";
+    level = raiseRiskLevel(level, "warning");
     addUnique(reasons, `.${extension} files may contain active or hidden content.`);
   } else if (!extension) {
-    level = "warning";
+    level = raiseRiskLevel(level, "warning");
     addUnique(reasons, "The file has no extension.");
   }
 
@@ -165,11 +171,11 @@ export function inspectFileMetadata({ name, size, mimeType } = {}) {
     addUnique(reasons, "The file is empty or has an invalid size.");
   }
   if (BLOCKED_MIME_TYPES.has(normalizedMime)) {
-    level = "blocked";
-    addUnique(reasons, "The declared file type can execute code and is blocked.");
+    level = raiseRiskLevel(level, "unsafe");
+    addUnique(reasons, "The declared file type can execute code.");
   }
   if (ARCHIVE_MIME_TYPES.has(normalizedMime) && level !== "blocked") {
-    level = "warning";
+    level = raiseRiskLevel(level, "warning");
     addUnique(reasons, "Archives can contain files that Aero cannot inspect.");
   }
 
@@ -188,12 +194,13 @@ function beginsWith(bytes, signature) {
 function inspectActiveContent(bytes, extension) {
   const reasons = [];
   let blocked = false;
+  let unsafe = false;
   if (beginsWith(bytes, [0x4d, 0x5a])) {
-    blocked = true;
+    unsafe = true;
     addUnique(reasons, "Windows executable signature detected.");
   }
   if (beginsWith(bytes, [0x7f, 0x45, 0x4c, 0x46])) {
-    blocked = true;
+    unsafe = true;
     addUnique(reasons, "Linux executable signature detected.");
   }
   if (
@@ -202,7 +209,7 @@ function inspectActiveContent(bytes, extension) {
     beginsWith(bytes, [0xcf, 0xfa, 0xed, 0xfe]) ||
     beginsWith(bytes, [0xca, 0xfe, 0xba, 0xbe])
   ) {
-    blocked = true;
+    unsafe = true;
     addUnique(reasons, "Executable binary signature detected.");
   }
 
@@ -212,7 +219,7 @@ function inspectActiveContent(bytes, extension) {
     .trimStart()
     .toLowerCase();
   if (text.startsWith("#!") && !SAFE_TEXT_EXTENSIONS.has(extension)) {
-    blocked = true;
+    unsafe = true;
     addUnique(reasons, "Executable script header detected.");
   }
   if (
@@ -222,7 +229,7 @@ function inspectActiveContent(bytes, extension) {
     blocked = true;
     addUnique(reasons, "Active web content is disguised as another file type.");
   }
-  return { blocked, reasons };
+  return { blocked, unsafe, reasons };
 }
 
 function getImageDimensions(bytes, extension) {
@@ -310,21 +317,32 @@ export async function inspectFileHeader(headerValue, metadata = {}) {
   }
   const active = inspectActiveContent(header, result.extension);
   if (active.blocked) result.level = "blocked";
+  else if (active.unsafe && !BLOCKED_EXTENSIONS.has(result.extension)) {
+    result.level = "blocked";
+    addUnique(result.reasons, "Executable content is disguised as a different file type.");
+  } else if (active.unsafe) {
+    result.level = raiseRiskLevel(result.level, "unsafe");
+  }
   active.reasons.forEach((reason) => addUnique(result.reasons, reason));
 
   let detected = null;
   try {
     detected = await fileTypeFromBuffer(header);
   } catch {
-    if (result.level !== "blocked") result.level = "warning";
+    result.level = raiseRiskLevel(result.level, "warning");
     addUnique(result.reasons, "The binary file type could not be identified reliably.");
   }
 
   const detectedExt = String(detected?.ext || "").toLowerCase();
   const detectedMime = String(detected?.mime || "").toLowerCase();
   if (BLOCKED_EXTENSIONS.has(detectedExt) || BLOCKED_MIME_TYPES.has(detectedMime)) {
-    result.level = "blocked";
-    addUnique(result.reasons, "Executable content was detected inside the file.");
+    if (!BLOCKED_EXTENSIONS.has(result.extension)) {
+      result.level = "blocked";
+      addUnique(result.reasons, "Executable content is disguised as a different file type.");
+    } else {
+      result.level = raiseRiskLevel(result.level, "unsafe");
+      addUnique(result.reasons, "Executable content was detected in the file.");
+    }
   }
 
   const expectedMime = IMAGE_TYPES.get(result.extension) || DOCUMENT_TYPES.get(result.extension);
@@ -342,7 +360,7 @@ export async function inspectFileHeader(headerValue, metadata = {}) {
     !(result.extension === "jpeg" && detectedExt === "jpg") &&
     result.level !== "blocked"
   ) {
-    result.level = "warning";
+    result.level = raiseRiskLevel(result.level, "warning");
     addUnique(result.reasons, `Detected .${detectedExt} content does not match the .${result.extension} name.`);
   }
 
@@ -352,12 +370,12 @@ export async function inspectFileHeader(headerValue, metadata = {}) {
     !WARNING_EXTENSIONS.has(result.extension) &&
     result.level !== "blocked"
   ) {
-    result.level = "warning";
+    result.level = raiseRiskLevel(result.level, "warning");
     addUnique(result.reasons, "Aero does not recognize this file type.");
   }
 
   if ((ARCHIVE_MIME_TYPES.has(detectedMime) || ["zip", "rar", "7z", "gz", "tar"].includes(detectedExt)) && result.level !== "blocked") {
-    result.level = "warning";
+    result.level = raiseRiskLevel(result.level, "warning");
     addUnique(result.reasons, "Archive contents are not extracted or scanned by Aero.");
   }
 
@@ -374,7 +392,7 @@ export async function inspectFileHeader(headerValue, metadata = {}) {
     !imageWithinPreviewLimits &&
     result.level !== "blocked"
   ) {
-    result.level = "warning";
+    result.level = raiseRiskLevel(result.level, "warning");
     addUnique(result.reasons, "Image preview was disabled because its dimensions could not be validated safely.");
   }
 
@@ -416,6 +434,7 @@ export async function inspectFileBlob(blob, metadata = {}) {
 
 export function getFileSecurityLabel(level) {
   if (level === "blocked") return "Blocked";
+  if (level === "unsafe") return "Unsafe file type";
   if (level === "warning") return "Needs caution";
   return "Security check passed";
 }

@@ -32,12 +32,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AeroFileSavePlugin extends Plugin {
     private static final int MAX_CHUNK_BYTES = 256 * 1024;
     private static final long DISK_RESERVE_BYTES = 64L * 1024L * 1024L;
-    private static final Set<String> BLOCKED_EXTENSIONS = new HashSet<>(Arrays.asList(
+    private static final Set<String> UNSAFE_EXTENSIONS = new HashSet<>(Arrays.asList(
         "apk", "app", "appimage", "bat", "bin", "cmd", "com", "command", "cpl",
-        "deb", "desktop", "dll", "dmg", "exe", "gadget", "hta", "img", "iso",
-        "jar", "jse", "js", "lnk", "msi", "msp", "mst", "pkg", "ps1", "psd1",
-        "psm1", "reg", "rpm", "scr", "sh", "sys", "url", "vb", "vbe", "vbs",
-        "wsf", "wsh"
+        "deb", "desktop", "dll", "dmg", "dylib", "elf", "exe", "gadget", "hta", "img", "iso",
+        "jar", "jse", "js", "lnk", "msi", "msp", "mst", "php", "pkg", "pl",
+        "ps1", "psd1", "psm1", "py", "pyw", "rb", "reg", "rpm", "scr", "sh",
+        "so", "sys", "url", "vb", "vbe", "vbs", "wsf", "wsh"
     ));
 
     private static final class ReceiveState {
@@ -110,7 +110,7 @@ public class AeroFileSavePlugin extends Plugin {
         return hex(MessageDigest.getInstance("SHA-256").digest(data));
     }
 
-    private boolean blockedSignature(byte[] data) {
+    private boolean executableSignature(byte[] data) {
         if (data.length >= 2 && data[0] == 0x4d && data[1] == 0x5a) return true;
         if (data.length < 4) return false;
         if ((data[0] & 0xff) == 0x7f && data[1] == 0x45 && data[2] == 0x4c && data[3] == 0x46) return true;
@@ -123,14 +123,14 @@ public class AeroFileSavePlugin extends Plugin {
     private boolean invalidName(String name) {
         String[] nameParts = name.toLowerCase(Locale.ROOT).split("\\.");
         return name.matches(".*[\\u202a-\\u202e\\u2066-\\u2069].*") ||
-            BLOCKED_EXTENSIONS.contains(extensionOf(name)) ||
-            (nameParts.length >= 3 && BLOCKED_EXTENSIONS.contains(nameParts[nameParts.length - 2]));
+            (nameParts.length >= 3 && UNSAFE_EXTENSIONS.contains(nameParts[nameParts.length - 2]));
     }
 
     private byte[] validatedData(PluginCall call, String name) throws Exception {
         byte[] data = Base64.decode(call.getString("data", ""), Base64.DEFAULT);
         String expectedHash = call.getString("sha256", "").toLowerCase(Locale.ROOT);
-        if (data.length < 1 || invalidName(name) || blockedSignature(data) ||
+        if (data.length < 1 || invalidName(name) ||
+            (executableSignature(data) && !UNSAFE_EXTENSIONS.contains(extensionOf(name))) ||
             !expectedHash.matches("^[a-f0-9]{64}$") || !sha256(data).equals(expectedHash)) {
             throw new SecurityException("The file failed Aero's security checks.");
         }
@@ -252,7 +252,9 @@ public class AeroFileSavePlugin extends Plugin {
                         offset += read;
                     }
                 }
-                if (blockedSignature(header)) throw new SecurityException("Executable content was detected.");
+                if (executableSignature(header) && !UNSAFE_EXTENSIONS.contains(extensionOf(state.name))) {
+                    throw new SecurityException("Executable content is disguised as a different file type.");
+                }
                 state.finalized = true;
                 JSObject result = new JSObject();
                 result.put("ok", true);

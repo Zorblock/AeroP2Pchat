@@ -3239,11 +3239,14 @@ body.reduce-motion *::after {
   border: 2px solid var(--surface-raised);
   border-radius: 50%;
   background: var(--surface-raised);
-  color: #279568;
   cursor: help;
   font-size: 8px;
   line-height: 1;
 }
+.file-security-badge.safe { color: #279568; }
+.file-security-badge.warning { color: #b27212; }
+.file-security-badge.unsafe,
+.file-security-badge.blocked { color: var(--danger); }
 .file-message-meta {
   display: grid;
   min-width: 0;

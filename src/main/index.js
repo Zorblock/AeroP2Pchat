@@ -100,13 +100,14 @@ const customSoundDirectoryName = "Sounds";
 const maxCustomSoundBytes = 25 * 1024 * 1024;
 const customWallpaperDirectoryName = "Wallpapers";
 const maxCustomWallpaperBytes = 8 * 1024 * 1024;
-const blockedReceivedFileExtensions = new Set([
+const unsafeReceivedFileExtensions = new Set([
   ".apk", ".app", ".appimage", ".bat", ".bin", ".cmd", ".com",
-  ".command", ".cpl", ".deb", ".desktop", ".dll", ".dmg", ".exe",
+  ".command", ".cpl", ".deb", ".desktop", ".dll", ".dmg", ".dylib",
+  ".elf", ".exe",
   ".gadget", ".hta", ".img", ".iso", ".jar", ".jse", ".js", ".lnk",
-  ".msi", ".msp", ".mst", ".pkg", ".ps1", ".psd1", ".psm1", ".reg",
-  ".rpm", ".scr", ".sh", ".sys", ".url", ".vb", ".vbe", ".vbs",
-  ".wsf", ".wsh",
+  ".msi", ".msp", ".mst", ".php", ".pkg", ".pl", ".ps1", ".psd1",
+  ".psm1", ".py", ".pyw", ".rb", ".reg", ".rpm", ".scr", ".sh",
+  ".so", ".sys", ".url", ".vb", ".vbe", ".vbs", ".wsf", ".wsh",
 ]);
 const incomingTempFiles = new Map();
 const incomingFileChunkMaxBytes = 256 * 1024;
@@ -316,7 +317,7 @@ function sanitizeReceivedFileName(value) {
     : `${safe.slice(0, 180 - extension.length)}${extension}`;
 }
 
-function hasBlockedReceivedFileSignature(buffer) {
+function hasExecutableFileSignature(buffer) {
   if (!Buffer.isBuffer(buffer)) return true;
   if (buffer.length >= 2 && buffer.subarray(0, 2).equals(Buffer.from("MZ"))) return true;
   if (buffer.length < 4) return false;
@@ -538,10 +539,17 @@ async function finalizeIncomingFile(event, tempRefValue) {
     const header = Buffer.alloc(Math.min(64 * 1024, entry.size));
     await reader.read(header, 0, header.length, 0);
     await reader.close();
-    if (hasBlockedReceivedFileSignature(header)) {
+    if (
+      hasExecutableFileSignature(header) &&
+      !unsafeReceivedFileExtensions.has(extname(entry.name).toLowerCase())
+    ) {
       await rm(entry.path, { force: true });
       incomingTempFiles.delete(tempRef);
-      return { ok: false, blocked: true, error: "Executable content was detected." };
+      return {
+        ok: false,
+        blocked: true,
+        error: "Executable content is disguised as a different file type.",
+      };
     }
     entry.finalized = true;
     return {
@@ -600,9 +608,8 @@ async function saveReceivedFile(event, details = {}) {
     (tempEntry && (!tempEntry.finalized || tempEntry.name !== fileName || tempEntry.size < 1)) ||
     providedFileName !== fileName ||
     /[\u202a-\u202e\u2066-\u2069]/u.test(fileName) ||
-    blockedReceivedFileExtensions.has(extension) ||
-    (nameParts.length >= 3 && blockedReceivedFileExtensions.has(`.${nameParts.at(-2)}`)) ||
-    (!tempEntry && hasBlockedReceivedFileSignature(buffer)) ||
+    (nameParts.length >= 3 && unsafeReceivedFileExtensions.has(`.${nameParts.at(-2)}`)) ||
+    (!tempEntry && hasExecutableFileSignature(buffer) && !unsafeReceivedFileExtensions.has(extension)) ||
     !/^[a-f0-9]{64}$/.test(expectedSha256) ||
     (tempEntry ? tempEntry.sha256 : createHash("sha256").update(buffer).digest("hex")) !== expectedSha256
   ) {

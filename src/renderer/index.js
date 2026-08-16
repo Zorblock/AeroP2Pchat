@@ -5255,8 +5255,6 @@ function getFileMessageIcon(file) {
   if (file.security?.previewKind === "audio") return "fa-regular fa-file-audio";
   if (file.security?.previewKind === "video") return "fa-regular fa-file-video";
   if (file.security?.previewKind === "image" || file.security?.canPreview || String(file.mimeType).startsWith("image/")) return "fa-regular fa-image";
-  if (file.security?.level === "blocked") return "fa-solid fa-shield-virus";
-  if (file.security?.level === "warning") return "fa-solid fa-triangle-exclamation";
   return "fa-regular fa-file";
 }
 
@@ -5354,18 +5352,25 @@ function createFileMessageBody(item) {
   icon.append(iconGlyph);
 
   const securityLevel = file.security?.level || "warning";
-  if (securityLevel === "safe") {
-    const securityBadge = document.createElement("span");
-    const securityLabel =
-      file.security?.scanLabel || "Security check passed";
-    securityBadge.className = "file-security-badge";
-    securityBadge.title = securityLabel;
-    securityBadge.setAttribute("role", "img");
-    securityBadge.setAttribute("aria-label", securityLabel);
-    securityBadge.innerHTML =
-      '<i class="fa-solid fa-shield-halved" aria-hidden="true"></i>';
-    icon.append(securityBadge);
-  }
+  const securityBadge = document.createElement("span");
+  const securityLabel =
+    file.security?.scanLabel || getFileSecurityLabel(securityLevel);
+  const securityDetails = file.security?.reasons?.join(" ") || "";
+  const securityIcons = {
+    safe: "fa-shield-halved",
+    warning: "fa-triangle-exclamation",
+    unsafe: "fa-shield-virus",
+    blocked: "fa-ban",
+  };
+  securityBadge.className = `file-security-badge ${securityLevel}`;
+  securityBadge.title = securityDetails
+    ? `${securityLabel}: ${securityDetails}`
+    : securityLabel;
+  securityBadge.setAttribute("role", "img");
+  securityBadge.setAttribute("aria-label", securityBadge.title);
+  securityBadge.innerHTML =
+    `<i class="fa-solid ${securityIcons[securityLevel] || securityIcons.warning}" aria-hidden="true"></i>`;
+  icon.append(securityBadge);
 
   const meta = document.createElement("span");
   meta.className = "file-message-meta";
@@ -5375,16 +5380,6 @@ function createFileMessageBody(item) {
   const details = document.createElement("small");
   details.textContent = `${formatFileSize(file.size)} · ${file.detectedMime || file.mimeType || "Unknown type"}`;
   meta.append(name, details);
-  if (securityLevel !== "safe") {
-    const security = document.createElement("span");
-    security.className = `file-security-status ${securityLevel}`;
-    security.textContent =
-      file.security?.scanLabel || getFileSecurityLabel(securityLevel);
-    security.title =
-      file.security?.reasons?.join(" ") ||
-      "Aero could not fully verify this file.";
-    meta.append(security);
-  }
 
   const actions = document.createElement("span");
   actions.className = "file-message-actions";
@@ -7080,17 +7075,22 @@ async function sendSelectedFile(selectedFile, peerId = activePeerId) {
   if (security.level === "blocked") {
     await showAppDialog({
       title: "File blocked",
-      message: security.reasons.join(" ") || "This file type can execute code and cannot be sent with Aero.",
+      message:
+        security.reasons.join(" ") ||
+        "The file is malformed or disguised and cannot be sent safely.",
       confirmText: "OK",
       cancelText: "Close",
       danger: true,
     });
     return;
   }
-  if (security.level === "warning") {
+  if (["warning", "unsafe"].includes(security.level)) {
+    const unsafe = security.level === "unsafe";
     const confirmed = await showAppDialog({
-      title: "Send this file?",
-      message: `${security.reasons.join(" ")} Aero cannot guarantee that a file is harmless.`,
+      title: unsafe ? "Send an unsafe file type?" : "Send this file?",
+      message: unsafe
+        ? `${security.reasons.join(" ")} This file may execute code or change the recipient's device. Only send it if you trust the file.`
+        : `${security.reasons.join(" ")} Aero cannot guarantee that a file is harmless.`,
       confirmText: "Send anyway",
       cancelText: "Cancel",
       danger: true,
@@ -7178,18 +7178,19 @@ async function requestFileMessage(item, { automatic = false } = {}) {
   const file = item?.file;
   if (!file || item.sender === "me" || !["offered", "failed", "released"].includes(file.downloadState)) return;
   if (file.security?.level === "blocked") return;
-  if (!automatic && file.security?.level === "warning") {
+  if (automatic && file.security?.level !== "safe") return;
+  if (!automatic && ["warning", "unsafe"].includes(file.security?.level)) {
+    const unsafe = file.security.level === "unsafe";
     const confirmed = await showAppDialog({
-      title: "Accept this file?",
-      message: `${file.security.reasons.join(" ")} Only save it if you trust the sender.`,
-      confirmText: "Accept",
-      cancelText: "Decline",
+      title: unsafe ? "Unsafe file type" : "Accept this file?",
+      message: unsafe
+        ? `${file.security.reasons.join(" ")} This file can potentially execute code or change your device. Aero will only download it to private temporary storage and will never run it automatically.`
+        : `${file.security.reasons.join(" ")} Only save it if you trust the sender.`,
+      confirmText: unsafe ? "Accept anyway" : "Accept",
+      cancelText: "Cancel",
       danger: true,
     });
-    if (!confirmed) {
-      declineFileMessage(item);
-      return;
-    }
+    if (!confirmed) return;
   }
   const conn = connections.get(item.peerId);
   if (!conn?.open) {
@@ -7513,10 +7514,13 @@ async function handleFileTransferComplete(peerId, data) {
 async function saveFileMessage(item) {
   const file = item?.file;
   if ((!file?.blob && !file?.tempRef) || !["ready", "saved"].includes(file.downloadState)) return;
-  if (file.security?.level === "warning") {
+  if (["warning", "unsafe"].includes(file.security?.level)) {
+    const unsafe = file.security.level === "unsafe";
     const confirmed = await showAppDialog({
-      title: "Save file with warnings?",
-      message: `${file.security.reasons.join(" ")} Aero's checks are not a guarantee that this file is harmless.`,
+      title: unsafe ? "Save an unsafe file type?" : "Save file with warnings?",
+      message: unsafe
+        ? `${file.security.reasons.join(" ")} Saving does not run the file, but opening it later could harm your device.`
+        : `${file.security.reasons.join(" ")} Aero's checks are not a guarantee that this file is harmless.`,
       confirmText: "Save anyway",
       cancelText: "Cancel",
       danger: true,
@@ -7568,11 +7572,14 @@ async function saveFileMessage(item) {
       file.downloadState = "saved";
       file.transferStatus = "";
       file.savedPath = result.path || result.uri || "";
-      file.security.scanLabel = result.scanner
+      const scanLabel = result.scanner
         ? `Scanned by ${result.scanner}`
         : result.scanStatus === "unavailable"
           ? "Saved · no desktop antivirus detected"
           : "Saved through platform protection";
+      file.security.scanLabel = file.security.level === "unsafe"
+        ? `Unsafe file type · ${scanLabel}`
+        : scanLabel;
       setStatus("online", `${file.name} saved.`);
       if (result.renamedDueToLock) {
         await showAppDialog({
