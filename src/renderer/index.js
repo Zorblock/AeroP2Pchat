@@ -3,10 +3,18 @@ import Peer, { util } from "peerjs";
 import emojiShortcodeDataUrl from "../../node_modules/emoji-picker-element-data/en/github/data.json?url";
 import countryFlagEmojiFontUrl from "../../node_modules/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url";
 import { getDomain } from "tldts";
+import { sha256 } from "@noble/hashes/sha2.js";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import appLogo from "../../assets/app.png";
 import packageInfo from "../../package.json" with { type: "json" };
 import { createPlatformApi } from "./platform.js";
+import {
+  getFileSecurityLabel,
+  inspectFileBlob,
+  inspectFileHeader,
+  inspectFileMetadata,
+  sanitizeTransferFileName,
+} from "./file-security.mjs";
 import "./design.css";
 
 const projectConfig = __PROJECT_CONFIG__;
@@ -117,6 +125,8 @@ const messageForm = document.querySelector("#message-form");
 const messageInput = document.querySelector("#message-input");
 const sendButton = document.querySelector("#send-button");
 const voiceRecordButton = document.querySelector("#voice-record-button");
+const fileAttachButton = document.querySelector("#file-attach-button");
+const fileAttachInput = document.querySelector("#file-attach-input");
 const emojiPickerButton = document.querySelector("#emoji-picker-button");
 const emojiPickerPopover = document.querySelector("#emoji-picker-popover");
 const emojiShortcodePopover = document.querySelector("#emoji-shortcode-popover");
@@ -316,6 +326,12 @@ const focusedNotificationsToggle = document.querySelector(
 const readReceiptsToggle = document.querySelector("#read-receipts-toggle");
 const voiceAutoDownloadToggle = document.querySelector("#voice-auto-download-toggle");
 const voiceWaveformToggle = document.querySelector("#voice-waveform-toggle");
+const fileAutoDownloadToggle = document.querySelector("#file-auto-download-toggle");
+const fileDownloadModeSelect = document.querySelector("#file-download-mode-select");
+const fileDownloadFolderRow = document.querySelector("#file-download-folder-row");
+const fileDownloadFolderLabel = document.querySelector("#file-download-folder-label");
+const fileDownloadFolderButton = document.querySelector("#file-download-folder-button");
+const fileDownloadPlatformNote = document.querySelector("#file-download-platform-note");
 const trustedDomainsStatus = document.querySelector("#trusted-domains-status");
 const clearTrustedDomainsButton = document.querySelector("#clear-trusted-domains");
 const trustedDefaultDomainsCount = document.querySelector("#trusted-default-domains-count");
@@ -392,7 +408,9 @@ const menuNickname = document.querySelector("#menu-nickname");
 const menuBlock = document.querySelector("#menu-block");
 const messageMenu = document.querySelector("#message-menu");
 const menuCopy = document.querySelector("#menu-copy");
+const menuSaveFile = document.querySelector("#menu-save-file");
 const menuDelete = document.querySelector("#menu-delete");
+const menuDeleteEveryone = document.querySelector("#menu-delete-everyone");
 const participantMenu = document.querySelector("#participant-menu");
 const participantVolumeSlider = document.querySelector(
   "#participant-volume-slider",
@@ -438,6 +456,9 @@ const remoteIdentities = new Map();
 const remoteReadReceiptsEnabled = new Map();
 const pendingVoiceUploads = new Map();
 const incomingVoiceTransfers = new Map();
+const pendingFileUploads = new Map();
+const incomingFileTransfers = new Map();
+const activeOutgoingFileTransfers = new Map();
 const CHAT_LABEL = "aero-p2p-chat";
 const PROTOCOL_VERSION = 1;
 const AERO_ID_PATTERN = /^aero-(?:[a-f0-9]{16}|[a-f0-9]{32})$/;
@@ -457,6 +478,13 @@ const VOICE_MESSAGE_CHUNK_BYTES = 32 * 1024;
 const VOICE_MESSAGE_EXPIRY_MS = 15 * 60 * 1000;
 const MAX_PENDING_VOICE_UPLOADS = 8;
 const MAX_ACTIVE_VOICE_TRANSFERS = 3;
+const FILE_TRANSFER_CHUNK_BYTES = 64 * 1024;
+const FILE_TRANSFER_WINDOW_CHUNKS = 16;
+const FILE_TRANSFER_ACK_TIMEOUT_MS = 60 * 1000;
+const FILE_TRANSFER_IDLE_TIMEOUT_MS = 90 * 1000;
+const FILE_TRANSFER_EXPIRY_MS = 24 * 60 * 60 * 1000;
+const MAX_PENDING_FILE_UPLOADS = 6;
+const MAX_ACTIVE_FILE_TRANSFERS = 2;
 const VOICE_MESSAGE_MIME_TYPES = new Set([
   "audio/webm;codecs=opus",
   "audio/webm",
@@ -1968,6 +1996,20 @@ function normalizeAppSettings() {
     readReceipts: appConfig.appSettings.readReceipts !== false,
     voiceAutoDownload: Boolean(appConfig.appSettings.voiceAutoDownload),
     voiceWaveform: appConfig.appSettings.voiceWaveform !== false,
+    fileAutoDownloadTrusted: Boolean(appConfig.appSettings.fileAutoDownloadTrusted),
+    fileDownloadMode: ["ask", "downloads", "custom"].includes(
+      appConfig.appSettings.fileDownloadMode,
+    )
+      ? appConfig.appSettings.fileDownloadMode
+      : "ask",
+    fileDownloadDirectory:
+      typeof appConfig.appSettings.fileDownloadDirectory === "string"
+        ? appConfig.appSettings.fileDownloadDirectory.slice(0, 1024)
+        : "",
+    fileDownloadDirectoryLabel:
+      typeof appConfig.appSettings.fileDownloadDirectoryLabel === "string"
+        ? appConfig.appSettings.fileDownloadDirectoryLabel.slice(0, 240)
+        : "",
     autoDownloadUpdates: Boolean(appConfig.appSettings.autoDownloadUpdates),
     showUpdateModal: appConfig.appSettings.showUpdateModal !== false,
     feedbackEnabled: appConfig.appSettings.feedbackEnabled !== false,
@@ -2569,6 +2611,30 @@ function renderAppSettings() {
   readReceiptsToggle.checked = appConfig.appSettings.readReceipts;
   voiceAutoDownloadToggle.checked = appConfig.appSettings.voiceAutoDownload;
   voiceWaveformToggle.checked = appConfig.appSettings.voiceWaveform;
+  fileAutoDownloadToggle.checked = appConfig.appSettings.fileAutoDownloadTrusted;
+  const customFileFolderSupported = platformApi.supportsFileDirectoryChoice;
+  const customFileFolderOption = fileDownloadModeSelect.querySelector('option[value="custom"]');
+  if (customFileFolderOption) customFileFolderOption.disabled = !customFileFolderSupported;
+  fileDownloadModeSelect.value =
+    appConfig.appSettings.fileDownloadMode === "custom" && !customFileFolderSupported
+      ? "ask"
+      : appConfig.appSettings.fileDownloadMode;
+  fileDownloadFolderRow.classList.toggle(
+    "hidden",
+    fileDownloadModeSelect.value !== "custom" || !customFileFolderSupported,
+  );
+  fileDownloadFolderLabel.textContent =
+    appConfig.appSettings.fileDownloadDirectoryLabel ||
+    appConfig.appSettings.fileDownloadDirectory ||
+    "No folder selected";
+  fileDownloadPlatformNote.textContent = platformApi.isElectron
+    ? "Files stream into private app temporary storage and are limited by free disk space, not RAM. Saving is separate; Microsoft Defender or ClamAV is used when available."
+    : platformApi.isAndroid
+      ? "Files stream into Android's private app cache and are limited by free storage, not RAM. Android saves through protected system storage and never opens them automatically."
+      : platformApi.isChromeExtension
+        ? "Files stream into Chrome's private storage and are limited by its available quota, not RAM. Chrome controls final saving and applies its own download protection."
+        : "Files stream into private browser storage and are limited by its available quota, not RAM. Your browser controls saving and files are never opened automatically.";
+  syncEnhancedSelect(fileDownloadModeSelect);
   const personalTrustedDomainCount = appConfig.appSettings.trustedLinkDomains.filter(
     (domain) => !DEFAULT_TRUSTED_LINK_DOMAINS.has(domain),
   ).length;
@@ -4972,14 +5038,17 @@ function applyVoiceWaveform(waveform, values) {
 }
 
 async function analyzeVoiceWaveform(voice, waveform) {
-  if (voice.waveform || !voice.blob || !window.AudioContext) return;
+  if (
+    voice.waveform || !voice.blob || !window.AudioContext ||
+    voice.blob.size > 24 * 1024 * 1024
+  ) return;
   try {
     voiceWaveformAudioContext ||= new AudioContext();
     const audioBuffer = await voiceWaveformAudioContext.decodeAudioData(
       await voice.blob.arrayBuffer(),
     );
     const samples = audioBuffer.getChannelData(0);
-    const barCount = 24;
+    const barCount = 48;
     const values = Array.from({ length: barCount }, (_, index) => {
       const start = Math.floor((index * samples.length) / barCount);
       const end = Math.floor(((index + 1) * samples.length) / barCount);
@@ -5000,8 +5069,65 @@ async function analyzeVoiceWaveform(voice, waveform) {
 function createVoiceWaveform(voice, audio) {
   const waveform = document.createElement("div");
   waveform.className = "voice-waveform";
-  waveform.setAttribute("aria-hidden", "true");
-  applyVoiceWaveform(waveform, voice.waveform || Array(24).fill(0.2));
+  waveform.tabIndex = 0;
+  waveform.setAttribute("role", "slider");
+  waveform.setAttribute("aria-label", "Seek audio");
+  waveform.setAttribute("aria-valuemin", "0");
+  waveform.title = "Click or drag to seek";
+  applyVoiceWaveform(waveform, voice.waveform || Array(48).fill(0.2));
+
+  const getDuration = () => Number.isFinite(audio.duration) && audio.duration > 0
+    ? audio.duration
+    : Math.max(0, Number(voice.duration) || 0);
+  const updateProgress = () => {
+    const duration = getDuration();
+    const currentTime = Math.max(0, Number(audio.currentTime) || 0);
+    const progress = duration ? Math.min(100, (currentTime / duration) * 100) : 0;
+    waveform.style.setProperty("--voice-progress", `${progress}%`);
+    waveform.setAttribute("aria-valuemax", String(Math.round(duration)));
+    waveform.setAttribute("aria-valuenow", String(Math.round(currentTime)));
+    waveform.setAttribute(
+      "aria-valuetext",
+      `${formatVoiceDuration(currentTime)} of ${formatVoiceDuration(duration)}`,
+    );
+  };
+  const seekToRatio = (ratio) => {
+    const duration = getDuration();
+    if (!duration) return;
+    audio.currentTime = Math.max(0, Math.min(1, ratio)) * duration;
+    updateProgress();
+  };
+  const seekFromPointer = (event) => {
+    const bounds = waveform.getBoundingClientRect();
+    if (bounds.width) seekToRatio((event.clientX - bounds.left) / bounds.width);
+  };
+  waveform.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    waveform.setPointerCapture(event.pointerId);
+    waveform.classList.add("seeking");
+    seekFromPointer(event);
+  });
+  waveform.addEventListener("pointermove", (event) => {
+    if (waveform.hasPointerCapture(event.pointerId)) seekFromPointer(event);
+  });
+  const finishSeeking = (event) => {
+    if (waveform.hasPointerCapture(event.pointerId)) waveform.releasePointerCapture(event.pointerId);
+    waveform.classList.remove("seeking");
+  };
+  waveform.addEventListener("pointerup", finishSeeking);
+  waveform.addEventListener("pointercancel", finishSeeking);
+  waveform.addEventListener("keydown", (event) => {
+    const duration = getDuration();
+    if (!duration) return;
+    const seekStep = event.shiftKey ? 15 : 5;
+    if (["ArrowLeft", "ArrowDown"].includes(event.key)) audio.currentTime = Math.max(0, audio.currentTime - seekStep);
+    else if (["ArrowRight", "ArrowUp"].includes(event.key)) audio.currentTime = Math.min(duration, audio.currentTime + seekStep);
+    else if (event.key === "Home") audio.currentTime = 0;
+    else if (event.key === "End") audio.currentTime = duration;
+    else return;
+    event.preventDefault();
+    updateProgress();
+  });
   audio.addEventListener("play", () => {
     waveform.classList.add("playing");
     void analyzeVoiceWaveform(voice, waveform);
@@ -5009,12 +5135,12 @@ function createVoiceWaveform(voice, audio) {
   audio.addEventListener("pause", () => waveform.classList.remove("playing"));
   audio.addEventListener("ended", () => {
     waveform.classList.remove("playing");
-    waveform.style.setProperty("--voice-progress", "0%");
+    updateProgress();
   });
-  audio.addEventListener("timeupdate", () => {
-    const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-    waveform.style.setProperty("--voice-progress", `${progress}%`);
-  });
+  audio.addEventListener("timeupdate", updateProgress);
+  audio.addEventListener("loadedmetadata", updateProgress);
+  audio.addEventListener("durationchange", updateProgress);
+  updateProgress();
   return waveform;
 }
 
@@ -5116,6 +5242,197 @@ function createVoiceMessageBody(item) {
   return body;
 }
 
+function formatFileSize(bytes) {
+  const size = Math.max(0, Number(bytes) || 0);
+  if (size >= 1024 ** 4) return `${(size / 1024 ** 4).toFixed(size >= 10 * 1024 ** 4 ? 0 : 1)} TB`;
+  if (size >= 1024 ** 3) return `${(size / 1024 ** 3).toFixed(size >= 10 * 1024 ** 3 ? 0 : 1)} GB`;
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(size >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+  if (size >= 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${size} B`;
+}
+
+function getFileMessageIcon(file) {
+  if (file.security?.previewKind === "audio") return "fa-regular fa-file-audio";
+  if (file.security?.previewKind === "video") return "fa-regular fa-file-video";
+  if (file.security?.previewKind === "image" || file.security?.canPreview || String(file.mimeType).startsWith("image/")) return "fa-regular fa-image";
+  if (file.security?.level === "blocked") return "fa-solid fa-shield-virus";
+  if (file.security?.level === "warning") return "fa-solid fa-triangle-exclamation";
+  return "fa-regular fa-file";
+}
+
+function createFileAudioPlayer(file) {
+  const audio = document.createElement("audio");
+  audio.className = "voice-audio";
+  audio.preload = "metadata";
+  audio.src = file.previewUrl;
+  audio.setAttribute("aria-label", `Play ${file.name}`);
+
+  const player = document.createElement("div");
+  player.className = "voice-player file-audio-player";
+  const playButton = document.createElement("button");
+  playButton.type = "button";
+  playButton.className = "voice-play-button";
+  playButton.setAttribute("aria-label", "Play audio file");
+  const playIcon = document.createElement("i");
+  playIcon.className = "fa-solid fa-play";
+  playIcon.setAttribute("aria-hidden", "true");
+  playButton.append(playIcon);
+  const time = document.createElement("span");
+  time.className = "voice-play-time";
+
+  const updatePlayer = () => {
+    const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+    time.textContent = `${formatVoiceDuration(audio.currentTime)} / ${formatVoiceDuration(duration)}`;
+    const playing = !audio.paused && !audio.ended;
+    player.classList.toggle("playing", playing);
+    playIcon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+    playButton.setAttribute("aria-label", playing ? "Pause audio file" : "Play audio file");
+  };
+  playButton.addEventListener("click", () => {
+    if (audio.paused || audio.ended) {
+      void audio.play().catch(() => updatePlayer());
+    } else {
+      audio.pause();
+    }
+  });
+  audio.addEventListener("play", updatePlayer);
+  audio.addEventListener("pause", updatePlayer);
+  audio.addEventListener("ended", updatePlayer);
+  audio.addEventListener("timeupdate", updatePlayer);
+  audio.addEventListener("loadedmetadata", updatePlayer);
+  player.append(playButton);
+  if (appConfig.appSettings?.voiceWaveform) {
+    player.append(createVoiceWaveform(file, audio));
+  }
+  player.append(time);
+  updatePlayer();
+  return [audio, player];
+}
+
+function createFileMediaPreview(file) {
+  if (!file.previewUrl) return null;
+  if (file.security?.previewKind === "image") {
+    const image = document.createElement("img");
+    image.className = "file-message-preview";
+    image.src = file.previewUrl;
+    image.alt = file.name;
+    image.loading = "lazy";
+    image.decoding = "async";
+    return image;
+  }
+  if (file.security?.previewKind === "video") {
+    const video = document.createElement("video");
+    video.className = "file-message-video";
+    video.src = file.previewUrl;
+    video.controls = true;
+    video.preload = "metadata";
+    video.playsInline = true;
+    video.setAttribute("aria-label", `Play ${file.name}`);
+    return video;
+  }
+  if (file.security?.previewKind === "audio") {
+    const wrapper = document.createElement("div");
+    wrapper.className = "file-message-audio";
+    wrapper.append(...createFileAudioPlayer(file));
+    return wrapper;
+  }
+  return null;
+}
+
+function createFileMessageBody(item) {
+  const file = item.file;
+  const body = document.createElement("div");
+  body.className = "file-message";
+
+  const header = document.createElement("div");
+  header.className = "file-message-header";
+  const icon = document.createElement("span");
+  icon.className = "file-message-icon";
+  const iconGlyph = document.createElement("i");
+  iconGlyph.className = getFileMessageIcon(file);
+  iconGlyph.setAttribute("aria-hidden", "true");
+  icon.append(iconGlyph);
+
+  const meta = document.createElement("span");
+  meta.className = "file-message-meta";
+  const name = document.createElement("strong");
+  name.textContent = file.name;
+  name.title = file.name;
+  const details = document.createElement("small");
+  details.textContent = `${formatFileSize(file.size)} · ${file.detectedMime || file.mimeType || "Unknown type"}`;
+  const security = document.createElement("span");
+  security.className = `file-security-status ${file.security?.level || "warning"}`;
+  security.textContent = file.security?.scanLabel || getFileSecurityLabel(file.security?.level);
+  security.title = file.security?.reasons?.join(" ") || "Aero performed local structural checks.";
+  meta.append(name, details, security);
+
+  const actions = document.createElement("span");
+  actions.className = "file-message-actions";
+  if (item.sender === "them" && ["offered", "failed", "released"].includes(file.downloadState)) {
+    const accept = document.createElement("button");
+    accept.type = "button";
+    accept.className = "file-message-action primary";
+    accept.title = ["failed", "released"].includes(file.downloadState)
+      ? "Retry secure download"
+      : "Accept and download";
+    accept.setAttribute("aria-label", accept.title);
+    accept.innerHTML = `<i class="fa-solid ${["failed", "released"].includes(file.downloadState) ? "fa-rotate-right" : "fa-download"}" aria-hidden="true"></i>`;
+    accept.addEventListener("click", () => void requestFileMessage(item));
+    const decline = document.createElement("button");
+    decline.type = "button";
+    decline.className = "file-message-action";
+    decline.title = "Decline file";
+    decline.setAttribute("aria-label", decline.title);
+    decline.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+    decline.addEventListener("click", () => declineFileMessage(item));
+    actions.append(accept, decline);
+  } else if (item.sender === "them" && (file.downloadState === "ready" || file.downloadState === "saved")) {
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "file-message-action primary";
+    save.title = file.downloadState === "saved" ? "Save another copy" : "Save file";
+    save.setAttribute("aria-label", save.title);
+    save.innerHTML = `<i class="fa-solid ${file.downloadState === "saved" ? "fa-check" : "fa-download"}" aria-hidden="true"></i>`;
+    save.addEventListener("click", () => void saveFileMessage(item));
+    actions.append(save);
+  } else if (["requested", "saving"].includes(file.downloadState)) {
+    const progressIcon = document.createElement("span");
+    progressIcon.className = "file-message-action";
+    progressIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+    actions.append(progressIcon);
+  }
+  header.append(icon, meta, actions);
+  body.append(header);
+
+  const mediaPreview = createFileMediaPreview(file);
+  if (mediaPreview) body.append(mediaPreview);
+
+  if (["requested", "saving", "failed", "invalid", "declined", "released", "expired"].includes(file.downloadState)) {
+    const transfer = document.createElement("div");
+    transfer.className = "file-transfer-status";
+    const label = document.createElement("span");
+    label.className = `file-security-status ${file.downloadState === "invalid" ? "blocked" : ""}`;
+    label.textContent = file.transferStatus || {
+      requested: "Downloading securely...",
+      saving: "Scanning and saving...",
+      failed: "Transfer interrupted – retry",
+      invalid: "Blocked by security checks",
+      declined: "File declined",
+      released: "Temporary file removed – download again if needed",
+      expired: "File offer expired",
+    }[file.downloadState];
+    transfer.append(label);
+    if (file.downloadState === "requested") {
+      const progress = document.createElement("span");
+      progress.className = "file-transfer-progress";
+      progress.style.setProperty("--file-transfer-progress", `${file.transferProgress || 0}%`);
+      transfer.append(progress);
+    }
+    body.append(transfer);
+  }
+  return body;
+}
+
 function createChatMessage(item) {
   const {
     id,
@@ -5146,8 +5463,12 @@ function createChatMessage(item) {
     footer.append(state);
   }
 
-  const body = item.voice ? createVoiceMessageBody(item) : document.createElement("p");
-  if (!item.voice) appendMessageTextWithLinks(body, text);
+  const body = item.voice
+    ? createVoiceMessageBody(item)
+    : item.file
+      ? createFileMessageBody(item)
+      : document.createElement("p");
+  if (!item.voice && !item.file) appendMessageTextWithLinks(body, text);
 
   bubble.append(body, footer);
   row.append(bubble);
@@ -5675,7 +5996,18 @@ function addSystemMessage(text) {
   appendMessageRow(createSystemMessage(text));
 }
 
-function addChatMessage({ id, text, sender, peerId, time, voice }) {
+function disposeMessageAssets(item) {
+  if (item?.file?.id) {
+    pendingFileUploads.delete(item.file.id);
+    incomingFileTransfers.delete(`${item.peerId}:${item.file.id}`);
+  }
+  for (const objectUrl of [item?.voice?.objectUrl, item?.file?.previewUrl]) {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
+  if (item?.file?.tempRef) void platformApi.releaseReceivedFile(item.file.tempRef);
+}
+
+function addChatMessage({ id, text, sender, peerId, time, voice, file }) {
   const item = {
     id: id ?? createMessageId(),
     text,
@@ -5683,6 +6015,7 @@ function addChatMessage({ id, text, sender, peerId, time, voice }) {
     peerId,
     time: time ?? formatTime(),
     voice,
+    file,
   };
 
   if (sender !== "me") {
@@ -5693,7 +6026,8 @@ function addChatMessage({ id, text, sender, peerId, time, voice }) {
   history.push(item);
   const trimmed = history.length > MAX_CHAT_HISTORY_ITEMS;
   if (trimmed) {
-    history.splice(0, history.length - MAX_CHAT_HISTORY_ITEMS);
+    const removed = history.splice(0, history.length - MAX_CHAT_HISTORY_ITEMS);
+    removed.forEach(disposeMessageAssets);
   }
 
   if (activePeerId === peerId) {
@@ -5882,7 +6216,7 @@ function notifyIncomingMessage(peerId, text, { variant = "chat" } = {}) {
     avatar: getPeerAvatar(peerId, identityId),
     title: getPeerLabel(peerId, conn),
     body:
-      variant === "voice"
+      variant === "voice" || variant === "file"
         ? text
         : appConfig.notificationSettings.messagePreview
           ? formatIncomingMessagePreview(text)
@@ -6021,6 +6355,8 @@ function syncComposerAction() {
   sendButton.classList.toggle("hidden", !hasText || recording);
   voiceRecordButton.classList.toggle("hidden", hasText && !recording);
   emojiPickerButton.disabled = messageInput.disabled || recording;
+  fileAttachButton.disabled = messageInput.disabled || recording;
+  fileAttachButton.classList.toggle("hidden", recording);
   if (recording || messageInput.disabled) {
     void setEmojiPickerOpen(false);
     closeEmojiShortcodeSuggestions();
@@ -6331,8 +6667,11 @@ function updateVoiceRecordUi() {
 }
 
 async function sha256Hex(blob) {
-  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
-  return Array.from(new Uint8Array(digest), (byte) =>
+  const hash = sha256.create();
+  for (let offset = 0; offset < blob.size; offset += 4 * 1024 * 1024) {
+    hash.update(new Uint8Array(await blob.slice(offset, offset + 4 * 1024 * 1024).arrayBuffer()));
+  }
+  return Array.from(hash.digest(), (byte) =>
     byte.toString(16).padStart(2, "0"),
   ).join("");
 }
@@ -6640,6 +6979,601 @@ async function handleVoiceTransferComplete(peerId, data) {
     writeDevLog("Voice message verification failed.");
   }
   if (activePeerId === peerId) renderChatHistory();
+}
+
+function createFileTransferId() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return `file-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function normalizeFileOffer(value) {
+  if (!value || typeof value !== "object") return null;
+  const id = String(value.id || "");
+  const name = String(value.name || "");
+  const mimeType = String(value.mimeType || "application/octet-stream")
+    .split(";", 1)[0]
+    .toLowerCase();
+  const size = Number(value.size);
+  const sha256 = String(value.sha256 || "").toLowerCase();
+  if (
+    !/^file-[a-f0-9]{24}$/.test(id) ||
+    !name || name !== sanitizeTransferFileName(name) ||
+    mimeType.length > 160 ||
+    !Number.isSafeInteger(size) || size < 1 ||
+    !/^[a-f0-9]{64}$/.test(sha256)
+  ) {
+    return null;
+  }
+  return {
+    id,
+    name,
+    mimeType: mimeType || "application/octet-stream",
+    size,
+    sha256,
+    security: inspectFileMetadata({ name, size, mimeType }),
+  };
+}
+
+function findFileMessage(peerId, fileId) {
+  return ensureChatHistory(peerId).find((item) => item.file?.id === fileId);
+}
+
+function releaseFilePayload(item, state = "released", status = "Temporary file removed") {
+  if (!item?.file) return;
+  if (item.file.previewUrl) URL.revokeObjectURL(item.file.previewUrl);
+  if (item.file.tempRef) void platformApi.releaseReceivedFile(item.file.tempRef);
+  delete item.file.blob;
+  delete item.file.tempRef;
+  item.file.previewUrl = "";
+  item.file.downloadState = state;
+  item.file.transferStatus = status;
+}
+
+function expirePendingFileUpload(fileId) {
+  const upload = pendingFileUploads.get(fileId);
+  pendingFileUploads.delete(fileId);
+  if (!upload) return;
+  const item = findFileMessage(upload.peerId, fileId);
+  if (item?.sender === "me" && item.file?.blob) {
+    releaseFilePayload(
+      item,
+      "expired",
+      upload.recipientReceived
+        ? "Sent · temporary reference released"
+        : "File offer expired after 24 hours",
+    );
+    if (activePeerId === upload.peerId) renderChatHistory();
+  }
+}
+
+async function sendSelectedFile(selectedFile, peerId = activePeerId) {
+  if (!(selectedFile instanceof Blob) || !peerId || !connections.get(peerId)?.open) {
+    return;
+  }
+  const name = sanitizeTransferFileName(selectedFile.name || "file");
+  setStatus("pending", `Checking ${name}...`);
+  const security = await inspectFileBlob(selectedFile, {
+    name,
+    mimeType: selectedFile.type,
+  });
+  if (security.level === "blocked") {
+    await showAppDialog({
+      title: "File blocked",
+      message: security.reasons.join(" ") || "This file type can execute code and cannot be sent with Aero.",
+      confirmText: "OK",
+      cancelText: "Close",
+      danger: true,
+    });
+    return;
+  }
+  if (security.level === "warning") {
+    const confirmed = await showAppDialog({
+      title: "Send this file?",
+      message: `${security.reasons.join(" ")} Aero cannot guarantee that a file is harmless.`,
+      confirmText: "Send anyway",
+      cancelText: "Cancel",
+      danger: true,
+    });
+    if (!confirmed) return;
+  }
+  if (!connections.get(peerId)?.open) {
+    setStatus("offline", "The contact disconnected while the file was being checked.");
+    return;
+  }
+
+  const file = {
+    id: createFileTransferId(),
+    name,
+    mimeType: selectedFile.type || security.detectedMime || "application/octet-stream",
+    size: selectedFile.size,
+    sha256: await sha256Hex(selectedFile),
+  };
+  const messageId = createMessageId();
+  if (!sendProtocolMessage(connections.get(peerId), "file-offer", { id: messageId, file })) {
+    setStatus("pending", "The file offer could not be sent.");
+    return;
+  }
+  while (pendingFileUploads.size >= MAX_PENDING_FILE_UPLOADS) {
+    expirePendingFileUpload(pendingFileUploads.keys().next().value);
+  }
+  pendingFileUploads.set(file.id, {
+    blob: selectedFile,
+    peerId,
+    file,
+    expiresAt: Date.now() + FILE_TRANSFER_EXPIRY_MS,
+  });
+  setTimeout(() => expirePendingFileUpload(file.id), FILE_TRANSFER_EXPIRY_MS);
+  addChatMessage({
+    id: messageId,
+    text: "",
+    sender: "me",
+    peerId,
+    time: formatTime(),
+    file: {
+      ...file,
+      downloadState: "ready",
+      blob: selectedFile,
+      previewUrl: security.previewKind ? URL.createObjectURL(selectedFile) : "",
+      security,
+    },
+  });
+  writeDevLog(`File offered (${formatFileSize(file.size)}).`);
+  setStatus("online", `${name} offered securely.`);
+}
+
+function waitForFileTransferAck(transfer, index) {
+  if (transfer.ackedIndex >= index) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      transfer.ackWaiter = null;
+      reject(new Error("Recipient storage timed out."));
+    }, FILE_TRANSFER_ACK_TIMEOUT_MS);
+    transfer.ackWaiter = { index, resolve, reject, timer };
+  });
+}
+
+async function sendFileTransferChunks(transfer) {
+  const { conn, upload } = transfer;
+  for (let offset = 0, index = 0; offset < upload.blob.size; offset += FILE_TRANSFER_CHUNK_BYTES, index += 1) {
+    if (!conn.open) throw new Error("Transfer interrupted.");
+    while (conn.bufferSize > 2 * 1024 * 1024) {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    const bytes = await upload.blob.slice(offset, offset + FILE_TRANSFER_CHUNK_BYTES).arrayBuffer();
+    if (!sendProtocolMessage(conn, "file-transfer-chunk", { fileId: upload.file.id, index, bytes })) {
+      throw new Error("Transfer interrupted.");
+    }
+    const finalChunk = offset + bytes.byteLength >= upload.blob.size;
+    if (transfer.useAcks && ((index + 1) % FILE_TRANSFER_WINDOW_CHUNKS === 0 || finalChunk)) {
+      await waitForFileTransferAck(transfer, index);
+    }
+  }
+  if (!sendProtocolMessage(conn, "file-transfer-complete", { fileId: upload.file.id })) {
+    throw new Error("Transfer interrupted.");
+  }
+}
+
+async function requestFileMessage(item, { automatic = false } = {}) {
+  const file = item?.file;
+  if (!file || item.sender === "me" || !["offered", "failed", "released"].includes(file.downloadState)) return;
+  if (file.security?.level === "blocked") return;
+  if (!automatic && file.security?.level === "warning") {
+    const confirmed = await showAppDialog({
+      title: "Accept this file?",
+      message: `${file.security.reasons.join(" ")} Only save it if you trust the sender.`,
+      confirmText: "Accept",
+      cancelText: "Decline",
+      danger: true,
+    });
+    if (!confirmed) {
+      declineFileMessage(item);
+      return;
+    }
+  }
+  const conn = connections.get(item.peerId);
+  if (!conn?.open) {
+    setStatus("pending", "Reconnect to download this file.");
+    return;
+  }
+  file.downloadState = "requested";
+  file.transferStatus = "Preparing private temporary storage...";
+  file.transferProgress = 0;
+  renderChatHistory();
+  if (file.tempRef) await platformApi.releaseReceivedFile(file.tempRef);
+  const prepared = await platformApi.prepareIncomingFile(file);
+  if (!prepared?.ok || !prepared.tempRef) {
+    file.downloadState = "failed";
+    file.transferStatus = prepared?.noSpace
+      ? "Not enough free storage – free space and retry"
+      : prepared?.error || "Private temporary storage is unavailable";
+    renderChatHistory();
+    return;
+  }
+  file.tempRef = prepared.tempRef;
+  file.transferStatus = "Requesting secure download...";
+  renderChatHistory();
+  if (!sendProtocolMessage(conn, "file-request", { fileId: file.id, streamed: true })) {
+    void platformApi.releaseReceivedFile(file.tempRef);
+    delete file.tempRef;
+    file.downloadState = "failed";
+    file.transferStatus = "Request failed – retry";
+    renderChatHistory();
+  }
+}
+
+function declineFileMessage(item) {
+  if (!item?.file || item.sender !== "them") return;
+  item.file.downloadState = "declined";
+  item.file.transferStatus = "File declined";
+  sendProtocolMessage(connections.get(item.peerId), "file-declined", { fileId: item.file.id });
+  if (activePeerId === item.peerId) renderChatHistory();
+}
+
+function failFileDownload(peerId, fileId, message = "Transfer interrupted – retry") {
+  const key = `${peerId}:${fileId}`;
+  const transfer = incomingFileTransfers.get(key);
+  incomingFileTransfers.delete(key);
+  if (transfer?.idleTimer) clearTimeout(transfer.idleTimer);
+  const item = findFileMessage(peerId, fileId);
+  if (!item?.file || item.file.downloadState !== "requested") return;
+  if (item.file.tempRef) void platformApi.releaseReceivedFile(item.file.tempRef);
+  delete item.file.tempRef;
+  item.file.downloadState = "failed";
+  item.file.transferStatus = message;
+  if (activePeerId === peerId) renderChatHistory();
+}
+
+function handleFileOffer(peerId, conn, data) {
+  const file = normalizeFileOffer(data.file);
+  if (!file || !shouldAcceptIncomingMessage(peerId) || findFileMessage(peerId, file.id)) return;
+  const messageId = typeof data.id === "string" ? data.id.slice(0, 128) : createMessageId();
+  const blocked = file.security.level === "blocked";
+  addChatMessage({
+    id: messageId,
+    text: "",
+    sender: "them",
+    peerId,
+    time: typeof data.time === "string" ? data.time : formatTime(),
+    file: {
+      ...file,
+      downloadState: blocked ? "invalid" : "offered",
+      transferStatus: blocked ? "Blocked before download" : "",
+    },
+  });
+  if (blocked) {
+    sendProtocolMessage(conn, "file-declined", { fileId: file.id, blocked: true });
+    return;
+  }
+  if (appConfig.appSettings?.readReceipts) sendProtocolMessage(conn, "message-delivered", { messageId });
+  notifyIncomingMessage(
+    peerId,
+    `${file.name} · ${formatFileSize(file.size)}\nOpen chat to accept`,
+    { variant: "file" },
+  );
+  if (
+    appConfig.appSettings?.fileAutoDownloadTrusted &&
+    isTrusted(getPeerIdentityId(peerId, conn)) &&
+    file.security.level === "safe"
+  ) {
+    void requestFileMessage(findFileMessage(peerId, file.id), { automatic: true });
+  }
+}
+
+function handleFileRequest(peerId, conn, data) {
+  const fileId = String(data.fileId || "");
+  const upload = pendingFileUploads.get(fileId);
+  const transferKey = `${peerId}:${fileId}`;
+  if (
+    !upload || upload.peerId !== peerId || upload.expiresAt < Date.now() ||
+    activeOutgoingFileTransfers.has(transferKey) ||
+    activeOutgoingFileTransfers.size >= MAX_ACTIVE_FILE_TRANSFERS
+  ) {
+    sendProtocolMessage(conn, "file-transfer-failed", { fileId });
+    return;
+  }
+  const transfer = {
+    conn,
+    upload,
+    useAcks: data.streamed === true,
+    ackedIndex: -1,
+    ackWaiter: null,
+  };
+  transfer.startTimer = setTimeout(() => {
+    activeOutgoingFileTransfers.delete(transferKey);
+    sendProtocolMessage(conn, "file-transfer-failed", { fileId });
+  }, FILE_TRANSFER_ACK_TIMEOUT_MS);
+  activeOutgoingFileTransfers.set(transferKey, transfer);
+  if (!sendProtocolMessage(conn, "file-transfer-start", { file: upload.file })) {
+    clearTimeout(transfer.startTimer);
+    activeOutgoingFileTransfers.delete(transferKey);
+  } else if (!transfer.useAcks) {
+    transfer.started = true;
+    clearTimeout(transfer.startTimer);
+    sendFileTransferChunks(transfer)
+      .catch(() => sendProtocolMessage(conn, "file-transfer-failed", { fileId }))
+      .finally(() => activeOutgoingFileTransfers.delete(transferKey));
+  }
+}
+
+function handleFileTransferReady(peerId, conn, data) {
+  const fileId = String(data.fileId || "");
+  const transferKey = `${peerId}:${fileId}`;
+  const transfer = activeOutgoingFileTransfers.get(transferKey);
+  if (!transfer || transfer.conn !== conn || transfer.started) return;
+  transfer.started = true;
+  clearTimeout(transfer.startTimer);
+  sendFileTransferChunks(transfer)
+    .catch(() => sendProtocolMessage(conn, "file-transfer-failed", { fileId }))
+    .finally(() => {
+      if (transfer.ackWaiter) {
+        clearTimeout(transfer.ackWaiter.timer);
+        transfer.ackWaiter.reject(new Error("Transfer ended."));
+      }
+      activeOutgoingFileTransfers.delete(transferKey);
+    });
+}
+
+function handleFileTransferAck(peerId, data) {
+  const fileId = String(data.fileId || "");
+  const transfer = activeOutgoingFileTransfers.get(`${peerId}:${fileId}`);
+  const index = Number(data.index);
+  if (!transfer || !Number.isInteger(index) || index < transfer.ackedIndex) return;
+  transfer.ackedIndex = index;
+  if (transfer.ackWaiter && index >= transfer.ackWaiter.index) {
+    const waiter = transfer.ackWaiter;
+    transfer.ackWaiter = null;
+    clearTimeout(waiter.timer);
+    waiter.resolve();
+  }
+}
+
+function handleFileTransferFailed(peerId, fileId, message = "Sender unavailable – retry") {
+  const transferKey = `${peerId}:${fileId}`;
+  const outgoing = activeOutgoingFileTransfers.get(transferKey);
+  if (outgoing) {
+    clearTimeout(outgoing.startTimer);
+    if (outgoing.ackWaiter) {
+      clearTimeout(outgoing.ackWaiter.timer);
+      outgoing.ackWaiter.reject(new Error(message));
+    }
+    activeOutgoingFileTransfers.delete(transferKey);
+  }
+  failFileDownload(peerId, fileId, message);
+}
+
+function handleFileTransferStart(peerId, conn, data) {
+  const file = normalizeFileOffer(data.file);
+  const item = file && findFileMessage(peerId, file.id);
+  const transferKey = file ? `${peerId}:${file.id}` : "";
+  if (
+    !file || !item || item.file.downloadState !== "requested" ||
+    item.file.sha256 !== file.sha256 || !item.file.tempRef ||
+    incomingFileTransfers.has(transferKey) ||
+    incomingFileTransfers.size >= (platformApi.isAndroid ? 1 : MAX_ACTIVE_FILE_TRANSFERS)
+  ) {
+    sendProtocolMessage(conn, "file-transfer-failed", { fileId: String(data.file?.id || "") });
+    return;
+  }
+  incomingFileTransfers.set(transferKey, {
+    file,
+    conn,
+    tempRef: item.file.tempRef,
+    hash: sha256.create(),
+    writeQueue: Promise.resolve(),
+    receivedSize: 0,
+    nextIndex: 0,
+  });
+  const transfer = incomingFileTransfers.get(transferKey);
+  const resetIdleTimer = () => {
+    clearTimeout(transfer.idleTimer);
+    transfer.idleTimer = setTimeout(
+      () => failFileDownload(peerId, file.id, "Download timed out – retry"),
+      FILE_TRANSFER_IDLE_TIMEOUT_MS,
+    );
+  };
+  transfer.resetIdleTimer = resetIdleTimer;
+  resetIdleTimer();
+  item.file.transferStatus = "Downloading securely...";
+  item.file.transferProgress = 0;
+  if (activePeerId === peerId) renderChatHistory();
+  sendProtocolMessage(conn, "file-transfer-ready", { fileId: file.id });
+}
+
+function handleFileTransferChunk(peerId, data) {
+  const key = `${peerId}:${String(data.fileId || "")}`;
+  const transfer = incomingFileTransfers.get(key);
+  const bytes = getBinaryChunk(data.bytes);
+  if (
+    !transfer || !bytes || !Number.isInteger(data.index) ||
+    data.index !== transfer.nextIndex || !bytes.byteLength ||
+    bytes.byteLength > FILE_TRANSFER_CHUNK_BYTES ||
+    transfer.receivedSize + bytes.byteLength > transfer.file.size
+  ) {
+    if (transfer) failFileDownload(peerId, transfer.file.id, "Invalid transfer data – retry");
+    return;
+  }
+  transfer.receivedSize += bytes.byteLength;
+  transfer.nextIndex += 1;
+  transfer.resetIdleTimer?.();
+  const chunkIndex = data.index;
+  const chunkBytes = new Uint8Array(bytes);
+  const receivedAfterChunk = transfer.receivedSize;
+  transfer.writeQueue = transfer.writeQueue.then(async () => {
+    if (transfer.writeError) throw transfer.writeError;
+    const result = await platformApi.appendIncomingFile(transfer.tempRef, chunkBytes);
+    if (result?.ok === false) throw new Error(result.error || "Temporary file write failed.");
+    transfer.hash.update(chunkBytes);
+    if ((chunkIndex + 1) % FILE_TRANSFER_WINDOW_CHUNKS === 0 || receivedAfterChunk === transfer.file.size) {
+      if (!sendProtocolMessage(transfer.conn, "file-transfer-ack", { fileId: transfer.file.id, index: chunkIndex })) {
+        throw new Error("Transfer acknowledgement failed.");
+      }
+    }
+  }).catch((error) => {
+    transfer.writeError = error;
+    failFileDownload(peerId, transfer.file.id, error?.message || "Temporary file write failed – retry");
+    sendProtocolMessage(transfer.conn, "file-transfer-failed", { fileId: transfer.file.id });
+  });
+  const item = findFileMessage(peerId, transfer.file.id);
+  if (item?.file) {
+    item.file.transferProgress = Math.round((transfer.receivedSize / transfer.file.size) * 100);
+    item.file.transferStatus = `Downloading ${item.file.transferProgress}%`;
+    if (
+      activePeerId === peerId &&
+      (item.file.transferProgress === 100 ||
+        item.file.transferProgress >= (item.file.lastRenderedProgress || 0) + 2)
+    ) {
+      item.file.lastRenderedProgress = item.file.transferProgress;
+      renderChatHistory();
+    }
+  }
+}
+
+async function handleFileTransferComplete(peerId, data) {
+  const fileId = String(data.fileId || "");
+  const key = `${peerId}:${fileId}`;
+  const transfer = incomingFileTransfers.get(key);
+  const item = transfer && findFileMessage(peerId, fileId);
+  if (!transfer || !item) return;
+  if (transfer.receivedSize !== transfer.file.size) {
+    failFileDownload(peerId, fileId, "Incomplete download – retry");
+    return;
+  }
+
+  item.file.transferStatus = "Verifying SHA-256 and file type...";
+  item.file.transferProgress = 100;
+  if (activePeerId === peerId) renderChatHistory();
+  try {
+    await transfer.writeQueue;
+    if (transfer.writeError) throw transfer.writeError;
+    clearTimeout(transfer.idleTimer);
+    if (transfer.receivedSize !== transfer.file.size) throw new Error("Incomplete download");
+    const digest = Array.from(transfer.hash.digest(), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    if (digest !== transfer.file.sha256) throw new Error("SHA-256 mismatch");
+    const finalized = await platformApi.finalizeIncomingFile(transfer.tempRef);
+    if (!finalized?.ok || finalized.size !== transfer.file.size) {
+      throw new Error(finalized?.error || "Temporary file verification failed");
+    }
+    const security = await inspectFileHeader(finalized.header, transfer.file);
+    item.file.security = security;
+    item.file.detectedMime = security.detectedMime;
+    if (security.level === "blocked") throw new Error(security.reasons.join(" "));
+    item.file.receivedAt = Date.now();
+    item.file.previewUrl = "";
+    if (security.previewKind) {
+      try {
+        item.file.previewUrl = await platformApi.createReceivedFilePreview(
+          transfer.tempRef,
+          security.detectedMime || transfer.file.mimeType,
+        );
+      } catch {
+        // The verified file stays available even if this platform cannot preview its codec.
+      }
+    }
+    item.file.downloadState = "ready";
+    item.file.transferStatus = "";
+    sendProtocolMessage(connections.get(peerId), "file-received", { fileId });
+    writeDevLog(`File downloaded to private temporary storage and verified (${formatFileSize(transfer.file.size)}).`);
+  } catch (error) {
+    await platformApi.releaseReceivedFile(transfer.tempRef);
+    delete item.file.tempRef;
+    item.file.downloadState = "invalid";
+    item.file.security = {
+      level: "blocked",
+      reasons: [error?.message || "The file failed its integrity check."],
+    };
+    item.file.transferStatus = "Blocked by security checks";
+    writeDevLog("Received file failed security verification.");
+  } finally {
+    incomingFileTransfers.delete(key);
+  }
+  if (activePeerId === peerId) renderChatHistory();
+}
+
+async function saveFileMessage(item) {
+  const file = item?.file;
+  if ((!file?.blob && !file?.tempRef) || !["ready", "saved"].includes(file.downloadState)) return;
+  if (file.security?.level === "warning") {
+    const confirmed = await showAppDialog({
+      title: "Save file with warnings?",
+      message: `${file.security.reasons.join(" ")} Aero's checks are not a guarantee that this file is harmless.`,
+      confirmText: "Save anyway",
+      cancelText: "Cancel",
+      danger: true,
+    });
+    if (!confirmed) return;
+  }
+
+  const previousState = file.downloadState;
+  file.downloadState = "saving";
+  file.transferStatus = "Scanning and saving...";
+  if (activePeerId === item.peerId) renderChatHistory();
+  const configuredMode = appConfig.appSettings?.fileDownloadMode || "ask";
+  const mode =
+    configuredMode === "custom" &&
+    (!platformApi.supportsFileDirectoryChoice || !appConfig.appSettings?.fileDownloadDirectory)
+      ? "ask"
+      : configuredMode;
+  try {
+    const result = await platformApi.saveReceivedFile({
+      blob: file.blob,
+      tempRef: file.tempRef,
+      name: file.name,
+      mimeType: file.detectedMime || file.mimeType,
+      sha256: file.sha256,
+      mode,
+      directory: appConfig.appSettings?.fileDownloadDirectory || "",
+    });
+    if (result?.canceled) {
+      file.downloadState = previousState;
+      file.transferStatus = "";
+    } else if (result?.blocked) {
+      disposeMessageAssets(item);
+      delete file.blob;
+      delete file.tempRef;
+      file.previewUrl = "";
+      file.downloadState = "invalid";
+      file.security = { level: "blocked", reasons: [result.error || "Local antivirus blocked the file."] };
+      file.transferStatus = result.error || "Blocked by local antivirus";
+    } else if (!result?.ok) {
+      file.downloadState = previousState;
+      file.transferStatus = "";
+      await showAppDialog({
+        title: "File was not saved",
+        message: result?.error || "The destination is unavailable.",
+        confirmText: "OK",
+        cancelText: "Close",
+      });
+    } else {
+      file.downloadState = "saved";
+      file.transferStatus = "";
+      file.savedPath = result.path || result.uri || "";
+      file.security.scanLabel = result.scanner
+        ? `Scanned by ${result.scanner}`
+        : result.scanStatus === "unavailable"
+          ? "Saved · no desktop antivirus detected"
+          : "Saved through platform protection";
+      setStatus("online", `${file.name} saved.`);
+      if (result.renamedDueToLock) {
+        await showAppDialog({
+          title: "Saved with a new name",
+          message: `The selected file was in use by another program, so Aero saved the copy as:\n${result.path}`,
+          confirmText: "OK",
+          cancelText: "Close",
+        });
+      }
+    }
+  } catch (error) {
+    file.downloadState = previousState;
+    file.transferStatus = "";
+    await showAppDialog({
+      title: "File was not saved",
+      message: error?.message || "The destination is unavailable.",
+      confirmText: "OK",
+      cancelText: "Close",
+    });
+  }
+  if (activePeerId === item.peerId) renderChatHistory();
 }
 
 function createCallId() {
@@ -10091,9 +11025,35 @@ function openMessageMenu(event, messageItem) {
 
   contextMessage = messageItem;
 
-  messageMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 164)}px`;
-  messageMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 80)}px`;
+  menuCopy.classList.toggle("hidden", !messageItem.text);
+  menuSaveFile.classList.toggle(
+    "hidden",
+    messageItem.sender !== "them" || !messageItem.file || !["ready", "saved"].includes(messageItem.file.downloadState),
+  );
+  const canDeleteForEveryone = messageItem.sender === "me";
+  const deleteConnection = connections.get(messageItem.peerId);
+  menuDeleteEveryone.classList.toggle("hidden", !canDeleteForEveryone);
+  menuDeleteEveryone.disabled = !deleteConnection?.open;
+  menuDeleteEveryone.title = deleteConnection?.open
+    ? "Delete this message on both devices"
+    : "Your contact must be connected to delete this message for everyone";
+
   messageMenu.classList.remove("hidden");
+  const viewportPadding = 10;
+  messageMenu.style.left = `${Math.max(
+    viewportPadding,
+    Math.min(
+      event.clientX,
+      window.innerWidth - messageMenu.offsetWidth - viewportPadding,
+    ),
+  )}px`;
+  messageMenu.style.top = `${Math.max(
+    viewportPadding,
+    Math.min(
+      event.clientY,
+      window.innerHeight - messageMenu.offsetHeight - viewportPadding,
+    ),
+  )}px`;
 }
 
 function closeMessageMenu() {
@@ -10361,8 +11321,8 @@ function deleteMessageLocally(peerId, messageId) {
   const history = ensureChatHistory(peerId);
   const index = history.findIndex((msg) => msg.id === messageId);
   if (index !== -1) {
-    const objectUrl = history[index].voice?.objectUrl;
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    const item = history[index];
+    disposeMessageAssets(item);
     history.splice(index, 1);
     if (activePeerId === peerId) {
       renderChatHistory();
@@ -10529,6 +11489,29 @@ function removePeer(peerId, { silent = false } = {}) {
         item.voice.downloadState = "failed";
         item.voice.transferStatus = "Connection lost - retry after reconnecting";
       }
+    }
+  }
+  for (const [key, transfer] of incomingFileTransfers) {
+    if (key.startsWith(`${peerId}:`)) {
+      incomingFileTransfers.delete(key);
+      clearTimeout(transfer.idleTimer);
+      const item = findFileMessage(peerId, transfer.file.id);
+      if (item?.file?.downloadState === "requested") {
+        if (item.file.tempRef) void platformApi.releaseReceivedFile(item.file.tempRef);
+        delete item.file.tempRef;
+        item.file.downloadState = "failed";
+        item.file.transferStatus = "Connection lost – retry after reconnecting";
+      }
+    }
+  }
+  for (const [key, transfer] of activeOutgoingFileTransfers) {
+    if (key.startsWith(`${peerId}:`)) {
+      clearTimeout(transfer.startTimer);
+      if (transfer.ackWaiter) {
+        clearTimeout(transfer.ackWaiter.timer);
+        transfer.ackWaiter.reject(new Error("Connection lost."));
+      }
+      activeOutgoingFileTransfers.delete(key);
     }
   }
   remoteReadReceiptsEnabled.delete(peerId);
@@ -11120,6 +12103,71 @@ function attachConnectionHandlers(conn, peerId, direction) {
 
     if (data?.type === "voice-transfer-failed") {
       failVoiceDownload(peerId, String(data.voiceId || ""), "Sender unavailable - retry");
+      return;
+    }
+
+    if (data?.type === "file-offer") {
+      handleFileOffer(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "file-request") {
+      handleFileRequest(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-start") {
+      handleFileTransferStart(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-ready") {
+      handleFileTransferReady(peerId, conn, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-chunk") {
+      handleFileTransferChunk(peerId, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-ack") {
+      handleFileTransferAck(peerId, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-complete") {
+      void handleFileTransferComplete(peerId, data);
+      return;
+    }
+
+    if (data?.type === "file-transfer-failed") {
+      handleFileTransferFailed(peerId, String(data.fileId || ""));
+      return;
+    }
+
+    if (data?.type === "file-declined") {
+      const item = findFileMessage(peerId, String(data.fileId || ""));
+      pendingFileUploads.delete(String(data.fileId || ""));
+      if (item?.file && item.sender === "me") {
+        releaseFilePayload(
+          item,
+          "declined",
+          data.blocked ? "Blocked by recipient security checks" : "File declined",
+        );
+        if (activePeerId === peerId) renderChatHistory();
+      }
+      return;
+    }
+
+    if (data?.type === "file-received") {
+      const item = findFileMessage(peerId, String(data.fileId || ""));
+      const upload = pendingFileUploads.get(String(data.fileId || ""));
+      if (upload) upload.recipientReceived = true;
+      if (item?.file && item.sender === "me") {
+        item.file.recipientState = "received";
+        if (activePeerId === peerId) renderChatHistory();
+      }
       return;
     }
 
@@ -11928,6 +12976,37 @@ voiceRecordButton.addEventListener("click", () => {
   startVoiceRecording();
 });
 
+fileAttachButton.addEventListener("click", () => {
+  if (fileAttachButton.disabled) return;
+  fileAttachInput.value = "";
+  fileAttachInput.click();
+});
+
+fileAttachInput.addEventListener("change", () => {
+  const [selectedFile] = fileAttachInput.files || [];
+  if (selectedFile) void sendSelectedFile(selectedFile);
+  fileAttachInput.value = "";
+});
+
+for (const eventName of ["dragenter", "dragover"]) {
+  messages.addEventListener(eventName, (event) => {
+    if (!event.dataTransfer?.types?.includes("Files") || fileAttachButton.disabled) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    messages.classList.add("file-drag-active");
+  });
+}
+
+for (const eventName of ["dragleave", "drop"]) {
+  messages.addEventListener(eventName, (event) => {
+    if (eventName === "drop" && event.dataTransfer?.files?.length && !fileAttachButton.disabled) {
+      event.preventDefault();
+      void sendSelectedFile(event.dataTransfer.files[0]);
+    }
+    messages.classList.remove("file-drag-active");
+  });
+}
+
 emojiPickerButton.addEventListener("click", () => {
   const opening = emojiPickerPopover.classList.contains("hidden");
   void setEmojiPickerOpen(opening);
@@ -11971,6 +13050,7 @@ clearChat.addEventListener("click", async () => {
     if (!confirmed) {
       return;
     }
+    ensureChatHistory(peerId).forEach(disposeMessageAssets);
     chatHistory.set(peerId, []);
   }
   renderChatHistory();
@@ -12614,6 +13694,42 @@ voiceAutoDownloadToggle.addEventListener("change", () => {
 voiceWaveformToggle.addEventListener("change", () => {
   saveAppSettings({ voiceWaveform: voiceWaveformToggle.checked });
   renderChatHistory();
+});
+
+fileAutoDownloadToggle.addEventListener("change", () => {
+  saveAppSettings({ fileAutoDownloadTrusted: fileAutoDownloadToggle.checked });
+});
+
+fileDownloadModeSelect.addEventListener("change", async () => {
+  let mode = fileDownloadModeSelect.value;
+  if (mode === "custom" && !appConfig.appSettings.fileDownloadDirectory) {
+    const result = await platformApi.chooseReceivedFileDirectory();
+    if (!result?.ok) {
+      mode = "ask";
+      fileDownloadModeSelect.value = mode;
+      syncEnhancedSelect(fileDownloadModeSelect);
+    } else {
+      appConfig.appSettings.fileDownloadDirectory = result.path || result.uri || "";
+      appConfig.appSettings.fileDownloadDirectoryLabel = result.label || result.path || "Selected folder";
+      fileDownloadFolderLabel.textContent = appConfig.appSettings.fileDownloadDirectoryLabel;
+    }
+  }
+  await saveAppSettings({
+    fileDownloadMode: mode,
+    fileDownloadDirectory: appConfig.appSettings.fileDownloadDirectory || "",
+    fileDownloadDirectoryLabel: appConfig.appSettings.fileDownloadDirectoryLabel || "",
+  });
+});
+
+fileDownloadFolderButton.addEventListener("click", async () => {
+  const result = await platformApi.chooseReceivedFileDirectory();
+  if (!result?.ok) return;
+  await saveAppSettings({
+    fileDownloadMode: "custom",
+    fileDownloadDirectory: result.path || result.uri || "",
+    fileDownloadDirectoryLabel: result.label || result.path || "Selected folder",
+  });
+  fileDownloadFolderLabel.textContent = result.label || result.path || "Selected folder";
 });
 
 clearTrustedDomainsButton.addEventListener("click", async () => {
@@ -13604,23 +14720,32 @@ menuCopy.addEventListener("click", () => {
   closeMessageMenu();
 });
 
+menuSaveFile.addEventListener("click", () => {
+  if (contextMessage?.file) void saveFileMessage(contextMessage);
+  closeMessageMenu();
+});
+
 menuDelete.addEventListener("click", () => {
   if (!contextMessage) {
     return;
   }
 
-  const { id, sender, peerId } = contextMessage;
+  deleteMessageLocally(contextMessage.peerId, contextMessage.id);
+  closeMessageMenu();
+});
 
-  if (sender === "me") {
-    deleteMessageLocally(peerId, id);
-    const conn = connections.get(peerId);
-    if (conn) {
-      sendProtocolMessage(conn, "delete-message", { messageId: id });
-    }
-  } else {
-    deleteMessageLocally(peerId, id);
+menuDeleteEveryone.addEventListener("click", () => {
+  if (!contextMessage || contextMessage.sender !== "me") {
+    return;
   }
 
+  const { id, peerId } = contextMessage;
+  const conn = connections.get(peerId);
+  if (!sendProtocolMessage(conn, "delete-message", { messageId: id })) {
+    return;
+  }
+
+  deleteMessageLocally(peerId, id);
   closeMessageMenu();
 });
 
@@ -13693,7 +14818,7 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
     sendProtocolMessage(conn, "connection-closed");
   }
 
-  const closeAll = () => {
+  const closeAll = async () => {
     for (const peerId of connectionHeartbeats.keys()) {
       stopConnectionHeartbeat(peerId);
     }
@@ -13706,15 +14831,31 @@ function cleanupRealtimeConnections({ deferClose = false } = {}) {
     connections.clear();
     pendingConnections.clear();
     peer?.destroy();
-    if (deferClose) {
-      platformApi.realtimeCleanupComplete();
+    for (const media of document.querySelectorAll("audio, video")) {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    }
+    for (const history of chatHistory.values()) {
+      for (const item of history) {
+        for (const objectUrl of [item?.voice?.objectUrl, item?.file?.previewUrl]) {
+          if (objectUrl?.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+        }
+        if (item?.file) item.file.previewUrl = "";
+      }
+    }
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await platformApi.cleanupReceivedFiles();
+    } finally {
+      if (deferClose) platformApi.realtimeCleanupComplete();
     }
   };
 
   if (deferClose && openConnections.length > 0) {
-    setTimeout(closeAll, 350);
+    setTimeout(() => void closeAll(), 350);
   } else {
-    closeAll();
+    void closeAll();
   }
 }
 

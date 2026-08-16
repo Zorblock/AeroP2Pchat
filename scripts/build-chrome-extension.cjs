@@ -47,9 +47,10 @@ function writeManifest() {
       128: "icons/icon.png",
     },
     // Keep Chrome Web Store permissions limited to the APIs the extension
-    // actually uses. Config is saved with chrome.storage.local and copying an
-    // Aero ID or message uses the Clipboard API.
-    permissions: ["clipboardWrite", "storage"],
+    // actually uses. Config is saved with chrome.storage.local, received files
+    // stream into OPFS without an artificial quota, use Chrome's protected
+    // download flow, and copy through the Clipboard API.
+    permissions: ["clipboardWrite", "downloads", "storage", "unlimitedStorage"],
     // PeerJS uses this signalling service to establish direct P2P connections.
     // No website or account host permission is required.
     host_permissions: ["https://0.peerjs.com/*"],

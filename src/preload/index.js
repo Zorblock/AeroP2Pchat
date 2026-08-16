@@ -54,6 +54,22 @@ contextBridge.exposeInMainWorld("aeroChat", {
   listThemes: () => ipcRenderer.invoke("list-themes"),
   openThemesFolder: () => ipcRenderer.invoke("open-themes-folder"),
   loadTheme: (fileName) => ipcRenderer.invoke("load-theme", fileName),
+  chooseReceivedFileDirectory: () =>
+    ipcRenderer.invoke("choose-received-file-directory"),
+  saveReceivedFile: (details) =>
+    ipcRenderer.invoke("save-received-file", details),
+  prepareIncomingFile: (details) =>
+    ipcRenderer.invoke("prepare-incoming-file", details),
+  appendIncomingFile: (tempRef, data) =>
+    ipcRenderer.invoke("append-incoming-file", tempRef, data),
+  finalizeIncomingFile: (tempRef) =>
+    ipcRenderer.invoke("finalize-incoming-file", tempRef),
+  releaseIncomingFile: (tempRef) =>
+    ipcRenderer.invoke("release-incoming-file", tempRef),
+  getIncomingFileUrl: (tempRef) =>
+    ipcRenderer.invoke("get-incoming-file-url", tempRef),
+  cleanupIncomingFiles: () =>
+    ipcRenderer.invoke("cleanup-incoming-files"),
   saveCustomSound: (soundId, data) =>
     ipcRenderer.invoke("save-custom-sound", soundId, data),
   loadCustomSound: (soundId) => ipcRenderer.invoke("load-custom-sound", soundId),

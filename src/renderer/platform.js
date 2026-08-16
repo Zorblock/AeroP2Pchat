@@ -9,9 +9,49 @@ import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 const BackgroundMode = registerPlugin("AeroBackgroundMode");
+const AeroFileSave = registerPlugin("AeroFileSave");
 
 const CONFIG_KEY = "aero-p2p-chat.config.v1";
 const MAX_REMOTE_THEME_BYTES = 2 * 1024 * 1024;
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error("File could not be read."));
+    reader.onload = () => resolve(String(reader.result || "").split(",", 2)[1] || "");
+    reader.readAsDataURL(blob);
+  });
+}
+
+function arrayBufferToBase64(value) {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function base64ToArrayBuffer(value) {
+  const binary = atob(String(value || ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
+}
+
+function triggerBrowserDownload(blob, fileName) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  link.rel = "noopener";
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+  return { ok: true, scanStatus: "browser" };
+}
 
 function assertRemoteThemeUrl(value) {
   const url = new URL(String(value || "").trim());
@@ -140,6 +180,31 @@ export function createPlatformApi() {
   const isElectron = Boolean(electron);
   const isWindowsStore = Boolean(electron?.isWindowsStore);
   let androidUpdateProgressCallback = null;
+  const browserTempFiles = new Map();
+  let browserTempDirectoryPromise = null;
+
+  async function getBrowserTempDirectory() {
+    if (!navigator.storage?.getDirectory) {
+      throw new Error("Private temporary storage is unavailable in this browser.");
+    }
+    if (!browserTempDirectoryPromise) {
+      browserTempDirectoryPromise = (async () => {
+        const root = await navigator.storage.getDirectory();
+        const directory = await root.getDirectoryHandle("aero-received", { create: true });
+        for await (const name of directory.keys()) {
+          await directory.removeEntry(name, { recursive: true }).catch(() => {});
+        }
+        return directory;
+      })();
+    }
+    return browserTempDirectoryPromise;
+  }
+
+  async function getBrowserTempFile(tempRef) {
+    const entry = browserTempFiles.get(tempRef);
+    if (!entry?.handle) throw new Error("The temporary file is no longer available.");
+    return entry.handle.getFile();
+  }
 
   return {
     platform,
@@ -162,6 +227,182 @@ export function createPlatformApi() {
     supportsDesktopScreenSources: isElectron,
     supportsCustomSounds: isElectron,
     supportsCustomWallpapers: isElectron,
+    supportsFileDirectoryChoice: isElectron || isAndroid,
+
+    async prepareIncomingFile({ id, name, size, mimeType, sha256 }) {
+      if (electron?.prepareIncomingFile) {
+        return electron.prepareIncomingFile({ id, name, size, mimeType, sha256 });
+      }
+      if (isAndroid) {
+        return AeroFileSave.beginReceive({ id, name, size, mimeType, sha256 });
+      }
+      try {
+        const estimate = await navigator.storage?.estimate?.();
+        const available = Number(estimate?.quota) - Number(estimate?.usage);
+        const reserve = Math.max(64 * 1024 * 1024, Math.floor(Number(estimate?.quota || 0) * 0.02));
+        if (Number.isFinite(available) && available > 0 && available < size + reserve) {
+          return { ok: false, noSpace: true, error: "Not enough private browser storage is available." };
+        }
+        const persistenceRequest = navigator.storage?.persist?.();
+        if (persistenceRequest) await persistenceRequest.catch(() => false);
+        const directory = await getBrowserTempDirectory();
+        const handle = await directory.getFileHandle(`${id}.part`, { create: true });
+        const writable = await handle.createWritable({ keepExistingData: false });
+        browserTempFiles.set(id, { handle, writable, received: 0, size, mimeType, name });
+        return { ok: true, tempRef: id };
+      } catch (error) {
+        return { ok: false, error: error?.message || "Private temporary storage could not be created." };
+      }
+    },
+
+    async appendIncomingFile(tempRef, value) {
+      const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+      if (electron?.appendIncomingFile) {
+        return electron.appendIncomingFile(tempRef, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      }
+      if (isAndroid) {
+        return AeroFileSave.appendReceive({ tempRef, data: arrayBufferToBase64(bytes) });
+      }
+      const entry = browserTempFiles.get(tempRef);
+      if (!entry?.writable || entry.received + bytes.byteLength > entry.size) {
+        throw new Error("Invalid temporary file write.");
+      }
+      await entry.writable.write(bytes);
+      entry.received += bytes.byteLength;
+      return { ok: true };
+    },
+
+    async finalizeIncomingFile(tempRef) {
+      if (electron?.finalizeIncomingFile) {
+        return electron.finalizeIncomingFile(tempRef);
+      }
+      if (isAndroid) {
+        const result = await AeroFileSave.finishReceive({ tempRef });
+        return {
+          ...result,
+          header: result?.headerBase64 ? base64ToArrayBuffer(result.headerBase64) : null,
+        };
+      }
+      try {
+        const entry = browserTempFiles.get(tempRef);
+        if (!entry?.writable || entry.received !== entry.size) throw new Error("The temporary file is incomplete.");
+        await entry.writable.close();
+        entry.writable = null;
+        const file = await entry.handle.getFile();
+        return {
+          ok: file.size === entry.size,
+          size: file.size,
+          header: await file.slice(0, 64 * 1024).arrayBuffer(),
+        };
+      } catch (error) {
+        return { ok: false, error: error?.message || "The temporary file could not be finalized." };
+      }
+    },
+
+    async createReceivedFilePreview(tempRef, mimeType) {
+      if (electron?.getIncomingFileUrl) return electron.getIncomingFileUrl(tempRef);
+      if (isAndroid) {
+        const result = await AeroFileSave.getReceiveUri({ tempRef });
+        return result?.uri ? Capacitor.convertFileSrc(result.uri) : "";
+      }
+      const file = await getBrowserTempFile(tempRef);
+      return URL.createObjectURL(new File([file], file.name, { type: mimeType || file.type }));
+    },
+
+    async releaseReceivedFile(tempRef) {
+      if (!tempRef) return;
+      if (electron?.releaseIncomingFile) return electron.releaseIncomingFile(tempRef);
+      if (isAndroid) return AeroFileSave.releaseReceive({ tempRef });
+      const entry = browserTempFiles.get(tempRef);
+      browserTempFiles.delete(tempRef);
+      await entry?.writable?.abort?.().catch(() => {});
+      const directory = await getBrowserTempDirectory().catch(() => null);
+      await directory?.removeEntry(`${tempRef}.part`).catch(() => {});
+    },
+
+    async cleanupReceivedFiles() {
+      if (electron?.cleanupIncomingFiles) return electron.cleanupIncomingFiles();
+      if (isAndroid) return AeroFileSave.cleanupReceives();
+      const entries = Array.from(browserTempFiles.values());
+      browserTempFiles.clear();
+      await Promise.all(entries.map((entry) => entry.writable?.abort?.().catch(() => {})));
+      const directory = await getBrowserTempDirectory().catch(() => null);
+      if (directory) {
+        for await (const name of directory.keys()) {
+          await directory.removeEntry(name, { recursive: true }).catch(() => {});
+        }
+      }
+      return { ok: true };
+    },
+
+    async chooseReceivedFileDirectory() {
+      if (electron?.chooseReceivedFileDirectory) {
+        return electron.chooseReceivedFileDirectory();
+      }
+      if (isAndroid) {
+        return AeroFileSave.chooseDirectory();
+      }
+      return { ok: false, unsupported: true };
+    },
+
+    async saveReceivedFile({ blob, tempRef, name, mimeType, sha256, mode, directory }) {
+      if (!(blob instanceof Blob) && !tempRef) {
+        return { ok: false, error: "The received file is unavailable." };
+      }
+      if (electron?.saveReceivedFile) {
+        return electron.saveReceivedFile({
+          ...(tempRef ? { tempRef } : { data: await blob.arrayBuffer() }),
+          name,
+          mimeType,
+          sha256,
+          mode,
+          directory,
+        });
+      }
+      if (isAndroid) {
+        return AeroFileSave.saveFile({
+          ...(tempRef ? { tempRef } : { data: await blobToBase64(blob) }),
+          name,
+          mimeType,
+          sha256,
+          mode,
+          directory,
+        });
+      }
+
+      const sourceBlob = blob instanceof Blob ? blob : await getBrowserTempFile(tempRef);
+
+      const chromeApi = globalThis.chrome;
+      if (isChromeExtension && chromeApi?.downloads?.download) {
+        const objectUrl = URL.createObjectURL(sourceBlob);
+        try {
+          const downloadId = await chromeApi.downloads.download({
+            url: objectUrl,
+            filename: name,
+            saveAs: mode === "ask",
+          });
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+          return { ok: Boolean(downloadId), scanStatus: "browser" };
+        } catch (error) {
+          URL.revokeObjectURL(objectUrl);
+          return { ok: false, error: error?.message || "The file could not be saved." };
+        }
+      }
+
+      if (mode === "ask" && typeof window.showSaveFilePicker === "function") {
+        try {
+          const handle = await window.showSaveFilePicker({ suggestedName: name });
+          const writable = await handle.createWritable();
+          await writable.write(sourceBlob);
+          await writable.close();
+          return { ok: true, scanStatus: "browser" };
+        } catch (error) {
+          if (error?.name === "AbortError") return { ok: false, canceled: true };
+          return { ok: false, error: error?.message || "The file could not be saved." };
+        }
+      }
+      return triggerBrowserDownload(sourceBlob, name);
+    },
 
     async loadConfig() {
       if (electron?.loadConfig) {

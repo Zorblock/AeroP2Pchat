@@ -7,16 +7,24 @@ const {
   Tray,
   clipboard,
   desktopCapturer,
+  dialog,
   ipcMain,
   nativeTheme,
   powerMonitor,
+  protocol,
+  net,
   safeStorage,
   shell,
   session,
   systemPreferences,
   screen,
 } = require("electron");
-const { appendFileSync, createWriteStream, readFileSync } = require("node:fs");
+const {
+  appendFileSync,
+  constants: fsConstants,
+  createWriteStream,
+  readFileSync,
+} = require("node:fs");
 const {
   chmod,
   copyFile,
@@ -27,15 +35,18 @@ const {
   readFile,
   rename,
   rm,
+  open,
   stat,
+  statfs,
   writeFile,
 } = require("node:fs/promises");
 const { createHash, randomBytes } = require("node:crypto");
 const { get } = require("node:https");
 const { tmpdir } = require("node:os");
-const { basename, dirname, join, resolve } = require("node:path");
+const { basename, dirname, extname, isAbsolute, join, resolve } = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
 const { format } = require("node:util");
+const { pathToFileURL } = require("node:url");
 const {
   KEY_BYTES,
   decryptAuthenticatedConfig,
@@ -89,6 +100,24 @@ const customSoundDirectoryName = "Sounds";
 const maxCustomSoundBytes = 25 * 1024 * 1024;
 const customWallpaperDirectoryName = "Wallpapers";
 const maxCustomWallpaperBytes = 8 * 1024 * 1024;
+const blockedReceivedFileExtensions = new Set([
+  ".apk", ".app", ".appimage", ".bat", ".bin", ".cmd", ".com",
+  ".command", ".cpl", ".deb", ".desktop", ".dll", ".dmg", ".exe",
+  ".gadget", ".hta", ".img", ".iso", ".jar", ".jse", ".js", ".lnk",
+  ".msi", ".msp", ".mst", ".pkg", ".ps1", ".psd1", ".psm1", ".reg",
+  ".rpm", ".scr", ".sh", ".sys", ".url", ".vb", ".vbe", ".vbs",
+  ".wsf", ".wsh",
+]);
+const incomingTempFiles = new Map();
+const incomingFileChunkMaxBytes = 256 * 1024;
+const incomingFileDiskReserveBytes = 64 * 1024 * 1024;
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "aero-temp",
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+]);
 const customWallpaperIds = new Set(["light", "dark", "both"]);
 const customSoundIds = new Set([
   "message",
@@ -272,6 +301,380 @@ function isWebpImage(buffer) {
     buffer.subarray(0, 4).equals(Buffer.from("RIFF")) &&
     buffer.subarray(8, 12).equals(Buffer.from("WEBP"))
   );
+}
+
+function sanitizeReceivedFileName(value) {
+  const raw = basename(String(value || "file").normalize("NFKC"));
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f<>:"|?*]/gu, "_")
+    .replace(/[. ]+$/u, "")
+    .trim();
+  const safe = cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "file";
+  const extension = extname(safe).slice(0, 21);
+  return safe.length <= 180
+    ? safe
+    : `${safe.slice(0, 180 - extension.length)}${extension}`;
+}
+
+function hasBlockedReceivedFileSignature(buffer) {
+  if (!Buffer.isBuffer(buffer)) return true;
+  if (buffer.length >= 2 && buffer.subarray(0, 2).equals(Buffer.from("MZ"))) return true;
+  if (buffer.length < 4) return false;
+  const hex = buffer.subarray(0, 4).toString("hex");
+  return (
+    hex === "7f454c46" ||
+    ["feedface", "feedfacf", "cefaedfe", "cffaedfe", "cafebabe"].includes(hex)
+  );
+}
+
+async function getUniqueReceivedFilePath(directory, fileName) {
+  const safeName = sanitizeReceivedFileName(fileName);
+  const extension = extname(safeName);
+  const stem = safeName.slice(0, safeName.length - extension.length) || "file";
+  for (let index = 0; index < 10000; index += 1) {
+    const candidate = join(
+      directory,
+      index === 0 ? safeName : `${stem} (${index})${extension}`,
+    );
+    if (!(await pathExists(candidate))) return candidate;
+  }
+  throw new Error("Could not create a unique file name.");
+}
+
+function runSecurityScanner(command, args, timeoutMs = 120000) {
+  return new Promise((resolve) => {
+    let output = "";
+    let settled = false;
+    const child = spawn(command, args, {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ ...result, output: output.slice(-12000) });
+    };
+    const capture = (chunk) => {
+      output += String(chunk || "");
+      if (output.length > 24000) output = output.slice(-12000);
+    };
+    child.stdout?.on("data", capture);
+    child.stderr?.on("data", capture);
+    child.once("error", (error) =>
+      finish({ unavailable: error?.code === "ENOENT", error: error?.message || "Scanner failed." }),
+    );
+    child.once("close", (code) => finish({ code }));
+    const timer = setTimeout(() => {
+      child.kill();
+      finish({ error: "The local antivirus scan timed out." });
+    }, timeoutMs);
+  });
+}
+
+async function findWindowsDefenderScanner() {
+  const candidates = [];
+  const programData = process.env.ProgramData;
+  if (programData) {
+    const platformDirectory = join(
+      programData,
+      "Microsoft",
+      "Windows Defender",
+      "Platform",
+    );
+    try {
+      const versions = await readdir(platformDirectory, { withFileTypes: true });
+      versions
+        .filter((entry) => entry.isDirectory())
+        .sort((left, right) => right.name.localeCompare(left.name, undefined, { numeric: true }))
+        .forEach((entry) => candidates.push(join(platformDirectory, entry.name, "MpCmdRun.exe")));
+    } catch {
+      // Defender may be disabled or managed by another security product.
+    }
+  }
+  for (const base of [process.env.ProgramFiles, process.env["ProgramFiles(x86)"]]) {
+    if (base) candidates.push(join(base, "Windows Defender", "MpCmdRun.exe"));
+  }
+  for (const candidate of candidates) {
+    if (await pathExists(candidate)) return candidate;
+  }
+  return "";
+}
+
+async function scanReceivedFile(filePath) {
+  if (process.platform === "win32") {
+    const scanner = await findWindowsDefenderScanner();
+    if (!scanner) return { status: "unavailable", engine: "" };
+    const result = await runSecurityScanner(scanner, [
+      "-Scan",
+      "-ScanType",
+      "3",
+      "-File",
+      filePath,
+      "-DisableRemediation",
+    ]);
+    if (result.code === 0) return { status: "clean", engine: "Microsoft Defender" };
+    if (result.code === 2 || /threat|malware|infected/i.test(result.output || "")) {
+      return { status: "blocked", engine: "Microsoft Defender" };
+    }
+    return { status: "error", engine: "Microsoft Defender", error: result.error || "Microsoft Defender could not complete the scan." };
+  }
+
+  if (process.platform === "linux") {
+    const result = await runSecurityScanner("clamscan", [
+      "--no-summary",
+      "--infected",
+      filePath,
+    ]);
+    if (result.unavailable) return { status: "unavailable", engine: "" };
+    if (result.code === 0) return { status: "clean", engine: "ClamAV" };
+    if (result.code === 1) return { status: "blocked", engine: "ClamAV" };
+    return { status: "error", engine: "ClamAV", error: result.error || "ClamAV could not complete the scan." };
+  }
+
+  return { status: "unavailable", engine: "" };
+}
+
+function getIncomingTempDirectory() {
+  return join(app.getPath("userData"), ".temp");
+}
+
+async function cleanupIncomingTempDirectory() {
+  const activeEntries = Array.from(incomingTempFiles.values());
+  incomingTempFiles.clear();
+  await Promise.all(activeEntries.map((entry) => entry.handle?.close().catch(() => {})));
+  const directory = getIncomingTempDirectory();
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+  await Promise.all(entries.map((entry) => rm(join(directory, entry.name), {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 100,
+  }).catch(() => {})));
+}
+
+async function prepareIncomingFile(event, details = {}) {
+  if (!isCustomSoundRequest(event)) return { ok: false, error: "Unauthorized temporary file request." };
+  const id = String(details.id || "");
+  const providedName = String(details.name || "");
+  const name = sanitizeReceivedFileName(providedName);
+  const size = Number(details.size);
+  const sha256 = String(details.sha256 || "").toLowerCase();
+  if (
+    !/^file-[a-f0-9]{24}$/.test(id) || providedName !== name ||
+    !Number.isSafeInteger(size) || size < 1 || !/^[a-f0-9]{64}$/.test(sha256)
+  ) {
+    return { ok: false, blocked: true, error: "Invalid file metadata." };
+  }
+  const directory = getIncomingTempDirectory();
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const disk = await statfs(directory);
+  const available = Number(disk.bavail) * Number(disk.bsize);
+  if (Number.isFinite(available) && available < size + incomingFileDiskReserveBytes) {
+    return { ok: false, noSpace: true, error: "Not enough free disk space is available for this file." };
+  }
+  const tempRef = randomBytes(18).toString("hex");
+  const filePath = join(directory, `${tempRef}.part`);
+  try {
+    const handle = await open(filePath, "wx", 0o600);
+    incomingTempFiles.set(tempRef, {
+      handle,
+      path: filePath,
+      name,
+      mimeType: String(details.mimeType || "application/octet-stream").slice(0, 160),
+      size,
+      sha256,
+      hash: createHash("sha256"),
+      received: 0,
+      finalized: false,
+    });
+    return { ok: true, tempRef };
+  } catch (error) {
+    return { ok: false, error: error?.message || "The temporary file could not be created." };
+  }
+}
+
+async function appendIncomingFile(event, tempRefValue, data) {
+  if (!isCustomSoundRequest(event)) return { ok: false, error: "Unauthorized temporary file request." };
+  const tempRef = String(tempRefValue || "");
+  const entry = incomingTempFiles.get(tempRef);
+  const buffer = toCustomSoundBuffer(data);
+  if (
+    !entry || entry.finalized || !buffer?.length || buffer.length > incomingFileChunkMaxBytes ||
+    entry.received + buffer.length > entry.size
+  ) {
+    return { ok: false, blocked: true, error: "Invalid temporary file data." };
+  }
+  try {
+    await entry.handle.write(buffer, 0, buffer.length, entry.received);
+    entry.hash.update(buffer);
+    entry.received += buffer.length;
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error?.message || "The temporary file could not be written." };
+  }
+}
+
+async function finalizeIncomingFile(event, tempRefValue) {
+  if (!isCustomSoundRequest(event)) return { ok: false, error: "Unauthorized temporary file request." };
+  const tempRef = String(tempRefValue || "");
+  const entry = incomingTempFiles.get(tempRef);
+  if (!entry || entry.finalized || entry.received !== entry.size) {
+    return { ok: false, error: "The temporary file is incomplete." };
+  }
+  try {
+    await entry.handle.sync();
+    await entry.handle.close();
+    entry.handle = null;
+    const digest = entry.hash.digest("hex");
+    entry.hash = null;
+    if (digest !== entry.sha256) {
+      await rm(entry.path, { force: true });
+      incomingTempFiles.delete(tempRef);
+      return { ok: false, blocked: true, error: "SHA-256 mismatch." };
+    }
+    const reader = await open(entry.path, "r");
+    const header = Buffer.alloc(Math.min(64 * 1024, entry.size));
+    await reader.read(header, 0, header.length, 0);
+    await reader.close();
+    if (hasBlockedReceivedFileSignature(header)) {
+      await rm(entry.path, { force: true });
+      incomingTempFiles.delete(tempRef);
+      return { ok: false, blocked: true, error: "Executable content was detected." };
+    }
+    entry.finalized = true;
+    return {
+      ok: true,
+      size: entry.size,
+      header: header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength),
+    };
+  } catch (error) {
+    return { ok: false, error: error?.message || "The temporary file could not be finalized." };
+  }
+}
+
+async function releaseIncomingFile(event, tempRefValue) {
+  if (!isCustomSoundRequest(event)) return { ok: false };
+  const tempRef = String(tempRefValue || "");
+  const entry = incomingTempFiles.get(tempRef);
+  incomingTempFiles.delete(tempRef);
+  await entry?.handle?.close().catch(() => {});
+  if (entry?.path) await rm(entry.path, { force: true }).catch(() => {});
+  return { ok: true };
+}
+
+function getIncomingFileUrl(event, tempRefValue) {
+  if (!isCustomSoundRequest(event)) return "";
+  const tempRef = String(tempRefValue || "");
+  const entry = incomingTempFiles.get(tempRef);
+  return entry?.finalized ? `aero-temp://file/${tempRef}` : "";
+}
+
+async function chooseReceivedFileDirectory(event) {
+  if (!isCustomSoundRequest(event)) {
+    return { ok: false, error: "Unauthorized folder request." };
+  }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "Choose file download folder",
+    defaultPath: app.getPath("downloads"),
+    properties: ["openDirectory", "createDirectory"],
+  });
+  if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
+  return { ok: true, path: resolve(result.filePaths[0]) };
+}
+
+async function saveReceivedFile(event, details = {}) {
+  if (!isCustomSoundRequest(event)) {
+    return { ok: false, error: "Unauthorized file save request." };
+  }
+  const tempEntry = incomingTempFiles.get(String(details.tempRef || ""));
+  const buffer = tempEntry ? null : toCustomSoundBuffer(details.data);
+  const providedFileName = String(details.name || "");
+  const fileName = sanitizeReceivedFileName(providedFileName);
+  const extension = extname(fileName).toLowerCase();
+  const nameParts = fileName.toLowerCase().split(".").filter(Boolean);
+  const expectedSha256 = String(details.sha256 || "").toLowerCase();
+  if (
+    (!tempEntry && (!buffer || buffer.length < 1)) ||
+    (tempEntry && (!tempEntry.finalized || tempEntry.name !== fileName || tempEntry.size < 1)) ||
+    providedFileName !== fileName ||
+    /[\u202a-\u202e\u2066-\u2069]/u.test(fileName) ||
+    blockedReceivedFileExtensions.has(extension) ||
+    (nameParts.length >= 3 && blockedReceivedFileExtensions.has(`.${nameParts.at(-2)}`)) ||
+    (!tempEntry && hasBlockedReceivedFileSignature(buffer)) ||
+    !/^[a-f0-9]{64}$/.test(expectedSha256) ||
+    (tempEntry ? tempEntry.sha256 : createHash("sha256").update(buffer).digest("hex")) !== expectedSha256
+  ) {
+    return { ok: false, blocked: true, error: "The file failed Aero's security checks." };
+  }
+
+  const mode = ["ask", "downloads", "custom"].includes(details.mode)
+    ? details.mode
+    : "ask";
+  let targetPath = "";
+  let allowOverwrite = false;
+  if (mode === "ask") {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Save received file",
+      defaultPath: join(app.getPath("downloads"), fileName),
+      buttonLabel: "Save",
+      properties: ["showOverwriteConfirmation", "dontAddToRecent"],
+    });
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+    targetPath = resolve(result.filePath);
+    allowOverwrite = true;
+  } else {
+    let directory = app.getPath("downloads");
+    if (
+      mode === "custom" &&
+      typeof details.directory === "string" &&
+      isAbsolute(details.directory)
+    ) {
+      directory = resolve(details.directory);
+    }
+    await mkdir(directory, { recursive: true });
+    targetPath = await getUniqueReceivedFilePath(directory, fileName);
+  }
+
+  const quarantineDirectory = tempEntry ? "" : await mkdtemp(join(tmpdir(), "aero-p2p-received-"));
+  const quarantinePath = tempEntry?.path || join(quarantineDirectory, "quarantine.bin");
+  try {
+    if (!tempEntry) await writeFile(quarantinePath, buffer, { flag: "wx", mode: 0o600 });
+    const scan = await scanReceivedFile(quarantinePath);
+    if (scan.status === "blocked") {
+      return { ok: false, blocked: true, scanner: scan.engine, error: `${scan.engine} blocked this file.` };
+    }
+    if (scan.status === "error") {
+      return { ok: false, scanError: true, scanner: scan.engine, error: scan.error };
+    }
+    await mkdir(dirname(targetPath), { recursive: true });
+    let savedPath = targetPath;
+    let renamedDueToLock = false;
+    try {
+      await copyFile(
+        quarantinePath,
+        savedPath,
+        allowOverwrite ? 0 : fsConstants.COPYFILE_EXCL,
+      );
+    } catch (error) {
+      if (!allowOverwrite || !["EBUSY", "EACCES", "EPERM"].includes(error?.code)) throw error;
+      savedPath = await getUniqueReceivedFilePath(dirname(targetPath), basename(targetPath));
+      await copyFile(quarantinePath, savedPath, fsConstants.COPYFILE_EXCL);
+      renamedDueToLock = true;
+    }
+    return {
+      ok: true,
+      path: savedPath,
+      renamedDueToLock,
+      scanner: scan.engine,
+      scanStatus: scan.status,
+    };
+  } catch (error) {
+    return { ok: false, error: error?.message || "The file could not be saved." };
+  } finally {
+    if (quarantineDirectory) await rm(quarantineDirectory, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 function isThemeFileName(fileName) {
@@ -488,6 +891,10 @@ function getDefaultAppSettings() {
     autoDownloadUpdates: false,
     showUpdateModal: true,
     readReceipts: true,
+    fileAutoDownloadTrusted: false,
+    fileDownloadMode: "ask",
+    fileDownloadDirectory: "",
+    fileDownloadDirectoryLabel: "",
     feedbackEnabled: true,
     sidebarWidth: defaultSidebarWidth,
     theme: "system",
@@ -532,6 +939,20 @@ function normalizeConfig(config = {}) {
     autoDownloadUpdates: Boolean(settings.autoDownloadUpdates),
     showUpdateModal: settings.showUpdateModal !== false,
     readReceipts: settings.readReceipts !== false,
+    fileAutoDownloadTrusted: Boolean(settings.fileAutoDownloadTrusted),
+    fileDownloadMode: ["ask", "downloads", "custom"].includes(
+      settings.fileDownloadMode,
+    )
+      ? settings.fileDownloadMode
+      : "ask",
+    fileDownloadDirectory:
+      typeof settings.fileDownloadDirectory === "string"
+        ? settings.fileDownloadDirectory.slice(0, 1024)
+        : "",
+    fileDownloadDirectoryLabel:
+      typeof settings.fileDownloadDirectoryLabel === "string"
+        ? settings.fileDownloadDirectoryLabel.slice(0, 240)
+        : "",
     feedbackEnabled: settings.feedbackEnabled !== false,
     presenceStatus: ["online", "dnd", "offline"].includes(
       settings.presenceStatus,
@@ -1699,12 +2120,12 @@ function notifyRendererShutdown(reason = "quit") {
   }
 }
 
-function finishDelayedQuit() {
+async function finishDelayedQuit() {
   if (delayedQuitTimer) {
     clearTimeout(delayedQuitTimer);
     delayedQuitTimer = null;
   }
-
+  await cleanupIncomingTempDirectory().catch(() => {});
   app.quit();
 }
 
@@ -2305,6 +2726,7 @@ function createWindow({ hidden = false } = {}) {
 app.whenReady().then(async () => {
   await cleanupCompletedUpdateSetups();
   await migratePackagedUserData();
+  await cleanupIncomingTempDirectory();
   appConfig = await loadConfig();
   await applyAutostartSettings();
   createTray();
@@ -2402,6 +2824,35 @@ app.whenReady().then(async () => {
   }));
   ipcMain.handle("open-themes-folder", () => openThemesFolder());
   ipcMain.handle("load-theme", (_event, fileName) => loadTheme(fileName));
+  ipcMain.handle("choose-received-file-directory", (event) =>
+    chooseReceivedFileDirectory(event),
+  );
+  protocol.handle("aero-temp", async (request) => {
+    const url = new URL(request.url);
+    const tempRef = url.hostname === "file" ? url.pathname.slice(1) : "";
+    const entry = incomingTempFiles.get(tempRef);
+    if (!entry?.finalized) return new Response("Not found", { status: 404 });
+    const response = await net.fetch(pathToFileURL(entry.path).toString(), {
+      headers: request.headers,
+    });
+    const headers = new Headers(response.headers);
+    headers.set("content-type", entry.mimeType || "application/octet-stream");
+    headers.set("content-disposition", "inline");
+    return new Response(response.body, { status: response.status, headers });
+  });
+  ipcMain.handle("save-received-file", (event, details) =>
+    saveReceivedFile(event, details),
+  );
+  ipcMain.handle("prepare-incoming-file", (event, details) => prepareIncomingFile(event, details));
+  ipcMain.handle("append-incoming-file", (event, tempRef, data) => appendIncomingFile(event, tempRef, data));
+  ipcMain.handle("finalize-incoming-file", (event, tempRef) => finalizeIncomingFile(event, tempRef));
+  ipcMain.handle("release-incoming-file", (event, tempRef) => releaseIncomingFile(event, tempRef));
+  ipcMain.handle("get-incoming-file-url", (event, tempRef) => getIncomingFileUrl(event, tempRef));
+  ipcMain.handle("cleanup-incoming-files", async (event) => {
+    if (!isCustomSoundRequest(event)) return { ok: false };
+    await cleanupIncomingTempDirectory();
+    return { ok: true };
+  });
   ipcMain.handle("save-custom-sound", async (event, soundId, data) => {
     if (!isCustomSoundRequest(event)) {
       return { ok: false, error: "Unauthorized sound request." };

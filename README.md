@@ -46,6 +46,7 @@ installation from this source in your Android settings.
 ## Features
 
 - Direct peer-to-peer messaging
+- Consent-based, disk-streamed P2P image and file transfers with integrity and file-type checks
 - Screen sharing
 - Fast, direct connections
 - Available for Windows, Linux, and Android

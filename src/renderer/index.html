@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.userjot.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://aero.zorblock.de https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de https://*.userjot.com https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net https://fonts.googleapis.com https://fonts.gstatic.com stun:* turn:*; media-src 'self' blob: mediastream: data: https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; frame-src 'self' https://*.userjot.com; object-src 'none'; base-uri 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.userjot.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: aero-temp: https://aero.zorblock.de https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://*.peerjs.com wss://*.peerjs.com https://zorblock.featurebase.app https://aero.zorblock.de https://*.userjot.com https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net https://fonts.googleapis.com https://fonts.gstatic.com stun:* turn:*; media-src 'self' blob: aero-temp: mediastream: data: https://github.com https://*.github.com https://*.githubusercontent.com https://gitlab.com https://*.gitlab.com https://codeberg.org https://*.codeberg.org https://*.imgur.com https://discord.com https://*.discord.com https://*.discordapp.com https://*.discordapp.net; frame-src 'self' https://*.userjot.com; object-src 'none'; base-uri 'none';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App</title>
 
@@ -771,6 +771,18 @@
               />
               <span id="voice-record-status" class="voice-record-status hidden" aria-live="polite"></span>
               <button
+                id="file-attach-button"
+                class="icon-only-button"
+                type="button"
+                disabled
+                title="Send image or file"
+                aria-label="Send image or file"
+              >
+                <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+                <span>Send file</span>
+              </button>
+              <input id="file-attach-input" class="hidden" type="file" />
+              <button
                 id="emoji-picker-button"
                 class="icon-only-button"
                 type="button"
@@ -1495,6 +1507,28 @@
                   </label>
                 </div>
                 <div class="chat-settings-group">
+                  <div class="chat-settings-heading"><h4>Files &amp; images</h4></div>
+                  <label class="settings-check">
+                    <input id="file-auto-download-toggle" type="checkbox" />
+                    <span>Auto-download from trusted contacts</span>
+                  </label>
+                  <label class="settings-field file-download-mode-field">
+                    <span>Save location</span>
+                    <select id="file-download-mode-select">
+                      <option value="ask">Ask every time</option>
+                      <option value="downloads">Default downloads folder</option>
+                      <option value="custom">Custom folder</option>
+                    </select>
+                  </label>
+                  <div id="file-download-folder-row" class="file-download-folder-row hidden">
+                    <span id="file-download-folder-label">No folder selected</span>
+                    <button id="file-download-folder-button" class="ghost-button" type="button">
+                      <i class="fa-regular fa-folder-open" aria-hidden="true"></i>Choose
+                    </button>
+                  </div>
+                  <p id="file-download-platform-note" class="settings-description">Files are checked and never opened automatically.</p>
+                </div>
+                <div class="chat-settings-group">
                   <div class="chat-settings-heading chat-trusted-heading">
                     <div><h4>External links</h4><p id="trusted-domains-status">Trusted domains</p></div>
                     <button id="clear-trusted-domains" class="ghost-button" type="button">Clear</button>
@@ -1897,13 +1931,26 @@
     </div>
 
     <div id="message-menu" class="context-menu hidden" role="menu">
+      <button id="menu-save-file" class="hidden" type="button" role="menuitem">
+        <i class="fa-solid fa-download" aria-hidden="true"></i>
+        <span>Save file</span>
+      </button>
       <button id="menu-copy" type="button" role="menuitem">
         <i class="fa-solid fa-copy" aria-hidden="true"></i>
         <span>Copy</span>
       </button>
       <button id="menu-delete" type="button" role="menuitem" class="danger">
         <i class="fa-solid fa-trash" aria-hidden="true"></i>
-        <span>Delete</span>
+        <span>Delete for me</span>
+      </button>
+      <button
+        id="menu-delete-everyone"
+        type="button"
+        role="menuitem"
+        class="danger hidden"
+      >
+        <i class="fa-solid fa-users-slash" aria-hidden="true"></i>
+        <span>Delete for everyone</span>
       </button>
     </div>
 
