@@ -404,6 +404,23 @@
               >
                 <i class="fa-regular fa-copy" aria-hidden="true"></i>
               </button>
+              <button
+                id="show-own-id-qr"
+                class="icon-button"
+                type="button"
+                title="Show QR code"
+                aria-label="Show QR code"
+                aria-expanded="false"
+                aria-controls="own-id-qr-panel"
+              >
+                <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div id="own-id-qr-panel" class="own-id-qr-panel hidden">
+              <div class="own-id-qr-code">
+                <canvas id="own-id-qr-canvas" aria-label="QR code containing your Aero ID"></canvas>
+              </div>
+              <p>Let your friend scan this code in Add user.</p>
             </div>
           </div>
 
@@ -428,6 +445,17 @@
                 <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
               </button>
               <button
+                id="scan-aero-id"
+                class="icon-button"
+                type="button"
+                title="Scan Aero ID"
+                aria-label="Scan Aero ID"
+                aria-expanded="false"
+                aria-controls="qr-scanner-panel"
+              >
+                <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+              </button>
+              <button
                 id="connect-button"
                 class="icon-only-button"
                 type="submit"
@@ -439,6 +467,16 @@
                 <span>Connect</span>
               </button>
             </div>
+            <section id="qr-scanner-panel" class="qr-scanner-panel hidden" aria-label="Aero ID QR scanner">
+              <div class="qr-scanner-camera">
+                <video id="qr-scanner-video" autoplay muted playsinline></video>
+                <span class="qr-scanner-frame" aria-hidden="true"></span>
+              </div>
+              <div class="qr-scanner-footer">
+                <span id="qr-scanner-status" role="status" aria-live="polite">Point the camera at an Aero QR code.</span>
+                <button id="stop-qr-scanner" class="ghost-button" type="button">Cancel</button>
+              </div>
+            </section>
           </form>
 
           <div id="update-card" class="update-card hidden">

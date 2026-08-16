@@ -40,6 +40,14 @@ module.exports = defineConfig({
         output: {
           manualChunks(id) {
             if (id.includes("node_modules")) {
+              if (
+                id.includes("node_modules/qrcode/") ||
+                id.includes("node_modules/jsqr/") ||
+                id.includes("node_modules/dijkstrajs/")
+              ) {
+                // Keep opt-in QR features out of the renderer's startup chunk.
+                return undefined;
+              }
               return "vendor";
             }
           },

@@ -29,9 +29,17 @@ const windowClose = document.querySelector("#window-close");
 const ownId = document.querySelector("#own-id");
 const ownIdPrivacyToggle = document.querySelector("#toggle-own-id-privacy");
 const copyId = document.querySelector("#copy-id");
+const showOwnIdQrButton = document.querySelector("#show-own-id-qr");
+const ownIdQrPanel = document.querySelector("#own-id-qr-panel");
+const ownIdQrCanvas = document.querySelector("#own-id-qr-canvas");
 const connectForm = document.querySelector("#connect-form");
 const remoteIdInput = document.querySelector("#remote-id");
 const remoteIdPrivacyToggle = document.querySelector("#toggle-remote-id-privacy");
+const scanAeroIdButton = document.querySelector("#scan-aero-id");
+const qrScannerPanel = document.querySelector("#qr-scanner-panel");
+const qrScannerVideo = document.querySelector("#qr-scanner-video");
+const qrScannerStatus = document.querySelector("#qr-scanner-status");
+const stopQrScannerButton = document.querySelector("#stop-qr-scanner");
 const connectButton = document.querySelector("#connect-button");
 const ownIdModal = document.querySelector("#own-id-modal");
 const connectModal = document.querySelector("#connect-modal");
@@ -41,6 +49,15 @@ const openOwnIdModalButton = document.querySelector("#open-own-id-modal");
 const openConnectModalButton = document.querySelector("#open-connect-modal");
 let isOwnIdBlurred = true;
 let isRemoteIdBlurred = true;
+let qrScannerStream = null;
+let qrScannerFrame = 0;
+let qrScannerLastDecodeAt = 0;
+let qrScannerSession = 0;
+let qrScannerCanvas = null;
+let qrScannerContext = null;
+let qrScannerDecoder = null;
+let qrEncoderPromise = null;
+let qrDecoderPromise = null;
 const sidebarIdCard = document.querySelector(".connection-panel .id-card");
 const sidebarConnectForm = document.querySelector(".connection-panel .connect-form");
 if (ownIdModalMount && sidebarIdCard) ownIdModalMount.append(sidebarIdCard);
@@ -1372,6 +1389,171 @@ function normalizeAeroId(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function loadQrEncoder() {
+  qrEncoderPromise ||= import("qrcode").then((module) => module.default || module);
+  return qrEncoderPromise;
+}
+
+function loadQrDecoder() {
+  qrDecoderPromise ||= import("jsqr").then((module) => module.default || module);
+  return qrDecoderPromise;
+}
+
+async function showOwnIdQrCode() {
+  if (!showOwnIdQrButton || !ownIdQrPanel || !ownIdQrCanvas) return;
+  const opening = ownIdQrPanel.classList.contains("hidden");
+  if (!opening) {
+    ownIdQrPanel.classList.add("hidden");
+    showOwnIdQrButton.setAttribute("aria-expanded", "false");
+    showOwnIdQrButton.setAttribute("aria-label", "Show QR code");
+    return;
+  }
+
+  showOwnIdQrButton.disabled = true;
+  try {
+    const QRCode = await loadQrEncoder();
+    await QRCode.toCanvas(ownIdQrCanvas, identity.id, {
+      width: 256,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: { dark: "#101114", light: "#ffffff" },
+    });
+    ownIdQrPanel.classList.remove("hidden");
+    showOwnIdQrButton.setAttribute("aria-expanded", "true");
+    showOwnIdQrButton.setAttribute("aria-label", "Hide QR code");
+  } catch {
+    setStatus("offline", "Your Aero ID QR code could not be created.");
+  } finally {
+    showOwnIdQrButton.disabled = false;
+  }
+}
+
+function hideOwnIdQrCode() {
+  ownIdQrPanel?.classList.add("hidden");
+  showOwnIdQrButton?.setAttribute("aria-expanded", "false");
+  showOwnIdQrButton?.setAttribute("aria-label", "Show QR code");
+}
+
+function stopAeroIdQrScanner({ hidePanel = true, status = "" } = {}) {
+  qrScannerSession += 1;
+  if (qrScannerFrame) cancelAnimationFrame(qrScannerFrame);
+  qrScannerFrame = 0;
+  qrScannerLastDecodeAt = 0;
+  qrScannerStream?.getTracks().forEach((track) => track.stop());
+  qrScannerStream = null;
+  if (qrScannerVideo) {
+    qrScannerVideo.pause();
+    qrScannerVideo.srcObject = null;
+  }
+  scanAeroIdButton?.removeAttribute("disabled");
+  scanAeroIdButton?.setAttribute("aria-expanded", hidePanel ? "false" : "true");
+  qrScannerPanel?.classList.toggle("hidden", hidePanel);
+  if (qrScannerStatus) {
+    qrScannerStatus.textContent = status || "Point the camera at an Aero QR code.";
+  }
+}
+
+function acceptScannedAeroId(value) {
+  const payload = String(value || "").trim();
+  const remoteId = payload.length <= 64 ? normalizeAeroId(payload) : "";
+  if (!isValidAeroId(remoteId)) {
+    qrScannerStatus.textContent = "This QR code does not contain a valid Aero ID.";
+    return false;
+  }
+  if (remoteId === identity.id) {
+    qrScannerStatus.textContent = "This is your own Aero ID.";
+    return false;
+  }
+
+  stopAeroIdQrScanner();
+  remoteIdInput.value = remoteId;
+  isRemoteIdBlurred = false;
+  renderRemoteIdPrivacy();
+  remoteIdInput.dispatchEvent(new Event("input", { bubbles: true }));
+  platformApi.vibrate("light");
+  setStatus("online", "Aero ID scanned. Review it, then connect.");
+  connectButton.focus();
+  return true;
+}
+
+function scanAeroIdQrFrame(sessionId, timestamp) {
+  if (sessionId !== qrScannerSession || !qrScannerStream || !qrScannerVideo) return;
+  qrScannerFrame = requestAnimationFrame((nextTimestamp) =>
+    scanAeroIdQrFrame(sessionId, nextTimestamp),
+  );
+  if (timestamp - qrScannerLastDecodeAt < 110 || qrScannerVideo.readyState < 2) return;
+  qrScannerLastDecodeAt = timestamp;
+
+  const sourceWidth = qrScannerVideo.videoWidth;
+  const sourceHeight = qrScannerVideo.videoHeight;
+  if (!sourceWidth || !sourceHeight) return;
+  const scale = Math.min(1, 720 / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  if (!qrScannerCanvas) {
+    qrScannerCanvas = document.createElement("canvas");
+    qrScannerContext = qrScannerCanvas.getContext("2d", { willReadFrequently: true });
+  }
+  if (!qrScannerContext) return;
+  if (qrScannerCanvas.width !== width || qrScannerCanvas.height !== height) {
+    qrScannerCanvas.width = width;
+    qrScannerCanvas.height = height;
+  }
+  qrScannerContext.drawImage(qrScannerVideo, 0, 0, width, height);
+  const image = qrScannerContext.getImageData(0, 0, width, height);
+  const result = qrScannerDecoder?.(image.data, width, height, {
+    inversionAttempts: "dontInvert",
+  });
+  if (result?.data) acceptScannedAeroId(result.data);
+}
+
+async function startAeroIdQrScanner() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setStatus("offline", "Camera scanning is unavailable on this device.");
+    return;
+  }
+
+  stopAeroIdQrScanner({ hidePanel: false, status: "Requesting camera access..." });
+  const sessionId = qrScannerSession;
+  scanAeroIdButton.disabled = true;
+  try {
+    qrScannerStatus.textContent = "Starting secure local scanner...";
+    qrScannerDecoder = await loadQrDecoder();
+    if (sessionId !== qrScannerSession) return;
+    const stream = platformApi.isAndroid
+      ? await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        })
+      : await getUserMediaWithDeviceFallback(
+          () => ({ audio: false, video: createCameraVideoConstraints() }),
+          "cameraDeviceId",
+        );
+    if (sessionId !== qrScannerSession) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    qrScannerStream = stream;
+    qrScannerVideo.srcObject = stream;
+    await qrScannerVideo.play();
+    qrScannerStatus.textContent = "Point the camera at an Aero QR code.";
+    qrScannerFrame = requestAnimationFrame((timestamp) =>
+      scanAeroIdQrFrame(sessionId, timestamp),
+    );
+  } catch (error) {
+    if (sessionId !== qrScannerSession) return;
+    stopAeroIdQrScanner({ hidePanel: false, status: formatCameraError(error) });
+  } finally {
+    if (sessionId === qrScannerSession && qrScannerStream) {
+      scanAeroIdButton.disabled = false;
+    }
+  }
 }
 
 function getKnownPreviousIdentityIds(value, ownId = "") {
@@ -13265,6 +13447,7 @@ connectForm.addEventListener("submit", (event) => {
   }
   remoteIdInput.value = "";
   refreshPeers();
+  stopAeroIdQrScanner();
   connectModal?.classList.add("hidden");
 });
 
@@ -14562,17 +14745,38 @@ titlebarLogo.addEventListener("contextmenu", openAppMenu);
 openOwnIdModalButton?.addEventListener("click", () => {
   isOwnIdBlurred = true;
   renderOwnIdPrivacy();
+  hideOwnIdQrCode();
   ownIdModal?.classList.remove("hidden");
 });
 openConnectModalButton?.addEventListener("click", () => {
+  stopAeroIdQrScanner();
   isRemoteIdBlurred = true;
   renderRemoteIdPrivacy();
   connectModal?.classList.remove("hidden");
   document.querySelector("#remote-id")?.focus();
 });
+showOwnIdQrButton?.addEventListener("click", () => {
+  void showOwnIdQrCode();
+});
+scanAeroIdButton?.addEventListener("click", () => {
+  if (!qrScannerPanel?.classList.contains("hidden")) {
+    stopAeroIdQrScanner();
+    return;
+  }
+  void startAeroIdQrScanner();
+});
+stopQrScannerButton?.addEventListener("click", () => {
+  stopAeroIdQrScanner();
+  scanAeroIdButton?.focus();
+});
 startupUpdateFallbackButton.addEventListener("click", openManualUpdateFallback);
 document.querySelectorAll("[data-close-sidebar-modal]").forEach((button) => {
-  button.addEventListener("click", () => button.closest(".modal-layer")?.classList.add("hidden"));
+  button.addEventListener("click", () => {
+    const modal = button.closest(".modal-layer");
+    if (modal === connectModal) stopAeroIdQrScanner();
+    if (modal === ownIdModal) hideOwnIdQrCode();
+    modal?.classList.add("hidden");
+  });
 });
 
 titlebarLogo.addEventListener("click", openAppMenu);
@@ -15127,6 +15331,10 @@ document.addEventListener("keydown", (event) => {
     }
     callHealthPopover.classList.add("hidden");
     settingsModal.classList.add("hidden");
+    stopAeroIdQrScanner();
+    hideOwnIdQrCode();
+    ownIdModal?.classList.add("hidden");
+    connectModal?.classList.add("hidden");
     closeStreamSetup();
   }
 });
@@ -15142,6 +15350,8 @@ document.addEventListener("visibilitychange", () => {
   refreshNotificationState();
   if (document.visibilityState === "visible") {
     sendReadReceiptsForActiveChat();
+  } else if (qrScannerStream) {
+    stopAeroIdQrScanner();
   }
 });
 
@@ -15212,6 +15422,7 @@ platformApi.onSystemShutdown(() => {
 });
 
 window.addEventListener("beforeunload", () => {
+  stopAeroIdQrScanner();
   cleanupRealtimeConnections();
 });
 
