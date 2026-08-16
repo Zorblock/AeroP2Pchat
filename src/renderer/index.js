@@ -8443,7 +8443,9 @@ window.addEventListener("resize", () => {
 function refreshCallUi() {
   const activeConn = activePeerId ? connections.get(activePeerId) : null;
   const canStartCall = Boolean(
-    activeConn?.open && !isCallBusy() && !isNetworkOffline(),
+    activeConn?.open &&
+      (!isCallBusy() || callState.peerId !== activePeerId) &&
+      !isNetworkOffline(),
   );
   callChat.disabled = !canStartCall;
 
@@ -10459,7 +10461,8 @@ function handleRemoteScreenWatchState(peerId, data) {
 }
 
 async function startVoiceCall() {
-  if (!activePeerId || isCallBusy()) {
+  const targetPeerId = activePeerId;
+  if (!targetPeerId || callState.peerId === targetPeerId) {
     return;
   }
 
@@ -10473,17 +10476,35 @@ async function startVoiceCall() {
     return;
   }
 
-  const conn = connections.get(activePeerId);
+  const conn = connections.get(targetPeerId);
   if (!conn?.open) {
     setStatus("offline", "The active peer is not ready yet.");
     return;
   }
 
+  if (isCallBusy()) {
+    const previousPeerId = callState.peerId;
+    const previousLabel = getPeerLabel(
+      previousPeerId,
+      connections.get(previousPeerId),
+    );
+    endVoiceCall({ notifyPeer: true, silent: true });
+    addSystemMessage(
+      `Call with ${previousLabel} ended before starting a new call.`,
+    );
+  }
+
   const callId = createCallId();
-  setCallState("outgoing", { peerId: activePeerId, callId });
+  setCallState("outgoing", { peerId: targetPeerId, callId });
+  if (!sendProtocolMessage(conn, "call-request", { callId })) {
+    resetCallState();
+    setStatus("offline", "The new call could not be started.");
+    addSystemMessage(`Could not call ${getPeerLabel(targetPeerId, conn)}.`);
+    return;
+  }
   scheduleOutgoingCallTimeout();
-  sendProtocolMessage(conn, "call-request", { callId });
-  addSystemMessage(`Calling ${getPeerLabel(activePeerId, conn)}...`);
+  setStatus("pending", `Calling ${getPeerLabel(targetPeerId, conn)}...`);
+  addSystemMessage(`Calling ${getPeerLabel(targetPeerId, conn)}...`);
 }
 
 function handleIncomingCallRequest(peerId, data) {
@@ -11863,7 +11884,7 @@ function declineConnection(peerId) {
 
 function promoteOutgoingConnection(peerId) {
   const entry = pendingConnections.get(peerId);
-  if (!entry) {
+  if (!entry || entry.direction !== "outgoing" || !entry.conn.open) {
     return;
   }
 
@@ -11886,10 +11907,27 @@ function promoteOutgoingConnection(peerId) {
   messageInput.focus();
 }
 
+function isTrackedConnection(peerId, conn) {
+  return Boolean(
+    connections.get(peerId) === conn ||
+      pendingConnections.get(peerId)?.conn === conn,
+  );
+}
+
+function getPreferredConnectionDirection(peerId) {
+  // If both peers connect simultaneously, both sides must retain the same
+  // physical channel. The lower Aero ID owns the outgoing direction.
+  return identity.id < peerId ? "outgoing" : "incoming";
+}
+
 function attachConnectionHandlers(conn, peerId, direction) {
   const peerLabel = () => getPeerLabel(peerId, conn);
 
   conn.on("open", () => {
+    if (!isTrackedConnection(peerId, conn)) {
+      conn.close();
+      return;
+    }
     hideConnectRetry();
     platformApi.vibrate("heavy");
     sendReceiptSettings(conn);
@@ -11918,6 +11956,9 @@ function attachConnectionHandlers(conn, peerId, direction) {
   });
 
   conn.on("data", (data) => {
+    if (!isTrackedConnection(peerId, conn)) {
+      return;
+    }
     if (isPresenceOffline()) {
       conn.close();
       return;
@@ -12231,6 +12272,9 @@ function attachConnectionHandlers(conn, peerId, direction) {
   });
 
   conn.on("error", (error) => {
+    if (!isTrackedConnection(peerId, conn)) {
+      return;
+    }
     if (direction === "outgoing" && isPeerUnreachableError(error)) {
       showUnreachablePeerFeedback(peerId, {
         label: peerLabel(),
@@ -12254,12 +12298,12 @@ function registerConnection(conn, options = {}) {
   const direction = options.incoming ? "incoming" : "outgoing";
   if (isNetworkOffline() || isPresenceOffline()) {
     conn.close();
-    return;
+    return false;
   }
   if (!isKnownChatConnection(conn)) {
     addSystemMessage(`Rejected unsupported connection from ${peerId}.`);
     conn.close();
-    return;
+    return false;
   }
   if (direction === "incoming") {
     rememberConnectionIdentity(peerId, conn.metadata);
@@ -12272,14 +12316,41 @@ function registerConnection(conn, options = {}) {
       connections.size > 0 ? "online" : "pending",
       connections.size > 0 ? "Peer connected" : "Ready to connect",
     );
-    return;
+    return false;
   }
 
-  if (connections.has(peerId)) {
-    connections.get(peerId).close();
+  const established = connections.get(peerId);
+  if (established?.open) {
+    conn.close();
+    if (direction === "outgoing") {
+      activePeerId = peerId;
+      renderChatHistory();
+      refreshPeers();
+    }
+    return false;
   }
-  if (pendingConnections.has(peerId)) {
-    pendingConnections.get(peerId).conn.close();
+  if (established) {
+    connections.delete(peerId);
+    established.close();
+  }
+
+  const existingPending = pendingConnections.get(peerId);
+  if (existingPending) {
+    const keepExisting =
+      existingPending.direction === direction ||
+      existingPending.direction === getPreferredConnectionDirection(peerId);
+    if (keepExisting) {
+      conn.close();
+      setStatus(
+        "pending",
+        `Already connecting with ${getPeerLabel(peerId, existingPending.conn)}...`,
+      );
+      return false;
+    }
+
+    clearConnectTimeout(peerId);
+    pendingConnections.delete(peerId);
+    existingPending.conn.close();
   }
 
   pendingConnections.set(peerId, {
@@ -12303,6 +12374,7 @@ function registerConnection(conn, options = {}) {
   }
 
   refreshPeers();
+  return true;
 }
 
 function connectToPeer(remoteId) {
@@ -12311,22 +12383,22 @@ function connectToPeer(remoteId) {
 
   if (isNetworkOffline()) {
     setStatus("offline", "You're offline. Internet connection required.");
-    return;
+    return false;
   }
 
   if (!peer?.open) {
     setStatus("offline", "Your peer is not ready yet.");
-    return;
+    return false;
   }
 
   if (isPresenceOffline()) {
     setStatus("offline", "You are offline. Switch to Online to connect.");
-    return;
+    return false;
   }
 
   if (!remoteId || remoteId === myPeerId) {
     setStatus("offline", "Please enter a different peer ID.");
-    return;
+    return false;
   }
 
   if (connections.has(remoteId)) {
@@ -12338,7 +12410,7 @@ function connectToPeer(remoteId) {
       "online",
       `Already connected to ${getPeerLabel(remoteId, connections.get(remoteId))}.`,
     );
-    return;
+    return true;
   }
 
   if (pendingConnections.has(remoteId)) {
@@ -12346,17 +12418,28 @@ function connectToPeer(remoteId) {
       "pending",
       `Already trying to connect to ${getPeerLabel(remoteId, pendingConnections.get(remoteId)?.conn)}...`,
     );
-    return;
+    return true;
   }
 
-  const conn = peer.connect(remoteId, {
-    label: CHAT_LABEL,
-    metadata: createChatMetadata(),
-    reliable: true,
-    serialization: "binary",
-  });
-  writeDevLog("Connection request started.");
-  registerConnection(conn);
+  try {
+    const conn = peer.connect(remoteId, {
+      label: CHAT_LABEL,
+      metadata: createChatMetadata(),
+      reliable: true,
+      serialization: "binary",
+    });
+    if (!conn) {
+      throw new Error("No data connection was created.");
+    }
+    writeDevLog("Connection request started.");
+    return registerConnection(conn);
+  } catch (error) {
+    setStatus("offline", `Could not start connection to ${remoteId}.`);
+    addSystemMessage(
+      `Connection with ${remoteId} could not be started: ${error?.message || "Unknown error"}`,
+    );
+    return false;
+  }
 }
 
 function renderBlockedList() {
@@ -12903,9 +12986,15 @@ remoteIdPrivacyToggle.addEventListener("click", () => {
 
 connectForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const remoteId = normalizeAeroId(remoteIdInput.value);
+  if (!isValidAeroId(remoteId)) {
+    setStatus("offline", "Please enter a valid Aero ID.");
+    return;
+  }
+
   if (
     isActionOnCooldown(
-      "connect",
+      `connect:${remoteId}`,
       CONNECT_ACTION_COOLDOWN_MS,
       "Please wait before trying another connection.",
     )
@@ -12913,33 +13002,29 @@ connectForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const remoteId = normalizeAeroId(remoteIdInput.value);
-  if (!isValidAeroId(remoteId)) {
-    setStatus("offline", "Please enter a valid Aero ID.");
+  pinContact(remoteId);
+  if (!connectToPeer(remoteId)) {
     return;
   }
-
-  pinContact(remoteId);
-  connectToPeer(remoteId);
   remoteIdInput.value = "";
   refreshPeers();
   connectModal?.classList.add("hidden");
 });
 
 retryConnectButton?.addEventListener("click", () => {
+  const remoteId = lastFailedConnectId || normalizeAeroId(remoteIdInput.value);
+  if (!isValidAeroId(remoteId)) {
+    hideConnectRetry();
+    return;
+  }
+
   if (
     isActionOnCooldown(
-      "connect",
+      `connect:${remoteId}`,
       CONNECT_ACTION_COOLDOWN_MS,
       "Please wait before retrying.",
     )
   ) {
-    return;
-  }
-
-  const remoteId = lastFailedConnectId || normalizeAeroId(remoteIdInput.value);
-  if (!isValidAeroId(remoteId)) {
-    hideConnectRetry();
     return;
   }
 
