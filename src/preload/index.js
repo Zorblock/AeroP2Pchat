@@ -66,6 +66,8 @@ contextBridge.exposeInMainWorld("aeroChat", {
     ipcRenderer.invoke("finalize-incoming-file", tempRef),
   releaseIncomingFile: (tempRef) =>
     ipcRenderer.invoke("release-incoming-file", tempRef),
+  scanIncomingFile: (tempRef) =>
+    ipcRenderer.invoke("scan-incoming-file", tempRef),
   getIncomingFileUrl: (tempRef) =>
     ipcRenderer.invoke("get-incoming-file-url", tempRef),
   cleanupIncomingFiles: () =>

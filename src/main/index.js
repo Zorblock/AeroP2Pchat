@@ -110,6 +110,7 @@ const unsafeReceivedFileExtensions = new Set([
   ".so", ".sys", ".url", ".vb", ".vbe", ".vbs", ".wsf", ".wsh",
 ]);
 const incomingTempFiles = new Map();
+let windowsDefenderScanQueue = Promise.resolve();
 const incomingFileChunkMaxBytes = 256 * 1024;
 const incomingFileDiskReserveBytes = 64 * 1024 * 1024;
 
@@ -404,21 +405,45 @@ async function findWindowsDefenderScanner() {
 
 async function scanReceivedFile(filePath) {
   if (process.platform === "win32") {
-    const scanner = await findWindowsDefenderScanner();
-    if (!scanner) return { status: "unavailable", engine: "" };
-    const result = await runSecurityScanner(scanner, [
-      "-Scan",
-      "-ScanType",
-      "3",
-      "-File",
-      filePath,
-      "-DisableRemediation",
-    ]);
-    if (result.code === 0) return { status: "clean", engine: "Microsoft Defender" };
-    if (result.code === 2 || /threat|malware|infected/i.test(result.output || "")) {
-      return { status: "blocked", engine: "Microsoft Defender" };
-    }
-    return { status: "error", engine: "Microsoft Defender", error: result.error || "Microsoft Defender could not complete the scan." };
+    const runDefenderScan = async () => {
+      const scanner = await findWindowsDefenderScanner();
+      if (!scanner) return { status: "unavailable", engine: "" };
+      const result = await runSecurityScanner(scanner, [
+        "-Scan",
+        "-ScanType",
+        "3",
+        "-File",
+        filePath,
+        "-DisableRemediation",
+      ]);
+      if (result.code === 0) {
+        return { status: "clean", engine: "Microsoft Defender" };
+      }
+      const output = String(result.output || "");
+      const threatDetected =
+        /(?:found|detected)\s+[1-9]\d*\s+threats?/i.test(output) ||
+        /threats?\s+(?:was\s+|were\s+)?(?:found|detected)/i.test(output) ||
+        /(?:malware|virus)\s+(?:was\s+)?detected/i.test(output) ||
+        /infected(?:\s+files?)?\s*:\s*[1-9]\d*/i.test(output) ||
+        /\bfile\s+is\s+infected\b/i.test(output);
+      if (threatDetected) {
+        return { status: "blocked", engine: "Microsoft Defender" };
+      }
+      return {
+        status: "error",
+        engine: "Microsoft Defender",
+        error: result.error || "Microsoft Defender could not complete the scan.",
+      };
+    };
+    const queuedScan = windowsDefenderScanQueue.then(
+      runDefenderScan,
+      runDefenderScan,
+    );
+    windowsDefenderScanQueue = queuedScan.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queuedScan;
   }
 
   if (process.platform === "linux") {
@@ -570,6 +595,27 @@ async function releaseIncomingFile(event, tempRefValue) {
   await entry?.handle?.close().catch(() => {});
   if (entry?.path) await rm(entry.path, { force: true }).catch(() => {});
   return { ok: true };
+}
+
+async function scanIncomingFile(event, tempRefValue) {
+  if (!isCustomSoundRequest(event)) {
+    return { ok: false, error: "Unauthorized file scan request." };
+  }
+  const tempRef = String(tempRefValue || "");
+  const entry = incomingTempFiles.get(tempRef);
+  if (!entry?.finalized || !entry.path) {
+    return { ok: false, error: "The temporary file is unavailable." };
+  }
+
+  const scan = await scanReceivedFile(entry.path);
+  return {
+    ok: scan.status === "clean",
+    blocked: scan.status === "blocked",
+    unavailable: scan.status === "unavailable",
+    scanStatus: scan.status,
+    scanner: scan.engine || "",
+    error: scan.error || "",
+  };
 }
 
 function getIncomingFileUrl(event, tempRefValue) {
@@ -2854,6 +2900,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("append-incoming-file", (event, tempRef, data) => appendIncomingFile(event, tempRef, data));
   ipcMain.handle("finalize-incoming-file", (event, tempRef) => finalizeIncomingFile(event, tempRef));
   ipcMain.handle("release-incoming-file", (event, tempRef) => releaseIncomingFile(event, tempRef));
+  ipcMain.handle("scan-incoming-file", (event, tempRef) => scanIncomingFile(event, tempRef));
   ipcMain.handle("get-incoming-file-url", (event, tempRef) => getIncomingFileUrl(event, tempRef));
   ipcMain.handle("cleanup-incoming-files", async (event) => {
     if (!isCustomSoundRequest(event)) return { ok: false };

@@ -228,6 +228,8 @@ export function createPlatformApi() {
     supportsCustomSounds: isElectron,
     supportsCustomWallpapers: isElectron,
     supportsFileDirectoryChoice: isElectron || isAndroid,
+    supportsReceivedFileScan:
+      isElectron && ["win32", "linux"].includes(platform),
 
     async prepareIncomingFile({ id, name, size, mimeType, sha256 }) {
       if (electron?.prepareIncomingFile) {
@@ -402,6 +404,13 @@ export function createPlatformApi() {
         }
       }
       return triggerBrowserDownload(sourceBlob, name);
+    },
+
+    async scanReceivedFile(tempRef) {
+      if (!electron?.scanIncomingFile || !tempRef) {
+        return { ok: false, unsupported: true };
+      }
+      return electron.scanIncomingFile(tempRef);
     },
 
     async loadConfig() {

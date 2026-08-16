@@ -409,6 +409,7 @@ const menuBlock = document.querySelector("#menu-block");
 const messageMenu = document.querySelector("#message-menu");
 const menuCopy = document.querySelector("#menu-copy");
 const menuSaveFile = document.querySelector("#menu-save-file");
+const menuScanFile = document.querySelector("#menu-scan-file");
 const menuDelete = document.querySelector("#menu-delete");
 const menuDeleteEveryone = document.querySelector("#menu-delete-everyone");
 const participantMenu = document.querySelector("#participant-menu");
@@ -5363,11 +5364,11 @@ function createFileMessageBody(item) {
     blocked: "fa-ban",
   };
   securityBadge.className = `file-security-badge ${securityLevel}`;
-  securityBadge.title = securityDetails
+  securityBadge.dataset.tooltip = securityDetails
     ? `${securityLabel}: ${securityDetails}`
     : securityLabel;
   securityBadge.setAttribute("role", "img");
-  securityBadge.setAttribute("aria-label", securityBadge.title);
+  securityBadge.setAttribute("aria-label", securityBadge.dataset.tooltip);
   securityBadge.innerHTML =
     `<i class="fa-solid ${securityIcons[securityLevel] || securityIcons.warning}" aria-hidden="true"></i>`;
   icon.append(securityBadge);
@@ -5401,7 +5402,11 @@ function createFileMessageBody(item) {
     decline.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
     decline.addEventListener("click", () => declineFileMessage(item));
     actions.append(accept, decline);
-  } else if (item.sender === "them" && (file.downloadState === "ready" || file.downloadState === "saved")) {
+  } else if (
+    item.sender === "them" &&
+    (file.tempRef || file.blob) &&
+    (file.downloadState === "ready" || file.downloadState === "saved")
+  ) {
     const save = document.createElement("button");
     save.type = "button";
     save.className = "file-message-action primary";
@@ -7184,7 +7189,7 @@ async function requestFileMessage(item, { automatic = false } = {}) {
     const confirmed = await showAppDialog({
       title: unsafe ? "Unsafe file type" : "Accept this file?",
       message: unsafe
-        ? `${file.security.reasons.join(" ")} This file can potentially execute code or change your device. Aero will only download it to private temporary storage and will never run it automatically.`
+        ? `${file.security.reasons.join(" ")} This file can potentially execute code or change your device. Aero will verify it in private temporary storage, then use your download location setting. It will never run the file automatically.`
         : `${file.security.reasons.join(" ")} Only save it if you trust the sender.`,
       confirmText: unsafe ? "Accept anyway" : "Accept",
       cancelText: "Cancel",
@@ -7198,6 +7203,7 @@ async function requestFileMessage(item, { automatic = false } = {}) {
     return;
   }
   file.downloadState = "requested";
+  file.requestedAutomatically = automatic;
   file.transferStatus = "Preparing private temporary storage...";
   file.transferProgress = 0;
   renderChatHistory();
@@ -7225,6 +7231,7 @@ async function requestFileMessage(item, { automatic = false } = {}) {
 
 function declineFileMessage(item) {
   if (!item?.file || item.sender !== "them") return;
+  delete item.file.requestedAutomatically;
   item.file.downloadState = "declined";
   item.file.transferStatus = "File declined";
   sendProtocolMessage(connections.get(item.peerId), "file-declined", { fileId: item.file.id });
@@ -7240,6 +7247,7 @@ function failFileDownload(peerId, fileId, message = "Transfer interrupted – re
   if (!item?.file || item.file.downloadState !== "requested") return;
   if (item.file.tempRef) void platformApi.releaseReceivedFile(item.file.tempRef);
   delete item.file.tempRef;
+  delete item.file.requestedAutomatically;
   item.file.downloadState = "failed";
   item.file.transferStatus = message;
   if (activePeerId === peerId) renderChatHistory();
@@ -7463,6 +7471,7 @@ async function handleFileTransferComplete(peerId, data) {
 
   item.file.transferStatus = "Verifying SHA-256 and file type...";
   item.file.transferProgress = 100;
+  let saveAfterVerification = false;
   if (activePeerId === peerId) renderChatHistory();
   try {
     await transfer.writeQueue;
@@ -7479,6 +7488,26 @@ async function handleFileTransferComplete(peerId, data) {
     item.file.security = security;
     item.file.detectedMime = security.detectedMime;
     if (security.level === "blocked") throw new Error(security.reasons.join(" "));
+    if (
+      security.level === "unsafe" &&
+      platformApi.supportsReceivedFileScan
+    ) {
+      item.file.transferStatus = "Scanning for threats...";
+      if (activePeerId === peerId) renderChatHistory();
+      const scan = await platformApi.scanReceivedFile(transfer.tempRef).catch(
+        (error) => ({
+          ok: false,
+          scanStatus: "error",
+          error: error?.message || "Antivirus scan failed.",
+        }),
+      );
+      if (scan?.blocked) {
+        throw new Error(
+          `${scan.scanner || "Desktop antivirus"} detected a threat.`,
+        );
+      }
+      applyFileScanResult(item.file, scan);
+    }
     item.file.receivedAt = Date.now();
     item.file.previewUrl = "";
     if (security.previewKind) {
@@ -7493,11 +7522,14 @@ async function handleFileTransferComplete(peerId, data) {
     }
     item.file.downloadState = "ready";
     item.file.transferStatus = "";
+    saveAfterVerification = !item.file.previewUrl && !item.file.requestedAutomatically;
+    delete item.file.requestedAutomatically;
     sendProtocolMessage(connections.get(peerId), "file-received", { fileId });
     writeDevLog(`File downloaded to private temporary storage and verified (${formatFileSize(transfer.file.size)}).`);
   } catch (error) {
     await platformApi.releaseReceivedFile(transfer.tempRef);
     delete item.file.tempRef;
+    delete item.file.requestedAutomatically;
     item.file.downloadState = "invalid";
     item.file.security = {
       level: "blocked",
@@ -7509,12 +7541,83 @@ async function handleFileTransferComplete(peerId, data) {
     incomingFileTransfers.delete(key);
   }
   if (activePeerId === peerId) renderChatHistory();
+  if (saveAfterVerification) {
+    await saveFileMessage(item, {
+      skipRiskConfirmation: true,
+      releaseAfterSave: true,
+    });
+  }
 }
 
-async function saveFileMessage(item) {
+function applyFileScanResult(file, result) {
+  if (!file?.security) return;
+  const riskLabel = getFileSecurityLabel(file.security.level);
+  const scanner = result?.scanner || "desktop antivirus";
+  file.security.scanStatus = result?.scanStatus || "error";
+  file.security.scanner = result?.scanner || "";
+  if (result?.ok) {
+    file.security.scanLabel = `${riskLabel} · No threats found by ${scanner}`;
+  } else if (result?.unavailable || result?.unsupported) {
+    file.security.scanLabel = `${riskLabel} · No compatible desktop antivirus found`;
+  } else {
+    file.security.scanLabel = `${riskLabel} · Antivirus scan failed`;
+  }
+}
+
+async function scanFileMessage(item) {
+  const file = item?.file;
+  if (
+    item?.sender !== "them" ||
+    !file?.tempRef ||
+    !["ready", "saved"].includes(file.downloadState) ||
+    !platformApi.supportsReceivedFileScan
+  ) {
+    return;
+  }
+
+  setStatus("pending", `Scanning ${file.name} for threats...`);
+  const result = await platformApi.scanReceivedFile(file.tempRef).catch(
+    (error) => ({
+      ok: false,
+      scanStatus: "error",
+      error: error?.message || "Antivirus scan failed.",
+    }),
+  );
+  if (result?.blocked) {
+    const scanner = result.scanner || "Desktop antivirus";
+    releaseFilePayload(item, "invalid", `${scanner} detected a threat`);
+    file.security = {
+      ...(file.security || {}),
+      level: "blocked",
+      scanStatus: "blocked",
+      scanLabel: `Threat detected by ${scanner}`,
+      reasons: [
+        ...(file.security?.reasons || []),
+        `${scanner} detected a threat in this file.`,
+      ],
+    };
+    setStatus("offline", `${scanner} blocked ${file.name}.`);
+  } else {
+    applyFileScanResult(file, result);
+    setStatus(
+      result?.ok ? "online" : "pending",
+      result?.ok
+        ? `No threats found in ${file.name}.`
+        : result?.unavailable || result?.unsupported
+          ? "No compatible desktop antivirus was found."
+          : result?.error || "The antivirus scan could not be completed.",
+    );
+  }
+  if (activePeerId === item.peerId) renderChatHistory();
+}
+
+async function saveFileMessage(
+  item,
+  { skipRiskConfirmation = false, releaseAfterSave = false } = {},
+) {
   const file = item?.file;
   if ((!file?.blob && !file?.tempRef) || !["ready", "saved"].includes(file.downloadState)) return;
-  if (["warning", "unsafe"].includes(file.security?.level)) {
+  if (!skipRiskConfirmation && ["warning", "unsafe"].includes(file.security?.level)) {
     const unsafe = file.security.level === "unsafe";
     const confirmed = await showAppDialog({
       title: unsafe ? "Save an unsafe file type?" : "Save file with warnings?",
@@ -7580,6 +7683,13 @@ async function saveFileMessage(item) {
       file.security.scanLabel = file.security.level === "unsafe"
         ? `Unsafe file type · ${scanLabel}`
         : scanLabel;
+      if (releaseAfterSave && !file.previewUrl) {
+        if (file.tempRef) {
+          await platformApi.releaseReceivedFile(file.tempRef).catch(() => {});
+        }
+        delete file.blob;
+        delete file.tempRef;
+      }
       setStatus("online", `${file.name} saved.`);
       if (result.renamedDueToLock) {
         await showAppDialog({
@@ -11076,8 +11186,24 @@ function openMessageMenu(event, messageItem) {
   menuCopy.classList.toggle("hidden", !messageItem.text);
   menuSaveFile.classList.toggle(
     "hidden",
-    messageItem.sender !== "them" || !messageItem.file || !["ready", "saved"].includes(messageItem.file.downloadState),
+    messageItem.sender !== "them" ||
+      !messageItem.file ||
+      (!messageItem.file.tempRef && !messageItem.file.blob) ||
+      !["ready", "saved"].includes(messageItem.file.downloadState),
   );
+  const canScanFile = Boolean(
+    platformApi.supportsReceivedFileScan &&
+      messageItem.sender === "them" &&
+      messageItem.file?.tempRef &&
+      ["ready", "saved"].includes(messageItem.file.downloadState),
+  );
+  menuScanFile.classList.toggle("hidden", !canScanFile);
+  menuScanFile.querySelector("span").textContent =
+    platformApi.platform === "win32"
+      ? "Scan with Microsoft Defender"
+      : platformApi.platform === "linux"
+        ? "Scan with ClamAV"
+        : "Scan for threats";
   const canDeleteForEveryone = messageItem.sender === "me";
   const deleteConnection = connections.get(messageItem.peerId);
   menuDeleteEveryone.classList.toggle("hidden", !canDeleteForEveryone);
@@ -14837,6 +14963,12 @@ menuSaveFile.addEventListener("click", () => {
   closeMessageMenu();
 });
 
+menuScanFile.addEventListener("click", () => {
+  const item = contextMessage;
+  closeMessageMenu();
+  if (item?.file) void scanFileMessage(item);
+});
+
 menuDelete.addEventListener("click", () => {
   if (!contextMessage) {
     return;
@@ -15178,6 +15310,7 @@ const tooltipTargetSelector = [
   "button.contact-remove[aria-label]",
   "button.stream-close-button[aria-label]",
   "button.stream-fullscreen-button[aria-label]",
+  ".file-security-badge[data-tooltip]",
 ].join(",");
 
 function getTooltipTarget(element) {
