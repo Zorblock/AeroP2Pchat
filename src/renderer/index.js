@@ -542,6 +542,7 @@ const MIN_CHAT_WIDTH = 320;
 const RESIZER_WIDTH = 12;
 const VOICE_METER_FFT = 2048;
 const CONNECT_TIMEOUT_MS = 12000;
+const CONNECTION_REQUEST_TIMEOUT_MS = 120000;
 let activePeerId = null;
 let myPeerId = "";
 let peer = null;
@@ -4509,7 +4510,7 @@ function isPeerUnreachableError(error) {
   );
 }
 
-function startConnectTimeout(peerId, conn) {
+function startConnectTimeout(peerId, conn, { waitingForAnswer = false } = {}) {
   clearConnectTimeout(peerId);
   connectTimeouts.set(
     peerId,
@@ -4520,9 +4521,11 @@ function startConnectTimeout(peerId, conn) {
       }
       showUnreachablePeerFeedback(peerId, {
         label: getPeerLabel(peerId, conn),
-        reason: `${getPeerLabel(peerId, conn)} did not answer in time.`,
+        reason: waitingForAnswer
+          ? `${getPeerLabel(peerId, conn)} did not answer the connection request in time.`
+          : `${getPeerLabel(peerId, conn)} could not be reached in time.`,
       });
-    }, CONNECT_TIMEOUT_MS),
+    }, waitingForAnswer ? CONNECTION_REQUEST_TIMEOUT_MS : CONNECT_TIMEOUT_MS),
   );
 }
 
@@ -10658,8 +10661,15 @@ function refreshPeers() {
 
       const accept = document.createElement("button");
       accept.type = "button";
-      accept.textContent = "Accept";
-      accept.addEventListener("click", () => {
+      accept.textContent = entry.acceptRequested
+        ? "Accepting..."
+        : entry.receivedRequest
+          ? "Accept"
+          : "Connecting...";
+      accept.disabled = entry.acceptRequested || !entry.receivedRequest;
+      accept.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         acceptConnection(peerId);
       });
 
@@ -10802,39 +10812,50 @@ function refreshPeers() {
 
 function acceptConnection(peerId) {
   const entry = pendingConnections.get(peerId);
-  if (!entry) {
+  if (!entry || entry.direction !== "incoming") {
     return;
   }
 
   const peerLabel = getPeerLabel(peerId, entry.conn);
-  clearConnectTimeout(peerId);
+  entry.acceptRequested = true;
 
+  // On Android, PeerJS can surface the incoming DataConnection before both
+  // sides have finished their open/request handshake. Keep the request
+  // pending until the channel is writable and the explicit request arrived.
+  if (!entry.conn.open || !entry.receivedRequest) {
+    setStatus("pending", `Accepting ${peerLabel}...`);
+    refreshPeers();
+    return;
+  }
+
+  // Do not promote the local state unless the remote peer was actually told
+  // about the acceptance. Otherwise Android can appear connected while the
+  // sender remains stuck on the request screen.
+  sendReceiptSettings(entry.conn);
+  if (!sendProtocolMessage(entry.conn, "connection-accepted")) {
+    entry.acceptRequested = false;
+    setStatus("offline", `Could not accept ${peerLabel}. Please try again.`);
+    refreshPeers();
+    return;
+  }
+
+  clearConnectTimeout(peerId);
   pendingConnections.delete(peerId);
   connections.set(peerId, entry.conn);
   activePeerId = peerId;
-
-  if (entry.conn.open) {
-    sendReceiptSettings(entry.conn);
-    sendProtocolMessage(entry.conn, "connection-accepted");
-    startConnectionHeartbeat(peerId, entry.conn);
-    pinContact(
-      getPeerIdentityId(peerId, entry.conn),
-      getPeerLabel(peerId, entry.conn),
-    );
-    setStatus("online", `Connected to ${peerLabel}`);
-    writeDevLog("Connection accepted.");
-    renderChatHistory();
-    addSystemMessage(`Connection with ${peerLabel} accepted.`);
-    playConnectedSound();
-    messageInput.focus();
-  } else {
-    entry.acceptOnOpen = true;
-    pendingConnections.set(peerId, entry);
-    connections.delete(peerId);
-    setStatus("pending", `Accepting ${peerLabel}...`);
-  }
-
+  startConnectionHeartbeat(peerId, entry.conn);
+  pinContact(
+    getPeerIdentityId(peerId, entry.conn),
+    getPeerLabel(peerId, entry.conn),
+  );
+  setStatus("online", `Connected to ${peerLabel}`);
+  writeDevLog("Connection accepted.");
+  renderChatHistory();
+  addSystemMessage(`Connection with ${peerLabel} accepted.`);
+  playConnectedSound();
   refreshPeers();
+  setMobileTab("chat");
+  messageInput.focus();
 }
 
 function declineConnection(peerId) {
@@ -10877,8 +10898,9 @@ function promoteOutgoingConnection(peerId) {
   renderChatHistory();
   addSystemMessage(`${peerLabel} accepted your request.`);
   playConnectedSound();
-  messageInput.focus();
   refreshPeers();
+  setMobileTab("chat");
+  messageInput.focus();
 }
 
 function attachConnectionHandlers(conn, peerId, direction) {
@@ -10891,26 +10913,16 @@ function attachConnectionHandlers(conn, peerId, direction) {
     const pending = pendingConnections.get(peerId);
     if (pending?.direction === "outgoing") {
       sendProtocolMessage(conn, "connection-request");
+      // The transport is ready now. Give the other person enough time to
+      // respond, especially when Android has to be brought to the foreground.
+      startConnectTimeout(peerId, conn, { waitingForAnswer: true });
       setStatus("pending", `Waiting for ${peerLabel()} to accept...`);
       refreshPeers();
       return;
     }
 
-    if (pending?.acceptOnOpen) {
-      hideConnectRetry();
-      pendingConnections.delete(peerId);
-      connections.set(peerId, conn);
-      activePeerId = peerId;
-      sendReceiptSettings(conn);
-      sendProtocolMessage(conn, "connection-accepted");
-      startConnectionHeartbeat(peerId, conn);
-      pinContact(getPeerIdentityId(peerId, conn), peerLabel());
-      setStatus("online", `Connected to ${peerLabel()}`);
-      renderChatHistory();
-      addSystemMessage(`Connection with ${peerLabel()} accepted.`);
-      playConnectedSound();
-      messageInput.focus();
-      refreshPeers();
+    if (pending?.acceptRequested && pending.receivedRequest) {
+      acceptConnection(peerId);
       return;
     }
 
@@ -10950,7 +10962,10 @@ function attachConnectionHandlers(conn, peerId, direction) {
       const pending = pendingConnections.get(peerId);
       if (pending?.direction === "incoming") {
         pending.receivedRequest = true;
-        if (isTrusted(getPeerIdentityId(peerId, conn))) {
+        if (
+          pending.acceptRequested ||
+          isTrusted(getPeerIdentityId(peerId, conn))
+        ) {
           // Wait for the sender's explicit request packet. Accepting directly
           // from PeerJS' connection event can race the remote open handler.
           acceptConnection(peerId);
@@ -11219,7 +11234,12 @@ function registerConnection(conn, options = {}) {
     pendingConnections.get(peerId).conn.close();
   }
 
-  pendingConnections.set(peerId, { conn, direction, receivedRequest: false });
+  pendingConnections.set(peerId, {
+    conn,
+    direction,
+    receivedRequest: false,
+    acceptRequested: false,
+  });
   attachConnectionHandlers(conn, peerId, direction);
   if (direction === "outgoing") {
     startConnectTimeout(peerId, conn);
