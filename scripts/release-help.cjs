@@ -571,11 +571,7 @@ function printArtifact(label, filePath, status, styles) {
   console.log(`    ${colored(terminalFolderLink(filePath), color.dim)}`);
 }
 
-function printReleaseSummary(
-  releaseFiles,
-  chromeExtensionPublished,
-  virusTotalSubmitted,
-) {
+function printReleaseSummary(releaseFiles, chromeExtensionPublished) {
   const findReleaseFile = (extension) =>
     releaseFiles.find((filePath) => filePath.toLowerCase().endsWith(extension));
 
@@ -589,9 +585,6 @@ function printReleaseSummary(
   console.log("Status: [OK] GitHub release published");
   console.log(
     `Chrome: ${chromeExtensionPublished ? "[OK] uploaded automatically" : "[MANUAL] ZIP must be uploaded manually"}`,
-  );
-  console.log(
-    `VirusTotal: ${virusTotalSubmitted ? "[OK] submitted" : "[SKIPPED] submit manually if needed"}`,
   );
   console.log("Files:");
 
@@ -746,8 +739,6 @@ async function main() {
   run("npm", ["run", "test"]);
   console.log("Checking Chrome Web Store credentials...");
   run("node", ["scripts/publish-chrome-extension.cjs", "--check"]);
-  console.log("Checking VirusTotal API key...");
-  run("node", ["scripts/scan-virustotal.cjs", "--check-key"]);
 
   // Store original package files for rollback
   const originalPkg = fs.readFileSync(packagePath, "utf8");
@@ -836,25 +827,7 @@ async function main() {
     githubReleaseCreated = true;
     uploadReleaseFiles(tag, githubReleaseFiles);
 
-    // VirusTotal submissions are deliberately last: the public releases are
-    // already available, while the reports populate asynchronously afterwards.
-    console.log("Submitting public VirusTotal scans...");
-    let virusTotalSubmitted = false;
-    try {
-      run("node", ["scripts/scan-virustotal.cjs", "--submit-only"]);
-      virusTotalSubmitted = true;
-    } catch (error) {
-      console.warn(
-        `VirusTotal upload could not be completed: ${error.message || error}`,
-      );
-      console.warn("The release is already published; retry with npm run scan:virustotal:submit.");
-    }
-
-    printReleaseSummary(
-      releaseFiles,
-      chromeExtensionPublished,
-      virusTotalSubmitted,
-    );
+    printReleaseSummary(releaseFiles, chromeExtensionPublished);
     notifyReleaseComplete(tag);
   } catch (err) {
     console.error(`\n❌ Release process failed: ${err.message || err}`);
