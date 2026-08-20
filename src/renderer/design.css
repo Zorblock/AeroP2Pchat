@@ -2359,7 +2359,6 @@ select.native-select {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
 /* Load the composited wallpaper only after the interface is interactive. */

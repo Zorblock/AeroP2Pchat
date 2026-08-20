@@ -545,6 +545,7 @@ const SCREEN_STREAM_FPS_OPTIONS = [15, 30, 60];
 const MAX_CHAT_HISTORY_ITEMS = 500;
 const MESSAGE_SEND_INTERVAL_MS = 180;
 const MESSAGE_TRANSITION_MS = 190;
+const CHAT_BOTTOM_THRESHOLD_PX = 48;
 const MAX_QUEUED_OUTGOING_MESSAGES = 20;
 const INCOMING_MESSAGE_WINDOW_MS = 5000;
 const MAX_INCOMING_MESSAGES_PER_WINDOW = 35;
@@ -598,6 +599,7 @@ const VOICE_METER_FFT = 2048;
 const CONNECT_TIMEOUT_MS = 12000;
 const CONNECTION_REQUEST_TIMEOUT_MS = 120000;
 let activePeerId = null;
+let renderedChatPeerId = null;
 let myPeerId = "";
 let peer = null;
 let availableUpdate = null;
@@ -5878,24 +5880,81 @@ function shouldReduceMessageMotion() {
   );
 }
 
+function isChatScrolledToBottom() {
+  return (
+    messages.scrollHeight - messages.clientHeight - messages.scrollTop <=
+    CHAT_BOTTOM_THRESHOLD_PX
+  );
+}
+
+function captureChatScrollState() {
+  const containerTop = messages.getBoundingClientRect().top;
+  const anchors = Array.from(messages.children)
+    .filter(
+      (row) =>
+        row.dataset?.messageId &&
+        row.getBoundingClientRect().bottom > containerTop,
+    )
+    .slice(0, 10)
+    .map((row) => ({
+      messageId: row.dataset.messageId,
+      offset: row.getBoundingClientRect().top - containerTop,
+    }));
+
+  return {
+    atBottom: isChatScrolledToBottom(),
+    scrollTop: messages.scrollTop,
+    anchors,
+  };
+}
+
+function restoreChatScrollState(state) {
+  if (!state || state.atBottom) {
+    messages.scrollTop = messages.scrollHeight;
+    return;
+  }
+
+  const containerTop = messages.getBoundingClientRect().top;
+  const anchor = state.anchors.find(({ messageId }) =>
+    findRenderedMessageRow(messageId),
+  );
+  if (!anchor) {
+    messages.scrollTop = state.scrollTop;
+    return;
+  }
+
+  const row = findRenderedMessageRow(anchor.messageId);
+  messages.scrollTop +=
+    row.getBoundingClientRect().top - containerTop - anchor.offset;
+}
+
 function appendMessageRow(row, { animate = false } = {}) {
+  const shouldFollowNewMessage = isChatScrolledToBottom();
   if (animate && !shouldReduceMessageMotion()) {
     row.classList.add("message-entering");
     setTimeout(() => row.classList.remove("message-entering"), MESSAGE_TRANSITION_MS + 80);
   }
   messages.append(row);
-  messages.scrollTop = messages.scrollHeight;
+  if (shouldFollowNewMessage) {
+    messages.scrollTop = messages.scrollHeight;
+  }
   updateEmptyChatState();
 }
 
-function renderChatHistory() {
+function renderChatHistory({ scrollState = null } = {}) {
+  const isSameChat = renderedChatPeerId === activePeerId;
+  const preservedScrollState =
+    scrollState || (isSameChat ? captureChatScrollState() : null);
   messages.replaceChildren();
 
   if (activePeerId) {
     for (const item of ensureChatHistory(activePeerId)) {
-      appendMessageRow(createChatMessage(item));
+      messages.append(createChatMessage(item));
     }
   }
+
+  renderedChatPeerId = activePeerId;
+  restoreChatScrollState(isSameChat ? preservedScrollState : null);
 
   updateEmptyChatState();
   syncChatActionAvailability();
@@ -11840,6 +11899,7 @@ async function deleteMessageLocally(peerId, messageId) {
 
   deletingMessageKeys.add(deletionKey);
   try {
+    const scrollState = activePeerId === peerId ? captureChatScrollState() : null;
     await waitForMessageExit(peerId, messageId);
     const index = history.findIndex((msg) => msg.id === messageId);
     if (index === -1) return;
@@ -11847,7 +11907,7 @@ async function deleteMessageLocally(peerId, messageId) {
     disposeMessageAssets(item);
     history.splice(index, 1);
     if (activePeerId === peerId) {
-      renderChatHistory();
+      renderChatHistory({ scrollState });
     }
   } finally {
     deletingMessageKeys.delete(deletionKey);
